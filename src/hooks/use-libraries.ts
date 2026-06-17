@@ -3,13 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import type {
   Creative,
   DailyLibraryStat,
+  HourlyTrend,
   Library,
   LibraryLatest,
   LibraryTrend,
+  Niche,
   Snapshot,
 } from "@/lib/types";
 
 const FIVE_MIN = 5 * 60_000;
+const ONE_MIN = 60_000;
 
 export function useLibrariesLatest() {
   return useQuery({
@@ -34,6 +37,54 @@ export function useLibraryTrend() {
       const { data, error } = await supabase.from("library_trend" as never).select("*");
       if (error) throw error;
       return (data ?? []) as unknown as LibraryTrend[];
+    },
+  });
+}
+
+/**
+ * Trend for the last ~1 hour, computed client-side from raw snapshots.
+ * Returns one entry per library that has at least 1 snapshot in the window.
+ */
+export function useHourlyTrend() {
+  return useQuery({
+    queryKey: ["hourly_trend"],
+    refetchInterval: ONE_MIN,
+    queryFn: async (): Promise<Record<string, HourlyTrend>> => {
+      // Fetch slightly more than 1h so we always have a baseline.
+      const since = new Date(Date.now() - 90 * 60_000).toISOString();
+      const { data, error } = await supabase
+        .from("snapshots")
+        .select("library_id, captured_at, active_ads_count")
+        .gte("captured_at", since)
+        .order("captured_at", { ascending: true });
+      if (error) throw error;
+      const groups = new Map<string, { ts: number; v: number }[]>();
+      for (const row of (data ?? []) as Array<{
+        library_id: string;
+        captured_at: string;
+        active_ads_count: number | null;
+      }>) {
+        const list = groups.get(row.library_id) ?? [];
+        list.push({ ts: new Date(row.captured_at).getTime(), v: row.active_ads_count ?? 0 });
+        groups.set(row.library_id, list);
+      }
+      const out: Record<string, HourlyTrend> = {};
+      const oneHourAgo = Date.now() - 60 * 60_000;
+      for (const [libId, list] of groups) {
+        if (list.length === 0) continue;
+        const latest = list[list.length - 1];
+        // Baseline = oldest snapshot >= 1h old, or oldest available if none.
+        let baseline = list.find((s) => s.ts <= oneHourAgo);
+        if (!baseline) baseline = list[0];
+        if (baseline === latest) {
+          out[libId] = { library_id: libId, direction: "flat", delta: 0, from: latest.v, to: latest.v };
+          continue;
+        }
+        const delta = latest.v - baseline.v;
+        const direction = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
+        out[libId] = { library_id: libId, direction, delta, from: baseline.v, to: latest.v };
+      }
+      return out;
     },
   });
 }
@@ -203,6 +254,82 @@ export function useToggleLibraryStatus() {
       if (error) throw error;
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["library_latest"] });
+    },
+  });
+}
+
+// =================== Niches CRUD ===================
+
+export function useNiches() {
+  return useQuery({
+    queryKey: ["niches"],
+    queryFn: async (): Promise<Niche[]> => {
+      const { data, error } = await supabase
+        .from("niches" as never)
+        .select("*")
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as Niche[];
+    },
+  });
+}
+
+export function useCreateNiche() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const trimmed = name.trim();
+      if (!trimmed) throw new Error("Nome do nicho é obrigatório");
+      const { data, error } = await supabase
+        .from("niches" as never)
+        .insert({ name: trimmed } as never)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as unknown as Niche;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["niches"] }),
+  });
+}
+
+export function useUpdateNiche() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name, previousName }: { id: string; name: string; previousName: string }) => {
+      const trimmed = name.trim();
+      if (!trimmed) throw new Error("Nome do nicho é obrigatório");
+      const { error } = await supabase
+        .from("niches" as never)
+        .update({ name: trimmed } as never)
+        .eq("id", id);
+      if (error) throw error;
+      // Cascade rename on libraries that referenced the old name (text field).
+      if (previousName && previousName !== trimmed) {
+        await supabase
+          .from("libraries")
+          .update({ niche: trimmed })
+          .eq("niche", previousName);
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["niches"] });
+      qc.invalidateQueries({ queryKey: ["library_latest"] });
+    },
+  });
+}
+
+export function useDeleteNiche() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase.from("niches" as never).delete().eq("id", id);
+      if (error) throw error;
+      // Clear the niche label from libraries that used it.
+      await supabase.from("libraries").update({ niche: null }).eq("niche", name);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["niches"] });
       qc.invalidateQueries({ queryKey: ["library_latest"] });
     },
   });
