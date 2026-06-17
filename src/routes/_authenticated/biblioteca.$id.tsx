@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   ExternalLink,
+  Flame,
   Image as ImageIcon,
   Layers,
   Pencil,
@@ -298,88 +299,76 @@ function LibraryDetailPage() {
         </div>
       </Card>
 
-      {/* Top creatives */}
+      {/* Best creative */}
       <Card className="border-border/60 bg-card p-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Top criativos atuais</h2>
+            <h2 className="text-lg font-semibold">Melhor criativo</h2>
             <p className="text-sm text-muted-foreground">
-              Do último snapshot, ordenados por número de duplicações.
+              Criativo mais duplicado do último snapshot.
             </p>
           </div>
         </div>
         {topCreatives.isLoading ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-44 rounded-xl shimmer" />
-            ))}
-          </div>
+          <Skeleton className="h-80 w-full max-w-lg mx-auto rounded-xl shimmer" />
         ) : (topCreatives.data ?? []).length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
             Sem criativos no último snapshot.
           </p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {(topCreatives.data ?? []).map((c, i) => (
-              <motion.div
-                key={c.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03 }}
-                className={cn(
-                  "group relative overflow-hidden rounded-xl border bg-background/40 p-3 transition-all hover:border-primary/60",
-                  i === 0 ? "border-primary/60 glow-border" : "border-border/60",
-                )}
-              >
-                {i === 0 && (
-                  <Badge className="absolute right-2 top-2 z-10 border-0 bg-foreground text-background">
-                    #1
-                  </Badge>
-                )}
-                <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
-                  {c.preview_url ? (
-                    <img
-                      src={c.preview_url}
-                      alt="Criativo"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="grid h-full w-full place-items-center">
-                      <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-                    </div>
-                  )}
-                  <div className="absolute left-2 top-2 flex items-center gap-1 rounded-md bg-black/60 px-2 py-0.5 text-xs text-white backdrop-blur">
-                    {c.media_type === "video" ? (
-                      <Video className="h-3 w-3" />
-                    ) : (
-                      <ImageIcon className="h-3 w-3" />
-                    )}
-                    {c.media_type ?? "—"}
-                  </div>
+          <motion.div
+            key={(topCreatives.data ?? [])[0].id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden rounded-xl border border-primary/60 bg-background/40 p-3 max-w-lg mx-auto"
+          >
+            <Badge className="absolute right-2 top-2 z-10 border-0 bg-foreground text-background">
+              #1
+            </Badge>
+            <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+              {(topCreatives.data ?? [])[0].preview_url ? (
+                <img
+                  src={(topCreatives.data ?? [])[0].preview_url}
+                  alt="Criativo"
+                  className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="grid h-full w-full place-items-center">
+                  <Flame className="h-16 w-16 text-muted-foreground/40" />
                 </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-sm font-semibold">
-                    ×{formatNumber(c.duplicate_count ?? 0)}
-                  </span>
-                  {c.ad_archive_id && (
-                    <Button asChild size="sm" variant="ghost">
-                      <a
-                        href={`https://www.facebook.com/ads/library/?id=${c.ad_archive_id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Abrir <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </Button>
-                  )}
-                </div>
-                {c.body_text && (
-                  <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{c.body_text}</p>
+              )}
+              <div className="absolute left-2 top-2 flex items-center gap-1 rounded-md bg-black/60 px-2 py-0.5 text-xs text-white backdrop-blur">
+                {(topCreatives.data ?? [])[0].media_type === "video" ? (
+                  <Video className="h-3 w-3" />
+                ) : (
+                  <ImageIcon className="h-3 w-3" />
                 )}
-              </motion.div>
-            ))}
-          </div>
+                {(topCreatives.data ?? [])[0].media_type ?? "—"}
+              </div>
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-sm font-semibold">
+                ×{formatNumber((topCreatives.data ?? [])[0].duplicate_count ?? 0)}
+              </span>
+              {(topCreatives.data ?? [])[0].ad_archive_id && (
+                <Button asChild size="sm" variant="ghost">
+                  <a
+                    href={`https://www.facebook.com/ads/library/?id=${(topCreatives.data ?? [])[0].ad_archive_id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Abrir <ExternalLink className="h-3 w-3" />
+                  </a>
+                </Button>
+              )}
+            </div>
+            {(topCreatives.data ?? [])[0].body_text && (
+              <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                {(topCreatives.data ?? [])[0].body_text}
+              </p>
+            )}
+          </motion.div>
         )}
       </Card>
 
