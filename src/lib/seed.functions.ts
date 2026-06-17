@@ -59,7 +59,7 @@ export const seedDemoData = createServerFn({ method: "POST" })
         .single();
       if (libErr) throw libErr;
 
-      const snapshots: Array<Record<string, unknown>> = [];
+      const snapshots: TablesInsert<"snapshots">[] = [];
       let value = d.baseline;
       const days = 14;
       const previewUrls = [
