@@ -332,8 +332,8 @@ function LibraryDetailPage() {
                 )}
               >
                 {i === 0 && (
-                  <Badge className="absolute right-2 top-2 z-10 border-0 gradient-violet-cyan text-white">
-                    <Crown className="h-3 w-3" /> #1
+                  <Badge className="absolute right-2 top-2 z-10 border-0 bg-foreground text-background">
+                    #1
                   </Badge>
                 )}
                 <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
