@@ -52,7 +52,7 @@ export const Route = createFileRoute("/_authenticated/biblioteca/$id")({
 function LibraryDetailPage() {
   const { id } = Route.useParams();
   const lib = useLibrary(id);
-  const trends = useLibraryTrend();
+  const trends = useHourlyTrend();
   const daily = useDailyStatsForLibrary(id);
   const snaps48 = useLibrarySnapshots(id, 48);
   const history = useLibrarySnapshotsHistory(id, 100);
@@ -65,7 +65,7 @@ function LibraryDetailPage() {
   const pageSize = 10;
 
   const data = lib.data;
-  const trend = trends.data?.find((t) => t.library_id === id);
+  const trend = trends.data?.[id];
 
   const chartData = useMemo(() => {
     if (mode === "hour") {
@@ -124,10 +124,6 @@ function LibraryDetailPage() {
   }
 
   const title = data.search_term || data.page_name || "Biblioteca";
-  const dir = trend?.trend_direction ?? "flat";
-  const TrendIcon = dir === "up" ? ArrowUpRight : dir === "down" ? ArrowDownRight : Minus;
-  const trendColor =
-    dir === "up" ? "text-success" : dir === "down" ? "text-destructive" : "text-muted-foreground";
 
   const totalHistory = history.data?.length ?? 0;
   const pagedHistory = (history.data ?? []).slice(page * pageSize, (page + 1) * pageSize);
