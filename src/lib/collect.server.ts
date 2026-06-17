@@ -81,6 +81,9 @@ async function firecrawlScrape(url: string): Promise<{ html: string; markdown: s
       onlyMainContent: false,
       waitFor: 6000,
       timeout: 60000,
+      // Force a fresh fetch — Firecrawl v2 caches scrapes by default,
+      // which made every "Atualizar agora" return the previous numbers.
+      maxAge: 0,
       location: { country: "BR", languages: ["pt-BR", "pt"] },
     }),
   });
