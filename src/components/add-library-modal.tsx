@@ -43,7 +43,7 @@ const schema = z.object({
   niche: z.string().trim().max(80).optional().nullable(),
   language: z.string().min(1, "Selecione um idioma"),
   notes: z.string().trim().max(2000).optional().nullable(),
-  status: z.enum(["active", "paused", "archived"]).default("active"),
+  status: z.enum(["active", "paused", "archived"]),
 });
 
 type FormValues = z.infer<typeof schema>;
