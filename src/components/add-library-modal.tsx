@@ -105,19 +105,28 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
           id: `collect-${saved.id}`,
           description: "Buscando anúncios ativos e criativos reais na Meta.",
         });
-        const report = await collect({ data: { libraryId: saved.id } });
-        const detail = report.details[0];
-        await qc.invalidateQueries();
-        if (detail?.ok) {
-          toast.success("Biblioteca minerada ao vivo", {
-            id: `collect-${saved.id}`,
-            description: `${detail.active_ads_count ?? 0} anúncios ativos · ${detail.unique_creatives ?? 0} criativos únicos.`,
-          });
-        } else {
+        try {
+          const report = await collect({ data: { libraryId: saved.id } });
+          const detail = report.details[0];
+          await qc.invalidateQueries();
+          if (detail?.ok) {
+            toast.success("Biblioteca minerada ao vivo", {
+              id: `collect-${saved.id}`,
+              description: `${detail.active_ads_count ?? 0} anúncios ativos · ${detail.unique_creatives ?? 0} criativos únicos.`,
+            });
+          } else {
+            toast.error("Biblioteca salva, mas a mineração falhou", {
+              id: `collect-${saved.id}`,
+              description: detail?.error?.slice(0, 120) ?? "A Meta não retornou dados para essa URL agora.",
+            });
+          }
+        } catch (e) {
           toast.error("Biblioteca salva, mas a mineração falhou", {
             id: `collect-${saved.id}`,
-            description: detail?.error?.slice(0, 120) ?? "A Meta não retornou dados para essa URL agora.",
+            description: e instanceof Error ? e.message.slice(0, 120) : "Erro desconhecido na mineração.",
           });
+        } finally {
+          setMining(false);
         }
       } else {
         toast.success(library ? "Biblioteca atualizada" : "Biblioteca adicionada");
@@ -127,8 +136,6 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
       toast.error("Não foi possível salvar", {
         description: e instanceof Error ? e.message : "Erro desconhecido",
       });
-    } finally {
-      setMining(false);
     }
   }
 
