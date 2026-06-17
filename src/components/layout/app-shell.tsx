@@ -73,7 +73,7 @@ function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItem
       </nav>
       {!collapsed && (
         <div className="m-3 rounded-2xl border border-border/60 bg-card/40 p-4 text-xs text-muted-foreground">
-          Os dados são atualizados pelo robô a cada 1 hora.
+          Bibliotecas novas são mineradas na hora e atualizadas ao vivo.
         </div>
       )}
     </div>
