@@ -16,6 +16,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedBibliotecasRouteImport } from './routes/_authenticated/bibliotecas'
 import { Route as AuthenticatedBibliotecaIdRouteImport } from './routes/_authenticated/biblioteca.$id'
+import { Route as ApiPublicHooksCollectRouteImport } from './routes/api/public/hooks/collect'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -54,6 +55,11 @@ const AuthenticatedBibliotecaIdRoute =
     path: '/biblioteca/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicHooksCollectRoute = ApiPublicHooksCollectRouteImport.update({
+  id: '/api/public/hooks/collect',
+  path: '/api/public/hooks/collect',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -62,6 +68,7 @@ export interface FileRoutesByFullPath {
   '/bibliotecas': typeof AuthenticatedBibliotecasRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
+  '/api/public/hooks/collect': typeof ApiPublicHooksCollectRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/': typeof AuthenticatedIndexRoute
   '/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
+  '/api/public/hooks/collect': typeof ApiPublicHooksCollectRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
+  '/api/public/hooks/collect': typeof ApiPublicHooksCollectRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/bibliotecas'
     | '/configuracoes'
     | '/biblioteca/$id'
+    | '/api/public/hooks/collect'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/'
     | '/biblioteca/$id'
+    | '/api/public/hooks/collect'
   id:
     | '__root__'
     | '/_authenticated'
@@ -107,12 +118,14 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes'
     | '/_authenticated/'
     | '/_authenticated/biblioteca/$id'
+    | '/api/public/hooks/collect'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicHooksCollectRoute: typeof ApiPublicHooksCollectRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -166,6 +179,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBibliotecaIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/collect': {
+      id: '/api/public/hooks/collect'
+      path: '/api/public/hooks/collect'
+      fullPath: '/api/public/hooks/collect'
+      preLoaderRoute: typeof ApiPublicHooksCollectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -190,6 +210,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicHooksCollectRoute: ApiPublicHooksCollectRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
