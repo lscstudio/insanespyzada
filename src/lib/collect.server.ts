@@ -139,21 +139,19 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
   }
 
   // ---- Pair creatives with Meta's "Library ID" label ------------------
-  // Each ad card in the Ad Library shows "Library ID: <16-digit number>"
-  // (PT: "ID da biblioteca", ES: "ID de la biblioteca"). We walk the HTML
-  // in document order with a combined regex so each image URL we encounter
-  // is paired with the most recently seen Library ID (its own card).
-  // We also exclude static.xx.fbcdn.net (UI sprites) and known non-ad
-  // assets (profile pics, emojis, safe_image proxies).
+  // Each ad card in the Ad Library shows "Library ID: <16-digit number>".
+  // We also capture Meta's own "X anúncios usam esta criação e este texto"
+  // ("X ads use this creative and text") — the REAL variation count, much
+  // more reliable than counting duplicate image URLs in the DOM.
   const skipRe = /\/(emoji|rsrc\.php|safe_image|profile|p[0-9]+x[0-9]+)\//i;
   const tokenRe = new RegExp(
-    // group 1 = Meta Library ID label, followed by a 14-17 digit number.
-    // Labels seen in the wild: EN "Library ID", PT-BR "Identificação da
-    // biblioteca", ES "Identificación de la biblioteca" / "ID de la
-    // biblioteca", FR "Identifiant de la bibliothèque".
+    // group 1 = Library ID label + 14-17 digit number
     "(?:Library ID|Identifica[çc][aã]o da biblioteca|Identificaci[oó]n de la biblioteca|ID de la biblioteca|Identifiant de la biblioth[eè]que)\\s*[:#]?\\s*([0-9]{14,17})" +
       "|" +
-      // group 2 = a creative URL on the user-content CDN
+      // group 2 = Meta's variation-count phrase
+      "([0-9][0-9.,]*)\\s*(?:an[úu]ncios?\\s+usam\\s+esta\\s+cria[çc][aã]o(?:\\s+e\\s+este\\s+texto)?|ads?\\s+use\\s+this\\s+(?:ad\\s+)?creative(?:\\s+and\\s+text)?|anuncios?\\s+usan\\s+esta\\s+(?:creatividad|cre[aá]tividad)(?:\\s+y\\s+este\\s+texto)?|varia[çc][õo]es?\\s+(?:desse|deste)\\s+an[úu]ncio|vers[õo]es?\\s+(?:desse|deste)\\s+an[úu]ncio|versions?\\s+of\\s+this\\s+ad)" +
+      "|" +
+      // group 3 = creative URL on user-content CDN
       "(https?:\\/\\/(?:scontent[\\w.-]*\\.fbcdn\\.net|video[\\w.-]*\\.fbcdn\\.net|(?!static\\.)[\\w.-]+\\.cdninstagram\\.com)\\/[^\\s\"'<>)]+?\\.(?:jpe?g|png|webp|mp4|gif)(?:\\?[^\\s\"'<>)]*)?)",
     "gi",
   );
@@ -162,9 +160,10 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
     url: string;
     count: number;
     media: "image" | "video";
-    ad_ids: string[]; // every Meta Library ID seen for this creative, in order
+    ad_ids: string[];
   }
   const found = new Map<string, CreativeAgg>();
+  const variationByAdId = new Map<string, number>();
   let lastLibraryId: string | null = null;
 
   for (const m of html.matchAll(tokenRe)) {
@@ -172,7 +171,15 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
       lastLibraryId = m[1];
       continue;
     }
-    const u = m[2];
+    if (m[2]) {
+      const n = parseInt(m[2].replace(/[.,]/g, ""), 10);
+      if (lastLibraryId && Number.isFinite(n) && n > 0) {
+        const prev = variationByAdId.get(lastLibraryId) ?? 0;
+        if (n > prev) variationByAdId.set(lastLibraryId, n);
+      }
+      continue;
+    }
+    const u = m[3];
     if (!u || skipRe.test(u)) continue;
     const norm = u.split("?")[0];
     const media: "image" | "video" = /\.mp4(\?|$)/i.test(u) ? "video" : "image";
@@ -192,28 +199,47 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
     }
   }
 
+  // Also scan markdown — Firecrawl often surfaces the variation phrase there
+  // even when the HTML wraps the number across multiple nodes.
+  const mdVariationRe =
+    /([0-9][0-9.,]*)\s*(?:an[úu]ncios?\s+usam\s+esta\s+cria[çc][aã]o(?:\s+e\s+este\s+texto)?|ads?\s+use\s+this\s+(?:ad\s+)?creative(?:\s+and\s+text)?|anuncios?\s+usan\s+esta\s+(?:creatividad|cre[aá]tividad)(?:\s+y\s+este\s+texto)?|varia[çc][õo]es?\s+(?:desse|deste)\s+an[úu]ncio|vers[õo]es?\s+(?:desse|deste)\s+an[úu]ncio|versions?\s+of\s+this\s+ad)/gi;
+  const globalMaxVariation = Array.from(markdown.matchAll(mdVariationRe))
+    .map((m) => parseInt(m[1].replace(/[.,]/g, ""), 10))
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .reduce((a, b) => Math.max(a, b), 0);
+
+  // Effective duplicate count = max of (Meta's own variation label) OR
+  // url-occurrence count. Falls back to global markdown max when no Library
+  // ID anchor was attached.
   const creativesArr = Array.from(found.values())
-    .sort((a, b) => b.count - a.count || b.ad_ids.length - a.ad_ids.length)
+    .map((c) => {
+      const metaMax = c.ad_ids.reduce(
+        (acc, id) => Math.max(acc, variationByAdId.get(id) ?? 0),
+        0,
+      );
+      const effective = Math.max(metaMax, c.count);
+      return { ...c, effective };
+    })
+    .sort((a, b) => b.effective - a.effective || b.ad_ids.length - a.ad_ids.length)
     .slice(0, 60)
     .map((c) => ({
       creative_hash: hash(c.url),
       preview_url: c.url,
       media_type: c.media,
-      duplicate_count: c.count,
+      duplicate_count: c.effective,
       ad_archive_id: c.ad_ids[0] ?? null,
     }));
 
   const top = creativesArr[0];
+  const topCount = Math.max(top?.duplicate_count ?? 0, globalMaxVariation);
 
   return {
     active_ads_count: count || creativesArr.length,
     total_results_text: totalText,
     unique_creatives: creativesArr.length,
     top_creative_url: top?.preview_url ?? null,
-    // Always prefer the real Meta Library ID; only fall back to the URL hash
-    // if Meta didn't render the label (rare, e.g. mobile-only layouts).
     top_creative_id: top?.ad_archive_id ?? top?.creative_hash ?? null,
-    top_creative_count: top?.duplicate_count ?? 0,
+    top_creative_count: topCount,
     creatives: creativesArr,
   };
 }
