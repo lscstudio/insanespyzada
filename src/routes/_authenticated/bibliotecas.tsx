@@ -111,9 +111,20 @@ function BibliotecasPage() {
             {data.length === 1 ? "" : "s"}.
           </p>
         </div>
-        <Button onClick={() => setAddOpen(true)}>
-          <Plus className="h-4 w-4" /> Adicionar biblioteca
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
+            {refreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {refreshing ? "Atualizando..." : "Atualizar agora"}
+          </Button>
+          <Button onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4" /> Adicionar biblioteca
+          </Button>
+        </div>
+
       </div>
 
       <Card className="border-border/50 bg-card/40 p-4 backdrop-blur">
