@@ -4,19 +4,14 @@ import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle,
-  ArrowDownRight,
   ArrowLeft,
-  ArrowUpRight,
-  Copy,
-  Crown,
   ExternalLink,
   Image as ImageIcon,
   Layers,
-  Minus,
   Pencil,
+  Radio,
   Video,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useMemo, useState } from "react";
 import {
   Area,
@@ -37,15 +32,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CountUp } from "@/components/count-up";
 import { AddLibraryModal } from "@/components/add-library-modal";
+import { HourlyTrendBadge } from "@/components/library-card";
 import {
   useDailyStatsForLibrary,
+  useHourlyTrend,
   useLibrary,
   useLibrarySnapshots,
   useLibrarySnapshotsHistory,
-  useLibraryTrend,
   useTopCreatives,
 } from "@/hooks/use-libraries";
-import { formatNumber, formatPercent } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/biblioteca/$id")({
