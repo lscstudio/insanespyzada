@@ -139,12 +139,18 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
   }
 
   // ---- Creative URLs --------------------------------------------------
-  // Meta CDN domains: scontent*.fbcdn.net, video.fbcdn.net, *.cdninstagram.com
+  // Meta's user-content CDN uses scontent-*.fbcdn.net, video.fbcdn.net,
+  // and *.cdninstagram.com (excluding static.cdninstagram.com).
+  // We MUST exclude static.xx.fbcdn.net / static.*.cdninstagram.com —
+  // those serve the React UI sprites/icons, not ad creatives.
   const urlRe =
-    /https?:\/\/[^\s"'<>)]+?(?:fbcdn\.net|cdninstagram\.com)\/[^\s"'<>)]+?\.(?:jpe?g|png|webp|mp4|gif)(?:\?[^\s"'<>)]*)?/gi;
+    /https?:\/\/(?:scontent[\w.-]*\.fbcdn\.net|video[\w.-]*\.fbcdn\.net|(?!static\.)[\w.-]+\.cdninstagram\.com)\/[^\s"'<>)]+?\.(?:jpe?g|png|webp|mp4|gif)(?:\?[^\s"'<>)]*)?/gi;
   const found = new Map<string, { url: string; count: number; media: "image" | "video" }>();
+  // Skip obvious non-ad assets (profile pics, emoji, safe_image proxies)
+  const skipRe = /\/(emoji|rsrc\.php|safe_image|profile|p[0-9]+x[0-9]+)\//i;
   for (const m of html.matchAll(urlRe)) {
     const u = m[0];
+    if (skipRe.test(u)) continue;
     // Normalize: strip cache-busting query string for dedupe
     const norm = u.split("?")[0];
     const media: "image" | "video" = /\.mp4(\?|$)/i.test(u) ? "video" : "image";
