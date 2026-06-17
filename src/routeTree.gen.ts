@@ -9,86 +9,161 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as BibliotecasRouteImport } from './routes/bibliotecas'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as BibliotecaIdRouteImport } from './routes/biblioteca.$id'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedBibliotecasRouteImport } from './routes/_authenticated/bibliotecas'
+import { Route as AuthenticatedBibliotecaIdRouteImport } from './routes/_authenticated/biblioteca.$id'
 
-const BibliotecasRoute = BibliotecasRouteImport.update({
-  id: '/bibliotecas',
-  path: '/bibliotecas',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const BibliotecaIdRoute = BibliotecaIdRouteImport.update({
-  id: '/biblioteca/$id',
-  path: '/biblioteca/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AuthenticatedConfiguracoesRoute =
+  AuthenticatedConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBibliotecasRoute =
+  AuthenticatedBibliotecasRouteImport.update({
+    id: '/bibliotecas',
+    path: '/bibliotecas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBibliotecaIdRoute =
+  AuthenticatedBibliotecaIdRouteImport.update({
+    id: '/biblioteca/$id',
+    path: '/biblioteca/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/bibliotecas': typeof BibliotecasRoute
-  '/biblioteca/$id': typeof BibliotecaIdRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthRoute
+  '/bibliotecas': typeof AuthenticatedBibliotecasRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/bibliotecas': typeof BibliotecasRoute
-  '/biblioteca/$id': typeof BibliotecaIdRoute
+  '/auth': typeof AuthRoute
+  '/bibliotecas': typeof AuthenticatedBibliotecasRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/bibliotecas': typeof BibliotecasRoute
-  '/biblioteca/$id': typeof BibliotecaIdRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/bibliotecas': typeof AuthenticatedBibliotecasRoute
+  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/bibliotecas' | '/biblioteca/$id'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/bibliotecas'
+    | '/configuracoes'
+    | '/biblioteca/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bibliotecas' | '/biblioteca/$id'
-  id: '__root__' | '/' | '/bibliotecas' | '/biblioteca/$id'
+  to: '/auth' | '/bibliotecas' | '/configuracoes' | '/' | '/biblioteca/$id'
+  id:
+    | '__root__'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/bibliotecas'
+    | '/_authenticated/configuracoes'
+    | '/_authenticated/'
+    | '/_authenticated/biblioteca/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  BibliotecasRoute: typeof BibliotecasRoute
-  BibliotecaIdRoute: typeof BibliotecaIdRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/bibliotecas': {
-      id: '/bibliotecas'
-      path: '/bibliotecas'
-      fullPath: '/bibliotecas'
-      preLoaderRoute: typeof BibliotecasRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/biblioteca/$id': {
-      id: '/biblioteca/$id'
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/bibliotecas': {
+      id: '/_authenticated/bibliotecas'
+      path: '/bibliotecas'
+      fullPath: '/bibliotecas'
+      preLoaderRoute: typeof AuthenticatedBibliotecasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/biblioteca/$id': {
+      id: '/_authenticated/biblioteca/$id'
       path: '/biblioteca/$id'
       fullPath: '/biblioteca/$id'
-      preLoaderRoute: typeof BibliotecaIdRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedBibliotecaIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedBibliotecasRoute: typeof AuthenticatedBibliotecasRoute
+  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedBibliotecaIdRoute: typeof AuthenticatedBibliotecaIdRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedBibliotecasRoute: AuthenticatedBibliotecasRoute,
+  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedBibliotecaIdRoute: AuthenticatedBibliotecaIdRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  BibliotecasRoute: BibliotecasRoute,
-  BibliotecaIdRoute: BibliotecaIdRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

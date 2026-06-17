@@ -18,8 +18,9 @@ import { LibraryCard } from "@/components/library-card";
 import { AddLibraryModal } from "@/components/add-library-modal";
 import { useLibrariesLatest, useLibraryTrend } from "@/hooks/use-libraries";
 import { LANGUAGES } from "@/lib/format";
+import type { LibraryTrend } from "@/lib/types";
 
-export const Route = createFileRoute("/bibliotecas")({
+export const Route = createFileRoute("/_authenticated/bibliotecas")({
   head: () => ({
     meta: [
       { title: "Bibliotecas · AdSpy Dashboard" },
@@ -57,13 +58,16 @@ function BibliotecasPage() {
       if (niche !== "all" && l.niche !== niche) return false;
       if (language !== "all" && l.language !== language) return false;
       if (!q) return true;
-      const hay = [l.search_term, l.page_name, l.niche, l.notes].filter(Boolean).join(" ").toLowerCase();
+      const hay = [l.search_term, l.page_name, l.niche, l.notes]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
       return hay.includes(q);
     });
   }, [data, query, niche, language, status]);
 
   const trendMap = useMemo(() => {
-    const m = new Map<string, (typeof trends.data extends Array<infer T> | undefined ? T : never)>();
+    const m = new Map<string, LibraryTrend>();
     (trends.data ?? []).forEach((t) => m.set(t.library_id, t));
     return m;
   }, [trends.data]);
@@ -183,12 +187,7 @@ function BibliotecasPage() {
           }
         >
           {filtered.map((lib, i) => (
-            <LibraryCard
-              key={lib.id}
-              library={lib}
-              trend={trendMap.get(lib.id) as ReturnType<typeof trendMap.get>}
-              index={i}
-            />
+            <LibraryCard key={lib.id} library={lib} trend={trendMap.get(lib.id)} index={i} />
           ))}
         </motion.div>
       )}
@@ -212,8 +211,8 @@ function EmptyState({ onAdd, hasAny }: { onAdd: () => void; hasAny: boolean }) {
         {hasAny ? "Nenhum resultado para os filtros" : "Comece adicionando sua primeira biblioteca"}
       </h2>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        Cole o link de uma busca na Biblioteca de Anúncios da Meta. O robô coleta os dados a cada 1 hora
-        e eles aparecem aqui automaticamente.
+        Cole o link de uma busca na Biblioteca de Anúncios da Meta. O robô coleta os dados a cada 1
+        hora e eles aparecem aqui automaticamente.
       </p>
       <Button onClick={onAdd} className="mt-6 gradient-violet-cyan text-white">
         <Plus className="h-4 w-4" /> Adicionar biblioteca
