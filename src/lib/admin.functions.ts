@@ -70,11 +70,15 @@ export const listLibrariesForAccount = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: libs, error } = await supabaseAdmin
+    const query = supabaseAdmin
       .from("libraries")
       .select("id, page_name, search_term, niche, status, url, created_at")
-      .eq("created_by", data.userId)
       .order("created_at", { ascending: false });
+
+    const { data: libs, error } =
+      data.userId === UNASSIGNED_ID
+        ? await query.is("created_by", null)
+        : await query.eq("created_by", data.userId);
     if (error) throw new Error(error.message);
 
     const ids = (libs ?? []).map((l) => l.id);
