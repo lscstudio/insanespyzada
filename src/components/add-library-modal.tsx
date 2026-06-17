@@ -1,0 +1,212 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useSaveLibrary } from "@/hooks/use-libraries";
+import {
+  LANGUAGES,
+  NICHE_SUGGESTIONS,
+  extractSearchTerm,
+  isMetaAdLibraryUrl,
+} from "@/lib/format";
+import type { LibraryLatest } from "@/lib/types";
+
+const schema = z.object({
+  url: z
+    .string()
+    .trim()
+    .min(1, "Informe o link da biblioteca")
+    .refine(isMetaAdLibraryUrl, "URL deve ser de facebook.com/ads/library"),
+  niche: z.string().trim().max(80).optional().nullable(),
+  language: z.string().min(1, "Selecione um idioma"),
+  notes: z.string().trim().max(2000).optional().nullable(),
+  status: z.enum(["active", "paused", "archived"]).default("active"),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+interface Props {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  library?: LibraryLatest | null;
+}
+
+export function AddLibraryModal({ open, onOpenChange, library }: Props) {
+  const save = useSaveLibrary();
+
+  const defaults = useMemo<FormValues>(
+    () => ({
+      url: library?.url ?? "",
+      niche: library?.niche ?? "",
+      language: library?.language ?? "PT",
+      notes: library?.notes ?? "",
+      status: (library?.status as FormValues["status"]) ?? "active",
+    }),
+    [library],
+  );
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: defaults,
+  });
+
+  useEffect(() => {
+    if (open) form.reset(defaults);
+  }, [open, defaults, form]);
+
+  const url = form.watch("url");
+  const searchTermPreview = useMemo(() => {
+    if (!url) return null;
+    return extractSearchTerm(url);
+  }, [url]);
+
+  async function onSubmit(values: FormValues) {
+    try {
+      await save.mutateAsync({
+        id: library?.id,
+        values: {
+          ...values,
+          search_term: searchTermPreview ?? null,
+        },
+      });
+      toast.success(library ? "Biblioteca atualizada" : "Biblioteca adicionada", {
+        description: "Os dados aparecem após a próxima coleta do robô.",
+      });
+      onOpenChange(false);
+    } catch (e) {
+      toast.error("Não foi possível salvar", {
+        description: e instanceof Error ? e.message : "Erro desconhecido",
+      });
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 220, damping: 22 }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              {library ? "Editar biblioteca" : "Adicionar biblioteca"}
+            </DialogTitle>
+            <DialogDescription>
+              Cole o link da Biblioteca de Anúncios da Meta. O termo de busca é extraído automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="url">Link da biblioteca</Label>
+              <Input
+                id="url"
+                placeholder="https://www.facebook.com/ads/library/?q=..."
+                {...form.register("url")}
+              />
+              {form.formState.errors.url && (
+                <p className="text-xs text-destructive">{form.formState.errors.url.message}</p>
+              )}
+              {searchTermPreview && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-xs text-muted-foreground"
+                >
+                  Termo detectado: <span className="text-foreground font-medium">{searchTermPreview}</span>
+                </motion.p>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="niche">Nicho</Label>
+                <Input
+                  id="niche"
+                  list="niches"
+                  placeholder="Ex: Saúde, Finanças…"
+                  {...form.register("niche")}
+                />
+                <datalist id="niches">
+                  {NICHE_SUGGESTIONS.map((n) => (
+                    <option key={n} value={n} />
+                  ))}
+                </datalist>
+              </div>
+              <div className="space-y-2">
+                <Label>Idioma</Label>
+                <Select
+                  value={form.watch("language")}
+                  onValueChange={(v) => form.setValue("language", v, { shouldValidate: true })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGES.map((l) => (
+                      <SelectItem key={l.value} value={l.value}>
+                        {l.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Observações</Label>
+              <Textarea
+                id="notes"
+                rows={4}
+                placeholder="Oferta, mecanismo, ângulo…"
+                {...form.register("notes")}
+              />
+            </div>
+
+            <p className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              Os dados aparecem após a próxima coleta do robô (a cada 1 hora).
+            </p>
+
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={save.isPending}
+                className="gradient-violet-cyan text-white"
+              >
+                {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {library ? "Salvar alterações" : "Adicionar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </motion.div>
+      </DialogContent>
+    </Dialog>
+  );
+}
