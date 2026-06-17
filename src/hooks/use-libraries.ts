@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import type {
   Creative,
   DailyLibraryStat,
@@ -8,12 +8,6 @@ import type {
   LibraryTrend,
   Snapshot,
 } from "@/lib/types";
-import {
-  mockCreatives,
-  mockDailyStats,
-  mockLibrariesLatest,
-  mockLibraryTrend,
-} from "@/lib/mock-data";
 
 const FIVE_MIN = 5 * 60_000;
 
@@ -22,13 +16,12 @@ export function useLibrariesLatest() {
     queryKey: ["library_latest"],
     refetchInterval: FIVE_MIN,
     queryFn: async (): Promise<LibraryLatest[]> => {
-      if (!isSupabaseConfigured) return mockLibrariesLatest;
       const { data, error } = await supabase
-        .from("library_latest")
+        .from("library_latest" as never)
         .select("*")
         .order("active_ads_count", { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return (data ?? []) as LibraryLatest[];
+      return (data ?? []) as unknown as LibraryLatest[];
     },
   });
 }
@@ -38,10 +31,9 @@ export function useLibraryTrend() {
     queryKey: ["library_trend"],
     refetchInterval: FIVE_MIN,
     queryFn: async (): Promise<LibraryTrend[]> => {
-      if (!isSupabaseConfigured) return mockLibraryTrend;
-      const { data, error } = await supabase.from("library_trend").select("*");
+      const { data, error } = await supabase.from("library_trend" as never).select("*");
       if (error) throw error;
-      return (data ?? []) as LibraryTrend[];
+      return (data ?? []) as unknown as LibraryTrend[];
     },
   });
 }
@@ -51,13 +43,12 @@ export function useDailyStats() {
     queryKey: ["daily_library_stats"],
     refetchInterval: FIVE_MIN,
     queryFn: async (): Promise<DailyLibraryStat[]> => {
-      if (!isSupabaseConfigured) return mockDailyStats;
       const { data, error } = await supabase
-        .from("daily_library_stats")
+        .from("daily_library_stats" as never)
         .select("*")
         .order("day", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as DailyLibraryStat[];
+      return (data ?? []) as unknown as DailyLibraryStat[];
     },
   });
 }
@@ -67,14 +58,13 @@ export function useLibrary(id: string) {
     queryKey: ["library_latest", id],
     refetchInterval: FIVE_MIN,
     queryFn: async (): Promise<LibraryLatest | null> => {
-      if (!isSupabaseConfigured) return mockLibrariesLatest.find((l) => l.id === id) ?? null;
       const { data, error } = await supabase
-        .from("library_latest")
+        .from("library_latest" as never)
         .select("*")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
-      return (data as LibraryLatest) ?? null;
+      return (data as unknown as LibraryLatest) ?? null;
     },
   });
 }
@@ -84,7 +74,6 @@ export function useLibrarySnapshots(id: string, hours = 48) {
     queryKey: ["snapshots", id, hours],
     refetchInterval: FIVE_MIN,
     queryFn: async (): Promise<Snapshot[]> => {
-      if (!isSupabaseConfigured) return [];
       const since = new Date(Date.now() - hours * 3600_000).toISOString();
       const { data, error } = await supabase
         .from("snapshots")
@@ -93,7 +82,40 @@ export function useLibrarySnapshots(id: string, hours = 48) {
         .gte("captured_at", since)
         .order("captured_at", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as Snapshot[];
+      return (data ?? []) as unknown as Snapshot[];
+    },
+  });
+}
+
+export function useLibrarySnapshotsHistory(id: string, limit = 50) {
+  return useQuery({
+    queryKey: ["snapshots_history", id, limit],
+    refetchInterval: FIVE_MIN,
+    queryFn: async (): Promise<Snapshot[]> => {
+      const { data, error } = await supabase
+        .from("snapshots")
+        .select("*")
+        .eq("library_id", id)
+        .order("captured_at", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return (data ?? []) as unknown as Snapshot[];
+    },
+  });
+}
+
+export function useDailyStatsForLibrary(id: string) {
+  return useQuery({
+    queryKey: ["daily_library_stats", id],
+    refetchInterval: FIVE_MIN,
+    queryFn: async (): Promise<DailyLibraryStat[]> => {
+      const { data, error } = await supabase
+        .from("daily_library_stats" as never)
+        .select("*")
+        .eq("library_id", id)
+        .order("day", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as DailyLibraryStat[];
     },
   });
 }
@@ -101,13 +123,9 @@ export function useLibrarySnapshots(id: string, hours = 48) {
 export function useTopCreatives(libraryId: string, snapshotId: string | null) {
   return useQuery({
     queryKey: ["top_creatives", libraryId, snapshotId],
-    enabled: Boolean(libraryId),
+    enabled: Boolean(libraryId && snapshotId),
     refetchInterval: FIVE_MIN,
     queryFn: async (): Promise<Creative[]> => {
-      if (!isSupabaseConfigured)
-        return mockCreatives
-          .filter((c) => c.library_id === libraryId)
-          .sort((a, b) => (b.duplicate_count ?? 0) - (a.duplicate_count ?? 0));
       if (!snapshotId) return [];
       const { data, error } = await supabase
         .from("creatives")
@@ -116,7 +134,7 @@ export function useTopCreatives(libraryId: string, snapshotId: string | null) {
         .order("duplicate_count", { ascending: false, nullsFirst: false })
         .limit(24);
       if (error) throw error;
-      return (data ?? []) as Creative[];
+      return (data ?? []) as unknown as Creative[];
     },
   });
 }
@@ -135,10 +153,6 @@ export function useSaveLibrary() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, values }: { id?: string; values: LibraryFormData }) => {
-      if (!isSupabaseConfigured) {
-        // optimistic mock — do nothing persistent
-        return { id: id ?? `lib-mock-${Date.now()}`, ...values } as unknown as Library;
-      }
       if (id) {
         const { data, error } = await supabase
           .from("libraries")
@@ -147,15 +161,15 @@ export function useSaveLibrary() {
           .select()
           .single();
         if (error) throw error;
-        return data as Library;
+        return data as unknown as Library;
       }
       const { data, error } = await supabase
         .from("libraries")
-        .insert({ ...values, status: values.status ?? "active" })
+        .insert({ ...values, status: values.status ?? "active" } as never)
         .select()
         .single();
       if (error) throw error;
-      return data as Library;
+      return data as unknown as Library;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["library_latest"] });
@@ -168,7 +182,6 @@ export function useDeleteLibrary() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      if (!isSupabaseConfigured) return;
       const { error } = await supabase.from("libraries").delete().eq("id", id);
       if (error) throw error;
     },
@@ -182,7 +195,6 @@ export function useToggleLibraryStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: Library["status"] }) => {
-      if (!isSupabaseConfigured) return;
       const { error } = await supabase
         .from("libraries")
         .update({ status, updated_at: new Date().toISOString() })

@@ -9,87 +9,27 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as BibliotecasRouteImport } from './routes/bibliotecas'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as BibliotecaIdRouteImport } from './routes/biblioteca.$id'
 
-const BibliotecasRoute = BibliotecasRouteImport.update({
-  id: '/bibliotecas',
-  path: '/bibliotecas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BibliotecaIdRoute = BibliotecaIdRouteImport.update({
-  id: '/biblioteca/$id',
-  path: '/biblioteca/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-
-export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/bibliotecas': typeof BibliotecasRoute
-  '/biblioteca/$id': typeof BibliotecaIdRoute
-}
-export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/bibliotecas': typeof BibliotecasRoute
-  '/biblioteca/$id': typeof BibliotecaIdRoute
-}
+export interface FileRoutesByFullPath {}
+export interface FileRoutesByTo {}
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/bibliotecas': typeof BibliotecasRoute
-  '/biblioteca/$id': typeof BibliotecaIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/bibliotecas' | '/biblioteca/$id'
+  fullPaths: never
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bibliotecas' | '/biblioteca/$id'
-  id: '__root__' | '/' | '/bibliotecas' | '/biblioteca/$id'
+  to: never
+  id: '__root__'
   fileRoutesById: FileRoutesById
 }
-export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  BibliotecasRoute: typeof BibliotecasRoute
-  BibliotecaIdRoute: typeof BibliotecaIdRoute
-}
+export interface RootRouteChildren {}
 
 declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/bibliotecas': {
-      id: '/bibliotecas'
-      path: '/bibliotecas'
-      fullPath: '/bibliotecas'
-      preLoaderRoute: typeof BibliotecasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/biblioteca/$id': {
-      id: '/biblioteca/$id'
-      path: '/biblioteca/$id'
-      fullPath: '/biblioteca/$id'
-      preLoaderRoute: typeof BibliotecaIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
+  interface FileRoutesByPath {}
 }
 
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  BibliotecasRoute: BibliotecasRoute,
-  BibliotecaIdRoute: BibliotecaIdRoute,
-}
+const rootRouteChildren: RootRouteChildren = {}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
