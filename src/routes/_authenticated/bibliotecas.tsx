@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { motion } from "framer-motion";
-import { LayoutGrid, List, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { LayoutGrid, List, Loader2, Plus, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LibraryCard } from "@/components/library-card";
 import { AddLibraryModal } from "@/components/add-library-modal";
 import { useHourlyTrend, useLibrariesLatest, useNiches } from "@/hooks/use-libraries";
+import { triggerCollection } from "@/lib/collect.functions";
 import { LANGUAGES } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/bibliotecas")({
