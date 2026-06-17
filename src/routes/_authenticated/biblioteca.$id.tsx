@@ -328,7 +328,7 @@ function LibraryDetailPage() {
             <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
               {(topCreatives.data ?? [])[0].preview_url ? (
                 <img
-                  src={(topCreatives.data ?? [])[0].preview_url}
+                  src={(topCreatives.data ?? [])[0].preview_url!}
                   alt="Criativo"
                   className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
                   loading="lazy"
