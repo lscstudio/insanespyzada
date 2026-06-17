@@ -40,12 +40,41 @@ function BibliotecasPage() {
   const libs = useLibrariesLatest();
   const trends = useHourlyTrend();
   const nichesQuery = useNiches();
+  const qc = useQueryClient();
+  const collect = useServerFn(triggerCollection);
   const [query, setQuery] = useState("");
   const [niche, setNiche] = useState<string>("all");
   const [language, setLanguage] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [addOpen, setAddOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      const report = await collect({ data: {} });
+      if (report.libraries_total === 0) {
+        toast.info("Nenhuma biblioteca ativa para atualizar");
+      } else if (report.libraries_failed === 0) {
+        toast.success(`${report.libraries_ok} biblioteca(s) atualizadas`, {
+          description: `Em ${(report.duration_ms / 1000).toFixed(1)}s.`,
+        });
+      } else {
+        toast.warning(
+          `${report.libraries_ok} ok · ${report.libraries_failed} falha(s)`,
+        );
+      }
+      await qc.invalidateQueries();
+    } catch (e) {
+      toast.error("Falha ao atualizar", {
+        description: e instanceof Error ? e.message : "Erro desconhecido",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
 
   const data = libs.data ?? [];
 
