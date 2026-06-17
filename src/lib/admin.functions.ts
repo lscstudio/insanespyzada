@@ -11,6 +11,8 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden");
 }
 
+const UNASSIGNED_ID = "00000000-0000-0000-0000-000000000000";
+
 export const listAccounts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -23,26 +25,40 @@ export const listAccounts = createServerFn({ method: "GET" })
     });
     if (usersError) throw new Error(usersError.message);
 
-    const userIds = usersData.users.map((u) => u.id);
     const { data: libs, error: libsError } = await supabaseAdmin
       .from("libraries")
-      .select("id, created_by")
-      .in("created_by", userIds.length ? userIds : ["00000000-0000-0000-0000-000000000000"]);
+      .select("id, created_by");
     if (libsError) throw new Error(libsError.message);
 
     const countByUser = new Map<string, number>();
+    let unassigned = 0;
     for (const l of libs ?? []) {
-      if (!l.created_by) continue;
+      if (!l.created_by) {
+        unassigned += 1;
+        continue;
+      }
       countByUser.set(l.created_by, (countByUser.get(l.created_by) ?? 0) + 1);
     }
 
-    return usersData.users.map((u) => ({
+    const accounts = usersData.users.map((u) => ({
       id: u.id,
       email: u.email ?? "",
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at ?? null,
       libraries_count: countByUser.get(u.id) ?? 0,
     }));
+
+    if (unassigned > 0) {
+      accounts.push({
+        id: UNASSIGNED_ID,
+        email: "(bibliotecas sem dono / legado)",
+        created_at: new Date(0).toISOString(),
+        last_sign_in_at: null,
+        libraries_count: unassigned,
+      });
+    }
+
+    return accounts;
   });
 
 export const listLibrariesForAccount = createServerFn({ method: "POST" })
