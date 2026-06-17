@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { TablesInsert } from "@/integrations/supabase/types";
 
 // Inserts 3 demo libraries with 14 days of fake snapshots/creatives so the
 // dashboard has data to plot before the real collector runs. Uses the admin
