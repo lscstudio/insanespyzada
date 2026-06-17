@@ -170,87 +170,28 @@ function LibraryDetailPage() {
               <ExternalLink className="h-4 w-4" /> Abrir na Meta
             </a>
           </Button>
-          <Button onClick={() => setEditOpen(true)} className="gradient-violet-cyan text-white">
+          <Button onClick={() => setEditOpen(true)}>
             <Pencil className="h-4 w-4" /> Editar
           </Button>
         </div>
       </motion.div>
 
       {/* Summary cards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <SummaryCard label="Anúncios ativos" icon={Layers}>
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-end justify-between gap-3">
             <CountUp
               value={data.active_ads_count ?? 0}
-              className="text-3xl font-bold text-gradient-violet-cyan"
+              className="text-4xl font-bold tracking-tight tabular-nums text-foreground"
             />
-            {trend && (
-              <span className={cn("inline-flex items-center gap-1 text-xs font-medium", trendColor)}>
-                <TrendIcon className="h-3.5 w-3.5" />
-                {trend.delta && trend.delta > 0 ? "+" : ""}
-                {formatNumber(trend.delta)} ({formatPercent(Number(trend.delta_pct))})
-              </span>
-            )}
+            <HourlyTrendBadge trend={trend} />
           </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Variação em relação à última 1h
+          </p>
         </SummaryCard>
 
-        <SummaryCard label="Criativos únicos" icon={Layers}>
-          <CountUp value={data.unique_creatives ?? 0} className="text-3xl font-bold" />
-        </SummaryCard>
-
-        <SummaryCard label="Top criativo" icon={Crown}>
-          <div className="flex items-center gap-3">
-            {data.top_creative_url ? (
-              <img
-                src={data.top_creative_url}
-                alt="Top criativo"
-                className="h-12 w-12 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="h-12 w-12 rounded-lg bg-muted" />
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="text-2xl font-bold leading-tight">
-                ×{formatNumber(data.top_creative_count ?? 0)}
-              </p>
-              {data.top_creative_id && (
-                <div className="mt-1 flex items-center gap-1.5">
-                  <code
-                    className="truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]"
-                    title={data.top_creative_id}
-                  >
-                    {data.top_creative_id}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(data.top_creative_id!);
-                      toast.success("ID copiado");
-                    }}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    aria-label="Copiar ID"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </button>
-                  {/^\d{14,17}$/.test(data.top_creative_id) && (
-                    <a
-                      href={`https://www.facebook.com/ads/library/?id=${data.top_creative_id}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-primary"
-                      aria-label="Abrir na Meta Ad Library"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </SummaryCard>
-
-
-        <SummaryCard label="Última coleta" icon={Layers}>
+        <SummaryCard label="Última coleta" icon={Radio}>
           <p className="text-base font-semibold" title={data.captured_at ?? ""}>
             {data.captured_at
               ? formatDistanceToNow(new Date(data.captured_at), {
@@ -264,6 +205,13 @@ function LibraryDetailPage() {
               {format(new Date(data.captured_at), "dd 'de' MMMM, HH:mm", { locale: ptBR })}
             </p>
           )}
+        </SummaryCard>
+
+        <SummaryCard label="Status" icon={Layers}>
+          <p className="text-base font-semibold capitalize">{data.status}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {data.scrape_ok === false ? "Última coleta falhou" : "Mineração saudável"}
+          </p>
         </SummaryCard>
       </div>
 
