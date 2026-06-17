@@ -1,5 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { motion } from "framer-motion";
@@ -26,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSaveLibrary } from "@/hooks/use-libraries";
+import { triggerCollection } from "@/lib/collect.functions";
 import {
   LANGUAGES,
   NICHE_SUGGESTIONS,
@@ -56,6 +59,9 @@ interface Props {
 
 export function AddLibraryModal({ open, onOpenChange, library }: Props) {
   const save = useSaveLibrary();
+  const collect = useServerFn(triggerCollection);
+  const qc = useQueryClient();
+  const [mining, setMining] = useState(false);
 
   const defaults = useMemo<FormValues>(
     () => ({
@@ -85,16 +91,46 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
 
   async function onSubmit(values: FormValues) {
     try {
-      await save.mutateAsync({
+      const saved = await save.mutateAsync({
         id: library?.id,
         values: {
           ...values,
           search_term: searchTermPreview ?? null,
         },
       });
-      toast.success(library ? "Biblioteca atualizada" : "Biblioteca adicionada", {
-        description: "Os dados aparecem após a próxima coleta do robô.",
-      });
+
+      if (saved.status === "active") {
+        setMining(true);
+        toast.loading("Minerando biblioteca agora…", {
+          id: `collect-${saved.id}`,
+          description: "Buscando anúncios ativos e criativos reais na Meta.",
+        });
+        try {
+          const report = await collect({ data: { libraryId: saved.id } });
+          const detail = report.details[0];
+          await qc.invalidateQueries();
+          if (detail?.ok) {
+            toast.success("Biblioteca minerada ao vivo", {
+              id: `collect-${saved.id}`,
+              description: `${detail.active_ads_count ?? 0} anúncios ativos · ${detail.unique_creatives ?? 0} criativos únicos.`,
+            });
+          } else {
+            toast.error("Biblioteca salva, mas a mineração falhou", {
+              id: `collect-${saved.id}`,
+              description: detail?.error?.slice(0, 120) ?? "A Meta não retornou dados para essa URL agora.",
+            });
+          }
+        } catch (e) {
+          toast.error("Biblioteca salva, mas a mineração falhou", {
+            id: `collect-${saved.id}`,
+            description: e instanceof Error ? e.message.slice(0, 120) : "Erro desconhecido na mineração.",
+          });
+        } finally {
+          setMining(false);
+        }
+      } else {
+        toast.success(library ? "Biblioteca atualizada" : "Biblioteca adicionada");
+      }
       onOpenChange(false);
     } catch (e) {
       toast.error("Não foi possível salvar", {
@@ -188,7 +224,7 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
             </div>
 
             <p className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-              Os dados aparecem após a próxima coleta do robô (a cada 1 hora).
+              Ao adicionar uma biblioteca ativa, a mineração roda na hora e atualiza os dados ao vivo.
             </p>
 
             <DialogFooter className="gap-2">
@@ -197,11 +233,11 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
               </Button>
               <Button
                 type="submit"
-                disabled={save.isPending}
+                disabled={save.isPending || mining}
                 className="gradient-violet-cyan text-white"
               >
-                {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                {library ? "Salvar alterações" : "Adicionar"}
+                {(save.isPending || mining) && <Loader2 className="h-4 w-4 animate-spin" />}
+                {mining ? "Minerando…" : save.isPending ? "Salvando…" : library ? "Salvar e minerar" : "Adicionar e minerar"}
               </Button>
             </DialogFooter>
           </form>

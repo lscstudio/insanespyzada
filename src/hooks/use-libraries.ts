@@ -172,6 +172,7 @@ export function useSaveLibrary() {
       return data as unknown as Library;
     },
     onSuccess: () => {
+      qc.invalidateQueries();
       qc.invalidateQueries({ queryKey: ["library_latest"] });
       qc.invalidateQueries({ queryKey: ["library_trend"] });
     },

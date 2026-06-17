@@ -211,8 +211,8 @@ function EmptyState({ onAdd, hasAny }: { onAdd: () => void; hasAny: boolean }) {
         {hasAny ? "Nenhum resultado para os filtros" : "Comece adicionando sua primeira biblioteca"}
       </h2>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        Cole o link de uma busca na Biblioteca de Anúncios da Meta. O robô coleta os dados a cada 1
-        hora e eles aparecem aqui automaticamente.
+        Cole o link de uma busca na Biblioteca de Anúncios da Meta. A mineração roda na hora e os
+        números aparecem aqui automaticamente.
       </p>
       <Button onClick={onAdd} className="mt-6 gradient-violet-cyan text-white">
         <Plus className="h-4 w-4" /> Adicionar biblioteca
