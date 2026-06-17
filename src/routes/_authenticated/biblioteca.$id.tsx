@@ -7,6 +7,7 @@ import {
   ArrowDownRight,
   ArrowLeft,
   ArrowUpRight,
+  Copy,
   Crown,
   ExternalLink,
   Image as ImageIcon,
@@ -15,6 +16,7 @@ import {
   Pencil,
   Video,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useMemo, useState } from "react";
 import {
   Area,
@@ -215,21 +217,46 @@ function LibraryDetailPage() {
             ) : (
               <div className="h-12 w-12 rounded-lg bg-muted" />
             )}
-            <div className="min-w-0">
-              <p className="text-2xl font-bold">×{formatNumber(data.top_creative_count ?? 0)}</p>
-              {data.top_creative_url && (
-                <a
-                  href={data.top_creative_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-primary hover:underline"
-                >
-                  Abrir
-                </a>
+            <div className="min-w-0 flex-1">
+              <p className="text-2xl font-bold leading-tight">
+                ×{formatNumber(data.top_creative_count ?? 0)}
+              </p>
+              {data.top_creative_id && (
+                <div className="mt-1 flex items-center gap-1.5">
+                  <code
+                    className="truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]"
+                    title={data.top_creative_id}
+                  >
+                    {data.top_creative_id}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(data.top_creative_id!);
+                      toast.success("ID copiado");
+                    }}
+                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    aria-label="Copiar ID"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </button>
+                  {/^\d{14,17}$/.test(data.top_creative_id) && (
+                    <a
+                      href={`https://www.facebook.com/ads/library/?id=${data.top_creative_id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-primary"
+                      aria-label="Abrir na Meta Ad Library"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
               )}
             </div>
           </div>
         </SummaryCard>
+
 
         <SummaryCard label="Última coleta" icon={Layers}>
           <p className="text-base font-semibold" title={data.captured_at ?? ""}>

@@ -228,8 +228,16 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                 <p className="text-sm font-medium text-foreground">
                   ×{formatNumber(library.top_creative_count ?? 0)} duplicados
                 </p>
+                {library.top_creative_id && (
+                  <p
+                    className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground"
+                    title={`Library ID: ${library.top_creative_id}`}
+                  >
+                    ID: {library.top_creative_id}
+                  </p>
+                )}
               </div>
-              {library.top_creative_url && (
+              {library.top_creative_id && /^\d{14,17}$/.test(library.top_creative_id) && (
                 <Button
                   asChild
                   size="sm"
@@ -237,7 +245,7 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <a
-                    href={library.top_creative_url}
+                    href={`https://www.facebook.com/ads/library/?id=${library.top_creative_id}`}
                     target="_blank"
                     rel="noreferrer"
                     onClick={(e) => e.stopPropagation()}
@@ -247,6 +255,7 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                 </Button>
               )}
             </div>
+
 
             <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
               <span title={library.captured_at ?? ""}>

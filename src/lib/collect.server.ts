@@ -138,52 +138,81 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
     }
   }
 
-  // ---- Creative URLs --------------------------------------------------
-  // Meta's user-content CDN uses scontent-*.fbcdn.net, video.fbcdn.net,
-  // and *.cdninstagram.com (excluding static.cdninstagram.com).
-  // We MUST exclude static.xx.fbcdn.net / static.*.cdninstagram.com —
-  // those serve the React UI sprites/icons, not ad creatives.
-  const urlRe =
-    /https?:\/\/(?:scontent[\w.-]*\.fbcdn\.net|video[\w.-]*\.fbcdn\.net|(?!static\.)[\w.-]+\.cdninstagram\.com)\/[^\s"'<>)]+?\.(?:jpe?g|png|webp|mp4|gif)(?:\?[^\s"'<>)]*)?/gi;
-  const found = new Map<string, { url: string; count: number; media: "image" | "video" }>();
-  // Skip obvious non-ad assets (profile pics, emoji, safe_image proxies)
+  // ---- Pair creatives with Meta's "Library ID" label ------------------
+  // Each ad card in the Ad Library shows "Library ID: <16-digit number>"
+  // (PT: "ID da biblioteca", ES: "ID de la biblioteca"). We walk the HTML
+  // in document order with a combined regex so each image URL we encounter
+  // is paired with the most recently seen Library ID (its own card).
+  // We also exclude static.xx.fbcdn.net (UI sprites) and known non-ad
+  // assets (profile pics, emojis, safe_image proxies).
   const skipRe = /\/(emoji|rsrc\.php|safe_image|profile|p[0-9]+x[0-9]+)\//i;
-  for (const m of html.matchAll(urlRe)) {
-    const u = m[0];
-    if (skipRe.test(u)) continue;
-    // Normalize: strip cache-busting query string for dedupe
+  const tokenRe = new RegExp(
+    // group 1 = Meta Library ID label, followed by a 14-17 digit number.
+    // Labels seen in the wild: EN "Library ID", PT-BR "Identificação da
+    // biblioteca", ES "Identificación de la biblioteca" / "ID de la
+    // biblioteca", FR "Identifiant de la bibliothèque".
+    "(?:Library ID|Identifica[çc][aã]o da biblioteca|Identificaci[oó]n de la biblioteca|ID de la biblioteca|Identifiant de la biblioth[eè]que)\\s*[:#]?\\s*([0-9]{14,17})" +
+      "|" +
+      // group 2 = a creative URL on the user-content CDN
+      "(https?:\\/\\/(?:scontent[\\w.-]*\\.fbcdn\\.net|video[\\w.-]*\\.fbcdn\\.net|(?!static\\.)[\\w.-]+\\.cdninstagram\\.com)\\/[^\\s\"'<>)]+?\\.(?:jpe?g|png|webp|mp4|gif)(?:\\?[^\\s\"'<>)]*)?)",
+    "gi",
+  );
+
+  interface CreativeAgg {
+    url: string;
+    count: number;
+    media: "image" | "video";
+    ad_ids: string[]; // every Meta Library ID seen for this creative, in order
+  }
+  const found = new Map<string, CreativeAgg>();
+  let lastLibraryId: string | null = null;
+
+  for (const m of html.matchAll(tokenRe)) {
+    if (m[1]) {
+      lastLibraryId = m[1];
+      continue;
+    }
+    const u = m[2];
+    if (!u || skipRe.test(u)) continue;
     const norm = u.split("?")[0];
     const media: "image" | "video" = /\.mp4(\?|$)/i.test(u) ? "video" : "image";
     const cur = found.get(norm);
-    if (cur) cur.count += 1;
-    else found.set(norm, { url: u, count: 1, media });
+    if (cur) {
+      cur.count += 1;
+      if (lastLibraryId && !cur.ad_ids.includes(lastLibraryId)) {
+        cur.ad_ids.push(lastLibraryId);
+      }
+    } else {
+      found.set(norm, {
+        url: u,
+        count: 1,
+        media,
+        ad_ids: lastLibraryId ? [lastLibraryId] : [],
+      });
+    }
   }
 
-  // ---- ad_archive_id (best-effort) -----------------------------------
-  // Meta exposes IDs in URLs like ?id=123456789012345 inside the page
-  const idRe = /[?&]id=(\d{8,})/g;
-  const ids: string[] = [];
-  for (const m of html.matchAll(idRe)) ids.push(m[1]);
-
   const creativesArr = Array.from(found.values())
-    .sort((a, b) => b.count - a.count)
+    .sort((a, b) => b.count - a.count || b.ad_ids.length - a.ad_ids.length)
     .slice(0, 60)
-    .map((c, i) => ({
+    .map((c) => ({
       creative_hash: hash(c.url),
       preview_url: c.url,
       media_type: c.media,
       duplicate_count: c.count,
-      ad_archive_id: ids[i] ?? null,
+      ad_archive_id: c.ad_ids[0] ?? null,
     }));
 
   const top = creativesArr[0];
 
   return {
-    active_ads_count: count || creativesArr.length, // fallback to creative count
+    active_ads_count: count || creativesArr.length,
     total_results_text: totalText,
     unique_creatives: creativesArr.length,
     top_creative_url: top?.preview_url ?? null,
-    top_creative_id: top?.ad_archive_id ?? (top ? top.creative_hash : null),
+    // Always prefer the real Meta Library ID; only fall back to the URL hash
+    // if Meta didn't render the label (rare, e.g. mobile-only layouts).
+    top_creative_id: top?.ad_archive_id ?? top?.creative_hash ?? null,
     top_creative_count: top?.duplicate_count ?? 0,
     creatives: creativesArr,
   };
