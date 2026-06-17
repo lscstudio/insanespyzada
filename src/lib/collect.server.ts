@@ -147,8 +147,11 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
   // assets (profile pics, emojis, safe_image proxies).
   const skipRe = /\/(emoji|rsrc\.php|safe_image|profile|p[0-9]+x[0-9]+)\//i;
   const tokenRe = new RegExp(
-    // group 1 = Meta Library ID label (14-17 digit number after the label)
-    "(?:Library ID|ID da biblioteca|ID de la biblioteca|Identificación de la biblioteca)\\s*[:#]?\\s*([0-9]{14,17})" +
+    // group 1 = Meta Library ID label, followed by a 14-17 digit number.
+    // Labels seen in the wild: EN "Library ID", PT-BR "Identificação da
+    // biblioteca", ES "Identificación de la biblioteca" / "ID de la
+    // biblioteca", FR "Identifiant de la bibliothèque".
+    "(?:Library ID|Identifica[çc][aã]o da biblioteca|Identificaci[oó]n de la biblioteca|ID de la biblioteca|Identifiant de la biblioth[eè]que)\\s*[:#]?\\s*([0-9]{14,17})" +
       "|" +
       // group 2 = a creative URL on the user-content CDN
       "(https?:\\/\\/(?:scontent[\\w.-]*\\.fbcdn\\.net|video[\\w.-]*\\.fbcdn\\.net|(?!static\\.)[\\w.-]+\\.cdninstagram\\.com)\\/[^\\s\"'<>)]+?\\.(?:jpe?g|png|webp|mp4|gif)(?:\\?[^\\s\"'<>)]*)?)",
