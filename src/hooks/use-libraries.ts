@@ -214,9 +214,14 @@ export function useSaveLibrary() {
         if (error) throw error;
         return data as unknown as Library;
       }
+      const { data: userData } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("libraries")
-        .insert({ ...values, status: values.status ?? "active" } as never)
+        .insert({
+          ...values,
+          status: values.status ?? "active",
+          created_by: userData.user?.id ?? null,
+        } as never)
         .select()
         .single();
       if (error) throw error;
