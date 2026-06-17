@@ -36,16 +36,3 @@ export const LANGUAGES = [
   { value: "DE", label: "Deutsch" },
   { value: "OTHER", label: "Outros" },
 ];
-
-export const NICHE_SUGGESTIONS = [
-  "E-commerce",
-  "Infoproduto",
-  "SaaS",
-  "Saúde",
-  "Beleza",
-  "Finanças",
-  "Educação",
-  "Imobiliário",
-  "Local",
-  "Coaching",
-];

@@ -27,14 +27,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSaveLibrary } from "@/hooks/use-libraries";
+import { useNiches, useSaveLibrary } from "@/hooks/use-libraries";
 import { triggerCollection } from "@/lib/collect.functions";
-import {
-  LANGUAGES,
-  NICHE_SUGGESTIONS,
-  extractSearchTerm,
-  isMetaAdLibraryUrl,
-} from "@/lib/format";
+import { LANGUAGES, extractSearchTerm, isMetaAdLibraryUrl } from "@/lib/format";
 import type { LibraryLatest } from "@/lib/types";
 
 const schema = z.object({
@@ -51,6 +46,8 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+const NONE_NICHE = "__none__";
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -59,6 +56,7 @@ interface Props {
 
 export function AddLibraryModal({ open, onOpenChange, library }: Props) {
   const save = useSaveLibrary();
+  const niches = useNiches();
   const collect = useServerFn(triggerCollection);
   const qc = useQueryClient();
   const [mining, setMining] = useState(false);
@@ -95,6 +93,7 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
         id: library?.id,
         values: {
           ...values,
+          niche: values.niche || null,
           search_term: searchTermPreview ?? null,
         },
       });
@@ -139,6 +138,8 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
     }
   }
 
+  const nicheValue = form.watch("niche") || "";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -180,18 +181,28 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="niche">Nicho</Label>
-                <Input
-                  id="niche"
-                  list="niches"
-                  placeholder="Ex: Saúde, Finanças…"
-                  {...form.register("niche")}
-                />
-                <datalist id="niches">
-                  {NICHE_SUGGESTIONS.map((n) => (
-                    <option key={n} value={n} />
-                  ))}
-                </datalist>
+                <Label>Nicho</Label>
+                <Select
+                  value={nicheValue || NONE_NICHE}
+                  onValueChange={(v) =>
+                    form.setValue("niche", v === NONE_NICHE ? "" : v, { shouldValidate: true })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um nicho" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE_NICHE}>Sem nicho</SelectItem>
+                    {(niches.data ?? []).map((n) => (
+                      <SelectItem key={n.id} value={n.name}>
+                        {n.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Gerencie nichos em Configurações.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Idioma</Label>
@@ -223,7 +234,7 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
               />
             </div>
 
-            <p className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            <p className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
               Ao adicionar uma biblioteca ativa, a mineração roda na hora e atualiza os dados ao vivo.
             </p>
 
@@ -231,11 +242,7 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={save.isPending || mining}
-                className="gradient-violet-cyan text-white"
-              >
+              <Button type="submit" disabled={save.isPending || mining}>
                 {(save.isPending || mining) && <Loader2 className="h-4 w-4 animate-spin" />}
                 {mining ? "Minerando…" : save.isPending ? "Salvando…" : library ? "Salvar e minerar" : "Adicionar e minerar"}
               </Button>

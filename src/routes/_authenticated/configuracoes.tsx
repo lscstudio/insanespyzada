@@ -3,11 +3,30 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { CheckCircle2, Loader2, RefreshCw, Sparkles, Trash2, XCircle, Zap } from "lucide-react";
+import {
+  CheckCircle2,
+  Loader2,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  Tags,
+  Trash2,
+  X,
+  XCircle,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  useCreateNiche,
+  useDeleteNiche,
+  useNiches,
+  useUpdateNiche,
+} from "@/hooks/use-libraries";
 import { clearDemoData, seedDemoData } from "@/lib/seed.functions";
 import { triggerCollection } from "@/lib/collect.functions";
 import type { CollectReport } from "@/lib/collect.server";
@@ -88,30 +107,24 @@ function ConfiguracoesPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Ferramentas administrativas, coletor e dados de demonstração.
+          Coletor, nichos e dados de demonstração.
         </p>
       </div>
 
       {/* Coletor */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <Card className="border-border/60 bg-card p-6">
+        <Card className="border-border/50 bg-card/60 p-6">
           <div className="flex items-start gap-4">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
-              <Zap className="h-5 w-5" />
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/50">
+              <Zap className="h-5 w-5 text-foreground" />
             </div>
             <div className="flex-1">
               <h2 className="text-lg font-semibold">Coletor da Meta Ad Library</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Roda automaticamente a cada 4 horas via cron. Você também pode disparar uma coleta
-                imediata. Requer a chave <code className="rounded bg-muted px-1 text-xs">FIRECRAWL_API_KEY</code>{" "}
-                configurada no backend (responsável por renderizar a página da Meta).
+                Roda automaticamente a cada 4 horas. Dispare uma coleta imediata abaixo.
               </p>
               <div className="mt-4">
-                <Button
-                  onClick={handleCollect}
-                  disabled={collecting}
-                  className="gradient-violet-cyan text-white shadow-lg shadow-primary/20"
-                >
+                <Button onClick={handleCollect} disabled={collecting}>
                   {collecting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -122,7 +135,7 @@ function ConfiguracoesPage() {
               </div>
 
               {lastReport && (
-                <div className="mt-5 rounded-xl border border-border/60 bg-background/40 p-4">
+                <div className="mt-5 rounded-xl border border-border/50 bg-background/40 p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">Última coleta</p>
                     <span className="text-xs text-muted-foreground">
@@ -158,32 +171,35 @@ function ConfiguracoesPage() {
         </Card>
       </motion.div>
 
+      {/* Nichos */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.04 }}
+      >
+        <NichesManager />
+      </motion.div>
+
       {/* Demo */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
+        transition={{ delay: 0.08 }}
       >
-        <Card className="border-border/60 bg-card p-6">
+        <Card className="border-border/50 bg-card/60 p-6">
           <div className="flex items-start gap-4">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl gradient-violet-cyan shadow-lg">
-              <Sparkles className="h-5 w-5 text-white" />
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/50">
+              <Sparkles className="h-5 w-5 text-foreground" />
             </div>
             <div className="flex-1">
               <h2 className="text-lg font-semibold">Dados de demonstração</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Insere 3 bibliotecas de exemplo (Saúde, Educação e Finanças) com 14 dias de
-                snapshots fictícios. Útil para visualizar os gráficos antes da coleta real.
+                Insere 3 bibliotecas de exemplo com 14 dias de snapshots fictícios.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button
-                  onClick={handleSeed}
-                  disabled={loadingSeed}
-                  variant="outline"
-                  className="border-border/60"
-                >
+                <Button onClick={handleSeed} disabled={loadingSeed} variant="outline">
                   {loadingSeed && <Loader2 className="h-4 w-4 animate-spin" />}
-                  <Sparkles className="h-4 w-4" /> Inserir 3 bibliotecas demo
+                  <Sparkles className="h-4 w-4" /> Inserir bibliotecas demo
                 </Button>
                 <Button onClick={handleClear} disabled={loadingClear} variant="outline">
                   {loadingClear && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -195,5 +211,153 @@ function ConfiguracoesPage() {
         </Card>
       </motion.div>
     </div>
+  );
+}
+
+function NichesManager() {
+  const niches = useNiches();
+  const create = useCreateNiche();
+  const update = useUpdateNiche();
+  const del = useDeleteNiche();
+  const [newName, setNewName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    const name = newName.trim();
+    if (!name) return;
+    try {
+      await create.mutateAsync(name);
+      setNewName("");
+      toast.success("Nicho criado");
+    } catch (err) {
+      toast.error("Não foi possível criar", {
+        description: err instanceof Error ? err.message : "Erro desconhecido",
+      });
+    }
+  }
+
+  async function handleSaveEdit(id: string, previousName: string) {
+    const name = editingValue.trim();
+    if (!name || name === previousName) {
+      setEditingId(null);
+      return;
+    }
+    try {
+      await update.mutateAsync({ id, name, previousName });
+      setEditingId(null);
+      toast.success("Nicho atualizado");
+    } catch (err) {
+      toast.error("Não foi possível atualizar", {
+        description: err instanceof Error ? err.message : "Erro desconhecido",
+      });
+    }
+  }
+
+  async function handleDelete(id: string, name: string) {
+    try {
+      await del.mutateAsync({ id, name });
+      toast.success("Nicho excluído");
+    } catch (err) {
+      toast.error("Não foi possível excluir", {
+        description: err instanceof Error ? err.message : "Erro desconhecido",
+      });
+    }
+  }
+
+  return (
+    <Card className="border-border/50 bg-card/60 p-6">
+      <div className="flex items-start gap-4">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-background/50">
+          <Tags className="h-5 w-5 text-foreground" />
+        </div>
+        <div className="flex-1">
+          <h2 className="text-lg font-semibold">Nichos</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Crie, edite e exclua os nichos disponíveis ao adicionar bibliotecas.
+          </p>
+
+          <form onSubmit={handleCreate} className="mt-4 flex gap-2">
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Ex.: Saúde, Coaching, Imobiliário…"
+              maxLength={80}
+            />
+            <Button type="submit" disabled={create.isPending || !newName.trim()}>
+              {create.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              Adicionar
+            </Button>
+          </form>
+
+          <div className="mt-5">
+            {niches.isLoading ? (
+              <p className="text-sm text-muted-foreground">Carregando…</p>
+            ) : (niches.data ?? []).length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
+                Nenhum nicho ainda. Crie o primeiro acima.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border/40 rounded-xl border border-border/50 bg-background/30">
+                {(niches.data ?? []).map((n) => (
+                  <li key={n.id} className="flex items-center gap-2 px-3 py-2">
+                    {editingId === n.id ? (
+                      <>
+                        <Input
+                          value={editingValue}
+                          onChange={(e) => setEditingValue(e.target.value)}
+                          className="h-9"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveEdit(n.id, n.name);
+                            if (e.key === "Escape") setEditingId(null);
+                          }}
+                        />
+                        <Button size="sm" onClick={() => handleSaveEdit(n.id, n.name)}>
+                          Salvar
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex-1 truncate text-sm font-medium">{n.name}</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setEditingId(n.id);
+                            setEditingValue(n.name);
+                          }}
+                          aria-label={`Editar ${n.name}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => handleDelete(n.id, n.name)}
+                          aria-label={`Excluir ${n.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }

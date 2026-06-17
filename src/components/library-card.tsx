@@ -4,8 +4,8 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle,
-  ArrowDownRight,
-  ArrowUpRight,
+  ArrowDown,
+  ArrowUp,
   ExternalLink,
   Minus,
   MoreVertical,
@@ -40,14 +40,40 @@ import {
 import { CountUp } from "@/components/count-up";
 import { AddLibraryModal } from "@/components/add-library-modal";
 import { useDeleteLibrary, useToggleLibraryStatus } from "@/hooks/use-libraries";
-import { formatNumber, formatPercent } from "@/lib/format";
-import type { LibraryLatest, LibraryTrend } from "@/lib/types";
+import type { HourlyTrend, LibraryLatest } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface Props {
   library: LibraryLatest;
-  trend?: LibraryTrend;
+  trend?: HourlyTrend;
   index?: number;
+}
+
+export function HourlyTrendBadge({ trend, className }: { trend?: HourlyTrend; className?: string }) {
+  const dir = trend?.direction ?? "flat";
+  const Icon = dir === "up" ? ArrowUp : dir === "down" ? ArrowDown : Minus;
+  const color =
+    dir === "up"
+      ? "text-success border-success/40 bg-success/10"
+      : dir === "down"
+        ? "text-destructive border-destructive/40 bg-destructive/10"
+        : "text-muted-foreground border-border/60 bg-muted/40";
+  return (
+    <span
+      title={
+        trend
+          ? `${trend.from} → ${trend.to} na última 1h`
+          : "Sem dados suficientes na última 1h"
+      }
+      className={cn(
+        "inline-flex h-7 w-7 items-center justify-center rounded-full border transition-all",
+        color,
+        className,
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </span>
+  );
 }
 
 export function LibraryCard({ library, trend, index = 0 }: Props) {
@@ -57,46 +83,27 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
   const toggle = useToggleLibraryStatus();
 
   const title = library.search_term || library.page_name || "Sem título";
-  const direction = trend?.trend_direction ?? "flat";
-  const delta = trend?.delta ?? 0;
-  const deltaPct = trend?.delta_pct ?? 0;
-
-  const TrendIcon = direction === "up" ? ArrowUpRight : direction === "down" ? ArrowDownRight : Minus;
-  const trendColor =
-    direction === "up"
-      ? "text-success"
-      : direction === "down"
-        ? "text-destructive"
-        : "text-muted-foreground";
 
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: index * 0.04, ease: [0.22, 1, 0.36, 1] }}
-        whileHover={{ y: -3 }}
+        transition={{ duration: 0.35, delay: index * 0.03, ease: [0.22, 1, 0.36, 1] }}
+        whileHover={{ y: -2 }}
       >
-        <Card className="group relative overflow-hidden border-border/60 bg-card p-0 transition-shadow hover:shadow-2xl hover:shadow-primary/10">
-          <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            <div className="absolute inset-0 rounded-2xl ring-1 ring-primary/30" />
-          </div>
-
-          <Link
-            to="/biblioteca/$id"
-            params={{ id: library.id }}
-            className="block p-5"
-          >
+        <Card className="group relative overflow-hidden border-border/50 bg-card/60 p-0 transition-all hover:border-foreground/20 hover:shadow-xl hover:shadow-black/20">
+          <Link to="/biblioteca/$id" params={{ id: library.id }} className="block p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   {library.niche && (
-                    <Badge variant="secondary" className="bg-primary/15 text-primary border-0">
+                    <Badge variant="outline" className="border-border/60 font-normal">
                       {library.niche}
                     </Badge>
                   )}
                   {library.language && (
-                    <Badge variant="outline" className="border-border/60">
+                    <Badge variant="outline" className="border-border/60 font-normal text-muted-foreground">
                       {library.language}
                     </Badge>
                   )}
@@ -107,11 +114,11 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                   )}
                   {library.scrape_ok === false && (
                     <Badge variant="outline" className="border-warning/40 bg-warning/10 text-warning">
-                      <AlertTriangle className="h-3 w-3" /> falha na última coleta
+                      <AlertTriangle className="h-3 w-3" /> falha
                     </Badge>
                   )}
                 </div>
-                <h3 className="mt-2 truncate text-base font-semibold text-foreground">
+                <h3 className="mt-3 truncate text-base font-semibold tracking-tight text-foreground">
                   {title}
                 </h3>
                 {library.page_name && library.search_term && (
@@ -173,91 +180,20 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
               </div>
             </div>
 
-            <div className="mt-5 flex items-end justify-between gap-3">
+            <div className="mt-6 flex items-end justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
                   Anúncios ativos
                 </p>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <CountUp
-                    value={library.active_ads_count ?? 0}
-                    className="text-3xl font-bold tracking-tight text-gradient-violet-cyan"
-                  />
-                </div>
+                <CountUp
+                  value={library.active_ads_count ?? 0}
+                  className="mt-1 block text-4xl font-bold tracking-tight tabular-nums text-foreground"
+                />
               </div>
-              {trend && (
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.15 + index * 0.04 }}
-                  className={cn(
-                    "flex items-center gap-1 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-xs font-medium",
-                    trendColor,
-                  )}
-                >
-                  <motion.span
-                    animate={{ y: direction === "up" ? [-2, 0] : direction === "down" ? [2, 0] : 0 }}
-                    transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.4 }}
-                  >
-                    <TrendIcon className="h-3.5 w-3.5" />
-                  </motion.span>
-                  <span>
-                    {delta > 0 ? "+" : ""}
-                    {formatNumber(delta)} ({formatPercent(deltaPct)})
-                  </span>
-                </motion.div>
-              )}
+              <HourlyTrendBadge trend={trend} />
             </div>
 
-            {/* Top creative */}
-            <div className="mt-5 flex items-center gap-3 rounded-xl border border-border/60 bg-background/30 p-3">
-              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
-                {library.top_creative_url ? (
-                  <img
-                    src={library.top_creative_url}
-                    alt="Top criativo"
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-muted" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">Criativo mais escalado</p>
-                <p className="text-sm font-medium text-foreground">
-                  ×{formatNumber(library.top_creative_count ?? 0)} duplicados
-                </p>
-                {library.top_creative_id && (
-                  <p
-                    className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground"
-                    title={`Library ID: ${library.top_creative_id}`}
-                  >
-                    ID: {library.top_creative_id}
-                  </p>
-                )}
-              </div>
-              {library.top_creative_id && /^\d{14,17}$/.test(library.top_creative_id) && (
-                <Button
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <a
-                    href={`https://www.facebook.com/ads/library/?id=${library.top_creative_id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    Abrir
-                  </a>
-                </Button>
-              )}
-            </div>
-
-
-            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+            <div className="mt-5 flex items-center justify-between border-t border-border/40 pt-3 text-[11px] text-muted-foreground">
               <span title={library.captured_at ?? ""}>
                 Atualizado{" "}
                 {library.captured_at
@@ -266,9 +202,6 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                       locale: ptBR,
                     })
                   : "—"}
-              </span>
-              <span>
-                {formatNumber(library.unique_creatives ?? 0)} criativos únicos
               </span>
             </div>
           </Link>
@@ -282,8 +215,7 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir biblioteca?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação remove permanentemente “{title}” do seu painel. Os snapshots históricos
-              não são apagados no banco, mas deixarão de aparecer aqui.
+              Esta ação remove permanentemente “{title}” do seu painel.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

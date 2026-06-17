@@ -16,9 +16,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { LibraryCard } from "@/components/library-card";
 import { AddLibraryModal } from "@/components/add-library-modal";
-import { useLibrariesLatest, useLibraryTrend } from "@/hooks/use-libraries";
+import { useHourlyTrend, useLibrariesLatest, useNiches } from "@/hooks/use-libraries";
 import { LANGUAGES } from "@/lib/format";
-import type { LibraryTrend } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/bibliotecas")({
   head: () => ({
@@ -35,7 +34,8 @@ export const Route = createFileRoute("/_authenticated/bibliotecas")({
 
 function BibliotecasPage() {
   const libs = useLibrariesLatest();
-  const trends = useLibraryTrend();
+  const trends = useHourlyTrend();
+  const nichesQuery = useNiches();
   const [query, setQuery] = useState("");
   const [niche, setNiche] = useState<string>("all");
   const [language, setLanguage] = useState<string>("all");
@@ -46,10 +46,10 @@ function BibliotecasPage() {
   const data = libs.data ?? [];
 
   const niches = useMemo(() => {
-    const s = new Set<string>();
-    data.forEach((l) => l.niche && s.add(l.niche));
-    return Array.from(s).sort();
-  }, [data]);
+    const fromDb = (nichesQuery.data ?? []).map((n) => n.name);
+    const fromLibs = data.map((l) => l.niche).filter(Boolean) as string[];
+    return Array.from(new Set([...fromDb, ...fromLibs])).sort();
+  }, [data, nichesQuery.data]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -66,12 +66,6 @@ function BibliotecasPage() {
     });
   }, [data, query, niche, language, status]);
 
-  const trendMap = useMemo(() => {
-    const m = new Map<string, LibraryTrend>();
-    (trends.data ?? []).forEach((t) => m.set(t.library_id, t));
-    return m;
-  }, [trends.data]);
-
   const isLoading = libs.isLoading;
 
   return (
@@ -84,12 +78,12 @@ function BibliotecasPage() {
             {data.length === 1 ? "" : "s"}.
           </p>
         </div>
-        <Button onClick={() => setAddOpen(true)} className="gradient-violet-cyan text-white">
+        <Button onClick={() => setAddOpen(true)}>
           <Plus className="h-4 w-4" /> Adicionar biblioteca
         </Button>
       </div>
 
-      <Card className="border-border/60 bg-card/60 p-4 backdrop-blur">
+      <Card className="border-border/50 bg-card/40 p-4 backdrop-blur">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative min-w-[240px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -172,7 +166,7 @@ function BibliotecasPage() {
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-64 rounded-2xl shimmer" />
+            <Skeleton key={i} className="h-56 rounded-2xl shimmer" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -187,7 +181,7 @@ function BibliotecasPage() {
           }
         >
           {filtered.map((lib, i) => (
-            <LibraryCard key={lib.id} library={lib} trend={trendMap.get(lib.id)} index={i} />
+            <LibraryCard key={lib.id} library={lib} trend={trends.data?.[lib.id]} index={i} />
           ))}
         </motion.div>
       )}
@@ -202,10 +196,10 @@ function EmptyState({ onAdd, hasAny }: { onAdd: () => void; hasAny: boolean }) {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="grid place-items-center rounded-3xl border border-dashed border-border/70 bg-card/30 px-8 py-20 text-center"
+      className="grid place-items-center rounded-3xl border border-dashed border-border/60 bg-card/30 px-8 py-20 text-center"
     >
-      <div className="grid h-14 w-14 place-items-center rounded-2xl gradient-violet-cyan shadow-lg">
-        <Plus className="h-6 w-6 text-white" />
+      <div className="grid h-14 w-14 place-items-center rounded-2xl border border-border/60 bg-card">
+        <Plus className="h-6 w-6 text-foreground" />
       </div>
       <h2 className="mt-4 text-xl font-semibold">
         {hasAny ? "Nenhum resultado para os filtros" : "Comece adicionando sua primeira biblioteca"}
@@ -214,7 +208,7 @@ function EmptyState({ onAdd, hasAny }: { onAdd: () => void; hasAny: boolean }) {
         Cole o link de uma busca na Biblioteca de Anúncios da Meta. A mineração roda na hora e os
         números aparecem aqui automaticamente.
       </p>
-      <Button onClick={onAdd} className="mt-6 gradient-violet-cyan text-white">
+      <Button onClick={onAdd} className="mt-6">
         <Plus className="h-4 w-4" /> Adicionar biblioteca
       </Button>
     </motion.div>
