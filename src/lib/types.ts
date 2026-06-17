@@ -75,3 +75,20 @@ export interface DailyLibraryStat {
   min_active_ads: number | null;
   snapshots_count: number | null;
 }
+
+export interface Niche {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type HourlyDirection = "up" | "down" | "flat";
+
+export interface HourlyTrend {
+  library_id: string;
+  direction: HourlyDirection;
+  delta: number;
+  from: number;
+  to: number;
+}
