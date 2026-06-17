@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -6,20 +6,25 @@ import {
   Menu,
   Moon,
   Plus,
+  Settings,
   Sun,
   LogOut,
   Sparkles,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { toast } from "sonner";
+
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AddLibraryModal } from "@/components/add-library-modal";
+import { signOut } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/", label: "Visão Geral", icon: LayoutDashboard, exact: true },
   { to: "/bibliotecas", label: "Bibliotecas", icon: Library, exact: false },
+  { to: "/configuracoes", label: "Configurações", icon: Settings, exact: false },
 ];
 
 function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItemClick?: () => void }) {
@@ -80,15 +85,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const { theme, toggle } = useTheme();
+  const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
+  async function handleLogout() {
+    await signOut();
+    toast.success("Você saiu");
+    navigate({ to: "/auth" });
+  }
+
   return (
     <div className="flex min-h-screen w-full bg-background">
-      {/* Desktop sidebar */}
       <aside
         className={cn(
           "sticky top-0 hidden h-screen shrink-0 border-r border-border/60 transition-[width] duration-300 md:block",
@@ -98,15 +109,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SidebarContent collapsed={collapsed} />
       </aside>
 
-      {/* Mobile drawer */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-72 border-r border-border/60 bg-sidebar p-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Menu</SheetTitle>
+          </SheetHeader>
           <SidebarContent collapsed={false} onItemClick={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Topbar */}
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
           <div className="flex h-16 items-center gap-3 px-4 md:px-6">
             <Button
@@ -168,7 +180,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   )}
                 </AnimatePresence>
               </Button>
-              <Button variant="ghost" size="icon" aria-label="Sair">
+              <Button variant="ghost" size="icon" aria-label="Sair" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
