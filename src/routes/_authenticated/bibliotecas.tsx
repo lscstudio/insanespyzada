@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { motion } from "framer-motion";
-import { LayoutGrid, List, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { LayoutGrid, List, Loader2, Plus, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LibraryCard } from "@/components/library-card";
 import { AddLibraryModal } from "@/components/add-library-modal";
 import { useHourlyTrend, useLibrariesLatest, useNiches } from "@/hooks/use-libraries";
+import { triggerCollection } from "@/lib/collect.functions";
 import { LANGUAGES } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/bibliotecas")({
@@ -36,12 +40,41 @@ function BibliotecasPage() {
   const libs = useLibrariesLatest();
   const trends = useHourlyTrend();
   const nichesQuery = useNiches();
+  const qc = useQueryClient();
+  const collect = useServerFn(triggerCollection);
   const [query, setQuery] = useState("");
   const [niche, setNiche] = useState<string>("all");
   const [language, setLanguage] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [addOpen, setAddOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      const report = await collect({ data: {} });
+      if (report.libraries_total === 0) {
+        toast.info("Nenhuma biblioteca ativa para atualizar");
+      } else if (report.libraries_failed === 0) {
+        toast.success(`${report.libraries_ok} biblioteca(s) atualizadas`, {
+          description: `Em ${(report.duration_ms / 1000).toFixed(1)}s.`,
+        });
+      } else {
+        toast.warning(
+          `${report.libraries_ok} ok · ${report.libraries_failed} falha(s)`,
+        );
+      }
+      await qc.invalidateQueries();
+    } catch (e) {
+      toast.error("Falha ao atualizar", {
+        description: e instanceof Error ? e.message : "Erro desconhecido",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
 
   const data = libs.data ?? [];
 
@@ -78,9 +111,20 @@ function BibliotecasPage() {
             {data.length === 1 ? "" : "s"}.
           </p>
         </div>
-        <Button onClick={() => setAddOpen(true)}>
-          <Plus className="h-4 w-4" /> Adicionar biblioteca
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
+            {refreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            {refreshing ? "Atualizando..." : "Atualizar agora"}
+          </Button>
+          <Button onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4" /> Adicionar biblioteca
+          </Button>
+        </div>
+
       </div>
 
       <Card className="border-border/50 bg-card/40 p-4 backdrop-blur">
