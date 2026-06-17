@@ -262,7 +262,7 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      purge_old_snapshots: { Args: { days?: number }; Returns: number }
     }
     Enums: {
       [_ in never]: never
