@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/app-shell";
+import { useRealtimeRefresh } from "@/hooks/use-realtime-refresh";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthedLayout() {
   // Subscribe to auth changes so signing out redirects the whole subtree.
   const [ready, setReady] = useState(false);
+  useRealtimeRefresh();
 
   useEffect(() => {
     setReady(true);

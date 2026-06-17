@@ -6,11 +6,12 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar · AdSpy Dashboard" }] }),
@@ -28,6 +29,8 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   useEffect(() => {
@@ -74,9 +77,54 @@ function AuthPage() {
     }
   }
 
+  async function onGoogle() {
+    setGoogleLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error("Não foi possível entrar com Google", {
+          description: result.error.message,
+        });
+        return;
+      }
+      if (result.redirected) return;
+      navigate({ to: "/" });
+    } catch (err) {
+      toast.error("Erro inesperado", {
+        description: err instanceof Error ? err.message : "Erro desconhecido",
+      });
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
+
+  async function onForgot() {
+    if (!email || !z.string().email().safeParse(email).success) {
+      toast.error("Informe seu email acima primeiro");
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Email enviado", {
+        description: "Verifique sua caixa de entrada para redefinir a senha.",
+      });
+    } catch (err) {
+      toast.error("Não foi possível enviar o email", {
+        description: err instanceof Error ? err.message : "Erro desconhecido",
+      });
+    } finally {
+      setForgotLoading(false);
+    }
+  }
+
   return (
     <div className="relative grid min-h-screen place-items-center overflow-hidden bg-background px-4">
-      {/* Background glow */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-32 left-1/4 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
@@ -104,11 +152,35 @@ function AuthPage() {
               <TabsTrigger value="signin">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Criar conta</TabsTrigger>
             </TabsList>
-            <TabsContent value="signin" className="mt-4" />
-            <TabsContent value="signup" className="mt-4" />
           </Tabs>
 
-          <form onSubmit={onSubmit} className="mt-4 space-y-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onGoogle}
+            disabled={googleLoading}
+            className="mt-4 w-full border-border/60"
+          >
+            {googleLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="#EA4335"
+                  d="M12 10.2v3.9h5.45c-.24 1.4-1.66 4.1-5.45 4.1-3.28 0-5.96-2.72-5.96-6.07S8.72 6.06 12 6.06c1.86 0 3.12.79 3.84 1.47l2.62-2.53C16.86 3.5 14.66 2.5 12 2.5 6.76 2.5 2.5 6.76 2.5 12s4.26 9.5 9.5 9.5c5.48 0 9.12-3.85 9.12-9.27 0-.62-.07-1.1-.16-1.53H12z"
+                />
+              </svg>
+            )}
+            Continuar com Google
+          </Button>
+
+          <div className="my-4 flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border/60" />
+            ou com email
+            <span className="h-px flex-1 bg-border/60" />
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -122,7 +194,19 @@ function AuthPage() {
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Senha</Label>
+                {mode === "signin" && (
+                  <button
+                    type="button"
+                    onClick={onForgot}
+                    disabled={forgotLoading}
+                    className="text-xs text-primary hover:underline disabled:opacity-50"
+                  >
+                    {forgotLoading ? "Enviando..." : "Esqueci a senha"}
+                  </button>
+                )}
+              </div>
               <Input
                 id="password"
                 type="password"
