@@ -14,10 +14,252 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      creatives: {
+        Row: {
+          ad_archive_id: string | null
+          body_text: string | null
+          captured_at: string
+          creative_hash: string | null
+          duplicate_count: number
+          id: string
+          library_id: string | null
+          media_type: string | null
+          preview_url: string | null
+          snapshot_id: string | null
+        }
+        Insert: {
+          ad_archive_id?: string | null
+          body_text?: string | null
+          captured_at?: string
+          creative_hash?: string | null
+          duplicate_count?: number
+          id?: string
+          library_id?: string | null
+          media_type?: string | null
+          preview_url?: string | null
+          snapshot_id?: string | null
+        }
+        Update: {
+          ad_archive_id?: string | null
+          body_text?: string | null
+          captured_at?: string
+          creative_hash?: string | null
+          duplicate_count?: number
+          id?: string
+          library_id?: string | null
+          media_type?: string | null
+          preview_url?: string | null
+          snapshot_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creatives_library_id_fkey"
+            columns: ["library_id"]
+            isOneToOne: false
+            referencedRelation: "libraries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creatives_library_id_fkey"
+            columns: ["library_id"]
+            isOneToOne: false
+            referencedRelation: "library_latest"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creatives_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "library_latest"
+            referencedColumns: ["latest_snapshot_id"]
+          },
+          {
+            foreignKeyName: "creatives_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      libraries: {
+        Row: {
+          created_at: string
+          id: string
+          language: string | null
+          niche: string | null
+          notes: string | null
+          page_name: string | null
+          search_term: string | null
+          status: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language?: string | null
+          niche?: string | null
+          notes?: string | null
+          page_name?: string | null
+          search_term?: string | null
+          status?: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language?: string | null
+          niche?: string | null
+          notes?: string | null
+          page_name?: string | null
+          search_term?: string | null
+          status?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      snapshots: {
+        Row: {
+          active_ads_count: number
+          captured_at: string
+          error_message: string | null
+          id: string
+          library_id: string | null
+          scrape_ok: boolean
+          top_creative_count: number | null
+          top_creative_id: string | null
+          top_creative_url: string | null
+          total_results_text: string | null
+          unique_creatives: number | null
+        }
+        Insert: {
+          active_ads_count?: number
+          captured_at?: string
+          error_message?: string | null
+          id?: string
+          library_id?: string | null
+          scrape_ok?: boolean
+          top_creative_count?: number | null
+          top_creative_id?: string | null
+          top_creative_url?: string | null
+          total_results_text?: string | null
+          unique_creatives?: number | null
+        }
+        Update: {
+          active_ads_count?: number
+          captured_at?: string
+          error_message?: string | null
+          id?: string
+          library_id?: string | null
+          scrape_ok?: boolean
+          top_creative_count?: number | null
+          top_creative_id?: string | null
+          top_creative_url?: string | null
+          total_results_text?: string | null
+          unique_creatives?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "snapshots_library_id_fkey"
+            columns: ["library_id"]
+            isOneToOne: false
+            referencedRelation: "libraries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshots_library_id_fkey"
+            columns: ["library_id"]
+            isOneToOne: false
+            referencedRelation: "library_latest"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      daily_library_stats: {
+        Row: {
+          avg_active_ads: number | null
+          day: string | null
+          library_id: string | null
+          max_active_ads: number | null
+          max_top_creative_count: number | null
+          min_active_ads: number | null
+          snapshots_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "snapshots_library_id_fkey"
+            columns: ["library_id"]
+            isOneToOne: false
+            referencedRelation: "libraries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshots_library_id_fkey"
+            columns: ["library_id"]
+            isOneToOne: false
+            referencedRelation: "library_latest"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      library_latest: {
+        Row: {
+          active_ads_count: number | null
+          captured_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string | null
+          language: string | null
+          last_captured_at: string | null
+          latest_snapshot_id: string | null
+          niche: string | null
+          notes: string | null
+          page_name: string | null
+          scrape_ok: boolean | null
+          search_term: string | null
+          status: string | null
+          top_creative_count: number | null
+          top_creative_id: string | null
+          top_creative_url: string | null
+          total_results_text: string | null
+          unique_creatives: number | null
+          updated_at: string | null
+          url: string | null
+        }
+        Relationships: []
+      }
+      library_trend: {
+        Row: {
+          captured_at: string | null
+          current_active_ads: number | null
+          delta: number | null
+          delta_pct: number | null
+          library_id: string | null
+          previous_active_ads: number | null
+          trend_direction: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "snapshots_library_id_fkey"
+            columns: ["library_id"]
+            isOneToOne: false
+            referencedRelation: "libraries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "snapshots_library_id_fkey"
+            columns: ["library_id"]
+            isOneToOne: false
+            referencedRelation: "library_latest"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       [_ in never]: never
