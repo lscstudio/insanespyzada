@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { motion } from "framer-motion";
@@ -61,6 +61,7 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
   const save = useSaveLibrary();
   const collect = useServerFn(triggerCollection);
   const qc = useQueryClient();
+  const [mining, setMining] = useState(false);
 
   const defaults = useMemo<FormValues>(
     () => ({
@@ -99,6 +100,7 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
       });
 
       if (saved.status === "active") {
+        setMining(true);
         toast.loading("Minerando biblioteca agora…", {
           id: `collect-${saved.id}`,
           description: "Buscando anúncios ativos e criativos reais na Meta.",
@@ -125,6 +127,8 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
       toast.error("Não foi possível salvar", {
         description: e instanceof Error ? e.message : "Erro desconhecido",
       });
+    } finally {
+      setMining(false);
     }
   }
 
@@ -222,11 +226,11 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
               </Button>
               <Button
                 type="submit"
-                disabled={save.isPending}
+                disabled={save.isPending || mining}
                 className="gradient-violet-cyan text-white"
               >
-                {save.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                {save.isPending ? "Salvando…" : library ? "Salvar e minerar" : "Adicionar e minerar"}
+                {(save.isPending || mining) && <Loader2 className="h-4 w-4 animate-spin" />}
+                {mining ? "Minerando…" : save.isPending ? "Salvando…" : library ? "Salvar e minerar" : "Adicionar e minerar"}
               </Button>
             </DialogFooter>
           </form>
