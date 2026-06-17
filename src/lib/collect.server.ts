@@ -314,32 +314,43 @@ export async function runCollection(opts?: { libraryId?: string }): Promise<Coll
   const { data: libraries, error } = await query;
   if (error) throw error;
 
+  const list = libraries ?? [];
   const details: CollectReport["details"] = [];
   let ok = 0;
   let failed = 0;
 
-  for (const lib of libraries ?? []) {
-    const label = lib.search_term || lib.page_name || lib.id;
-    const r = await collectOne(sb, lib);
-    if (r.ok) {
-      ok += 1;
-      details.push({
-        library_id: lib.id,
-        label,
-        ok: true,
-        active_ads_count: r.parsed!.active_ads_count,
-        unique_creatives: r.parsed!.unique_creatives,
-      });
-    } else {
-      failed += 1;
-      details.push({ library_id: lib.id, label, ok: false, error: r.error });
+  // Run with bounded concurrency so the Worker request finishes within its
+  // wall-time budget even when the user has many libraries. Serial + 1.2s
+  // delay used to silently exceed the timeout after ~5-6 libraries.
+  const CONCURRENCY = 4;
+  let cursor = 0;
+  async function worker() {
+    while (cursor < list.length) {
+      const idx = cursor++;
+      const lib = list[idx];
+      const label = lib.search_term || lib.page_name || lib.id;
+      const r = await collectOne(sb, lib);
+      if (r.ok) {
+        ok += 1;
+        details.push({
+          library_id: lib.id,
+          label,
+          ok: true,
+          active_ads_count: r.parsed!.active_ads_count,
+          unique_creatives: r.parsed!.unique_creatives,
+        });
+      } else {
+        failed += 1;
+        details.push({ library_id: lib.id, label, ok: false, error: r.error });
+      }
     }
-    // Politeness delay between libraries
-    await new Promise((res) => setTimeout(res, 1200));
   }
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, list.length) }, () => worker()),
+  );
 
   return {
-    libraries_total: (libraries ?? []).length,
+    libraries_total: list.length,
     libraries_ok: ok,
     libraries_failed: failed,
     duration_ms: Date.now() - started,
