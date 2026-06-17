@@ -7,6 +7,7 @@ import {
   ArrowDownRight,
   ArrowLeft,
   ArrowUpRight,
+  Copy,
   Crown,
   ExternalLink,
   Image as ImageIcon,
@@ -15,6 +16,7 @@ import {
   Pencil,
   Video,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useMemo, useState } from "react";
 import {
   Area,
