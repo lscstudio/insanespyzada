@@ -124,7 +124,7 @@ function LibraryDetailPage() {
     );
   }
 
-  const title = data.search_term || data.page_name || "Biblioteca";
+  const title = data.title || data.search_term || data.page_name || "Biblioteca";
 
   const totalHistory = history.data?.length ?? 0;
   const pagedHistory = (history.data ?? []).slice(page * pageSize, (page + 1) * pageSize);
