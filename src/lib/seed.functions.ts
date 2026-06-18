@@ -8,7 +8,7 @@ import type { TablesInsert } from "@/integrations/supabase/types";
 // writes by design).
 export const seedDemoData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const demo = [
@@ -54,6 +54,7 @@ export const seedDemoData = createServerFn({ method: "POST" })
           language: d.language,
           notes: d.notes,
           status: "active",
+          created_by: context.userId,
         })
         .select()
         .single();
@@ -125,11 +126,12 @@ export const seedDemoData = createServerFn({ method: "POST" })
 
 export const clearDemoData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("libraries")
       .delete()
+      .eq("created_by", context.userId)
       .like("notes", "[DEMO]%");
     if (error) throw error;
     return { ok: true };

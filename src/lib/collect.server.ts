@@ -467,12 +467,13 @@ async function collectOne(
   }
 }
 
-export async function runCollection(opts?: { libraryId?: string }): Promise<CollectReport> {
+export async function runCollection(opts?: { libraryId?: string; userId?: string }): Promise<CollectReport> {
   const started = Date.now();
   const sb = getAdmin();
 
   let query = sb.from("libraries").select("*").eq("status", "active");
   if (opts?.libraryId) query = query.eq("id", opts.libraryId);
+  if (opts?.userId) query = query.eq("created_by", opts.userId);
   const { data: libraries, error } = await query;
   if (error) throw error;
 
