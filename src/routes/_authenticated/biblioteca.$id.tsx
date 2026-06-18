@@ -191,7 +191,7 @@ function LibraryDetailPage() {
             <HourlyTrendBadge trend={trend} />
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Variação em relação à última 1h
+            Variação vs coleta anterior
           </p>
         </SummaryCard>
 
