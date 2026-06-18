@@ -10,9 +10,7 @@ import {
   Layers,
   Pencil,
   Radio,
-  Copy,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useMemo, useState } from "react";
 import {
   Area,
@@ -403,28 +401,7 @@ function LibraryDetailPage() {
                         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-primary/40 bg-primary/10 text-xs font-semibold text-primary">
                           {i + 1}
                         </span>
-                        {p.page_id ? (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                await navigator.clipboard.writeText(p.page_id!);
-                                toast.success("ID da página copiado", {
-                                  description: `${p.name} • ${p.page_id}`,
-                                });
-                              } catch {
-                                toast.error("Não foi possível copiar o ID");
-                              }
-                            }}
-                            className="group flex min-w-0 items-center gap-1.5 truncate text-left text-sm font-medium hover:text-primary"
-                            title={`Copiar ID: ${p.page_id}`}
-                          >
-                            <span className="truncate">{p.name}</span>
-                            <Copy className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-70" />
-                          </button>
-                        ) : (
-                          <span className="truncate text-sm font-medium">{p.name}</span>
-                        )}
+                        <span className="truncate text-sm font-medium">{p.name}</span>
                       </div>
                       <span className="tabular-nums text-sm font-semibold text-foreground">
                         {formatNumber(p.active_ads_count)}
