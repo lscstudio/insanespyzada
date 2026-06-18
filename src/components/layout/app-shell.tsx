@@ -196,3 +196,26 @@ export function AppShell({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
+function ProfileBadge() {
+  const { data } = useProfile();
+  const initials = (data?.profile?.display_name || data?.email || "?")
+    .split(/\s+/)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  return (
+    <Link
+      to="/perfil"
+      className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-border bg-gradient-to-br from-primary/20 to-primary/5 text-xs font-semibold text-foreground transition hover:ring-2 hover:ring-primary/40"
+      aria-label="Perfil"
+    >
+      {data?.avatarUrl ? (
+        <img src={data.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+      ) : (
+        <span>{initials}</span>
+      )}
+    </Link>
+  );
+}
