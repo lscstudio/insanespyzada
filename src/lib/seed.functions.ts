@@ -8,7 +8,7 @@ import type { TablesInsert } from "@/integrations/supabase/types";
 // writes by design).
 export const seedDemoData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const demo = [
