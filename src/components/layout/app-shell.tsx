@@ -11,7 +11,7 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react";
-import logoAsset from "@/assets/insanespy-logo.png.asset.json";
+import logoAsset from "@/assets/insanespy-logo.png";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
