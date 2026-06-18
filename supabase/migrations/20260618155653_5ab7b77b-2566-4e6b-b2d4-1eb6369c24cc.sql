@@ -1,0 +1,1 @@
+ALTER VIEW public.library_latest SET (security_invoker = on);

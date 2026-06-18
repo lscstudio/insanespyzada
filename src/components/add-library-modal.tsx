@@ -33,6 +33,7 @@ import { LANGUAGES, extractSearchTerm, isMetaAdLibraryUrl } from "@/lib/format";
 import type { LibraryLatest } from "@/lib/types";
 
 const schema = z.object({
+  title: z.string().trim().max(120).optional().nullable(),
   url: z
     .string()
     .trim()
@@ -63,6 +64,7 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
 
   const defaults = useMemo<FormValues>(
     () => ({
+      title: library?.title ?? "",
       url: library?.url ?? "",
       niche: library?.niche ?? "",
       language: library?.language ?? "PT",
@@ -93,6 +95,7 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
         id: library?.id,
         values: {
           ...values,
+          title: values.title?.trim() || null,
           niche: values.niche || null,
           search_term: searchTermPreview ?? null,
         },
@@ -153,11 +156,23 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
               {library ? "Editar biblioteca" : "Adicionar biblioteca"}
             </DialogTitle>
             <DialogDescription>
-              Cole o link da Biblioteca de Anúncios da Meta. O termo de busca é extraído automaticamente.
+              Dê um nome curto pra essa biblioteca (oferta, mecanismo, ângulo) e cole o link da Meta Ad Library.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Título</Label>
+              <Input
+                id="title"
+                placeholder="Ex: Oferta do azeite — mecanismo digestivo"
+                {...form.register("title")}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Aparece em todos os lugares no lugar do link da biblioteca.
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="url">Link da biblioteca</Label>
               <Input

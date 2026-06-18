@@ -82,7 +82,7 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
   const del = useDeleteLibrary();
   const toggle = useToggleLibraryStatus();
 
-  const title = library.search_term || library.page_name || "Sem título";
+  const title = library.title || library.search_term || library.page_name || "Sem título";
 
   return (
     <>

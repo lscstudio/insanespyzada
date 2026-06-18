@@ -5,6 +5,7 @@ export type LibraryStatus = "active" | "paused" | "archived";
 export interface Library {
   id: string;
   url: string;
+  title: string | null;
   search_term: string | null;
   page_name: string | null;
   niche: string | null;

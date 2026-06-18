@@ -93,6 +93,7 @@ export type Database = {
           page_name: string | null
           search_term: string | null
           status: string
+          title: string | null
           updated_at: string
           url: string
         }
@@ -106,6 +107,7 @@ export type Database = {
           page_name?: string | null
           search_term?: string | null
           status?: string
+          title?: string | null
           updated_at?: string
           url: string
         }
@@ -119,6 +121,7 @@ export type Database = {
           page_name?: string | null
           search_term?: string | null
           status?: string
+          title?: string | null
           updated_at?: string
           url?: string
         }
@@ -268,6 +271,7 @@ export type Database = {
           scrape_ok: boolean | null
           search_term: string | null
           status: string | null
+          title: string | null
           top_creative_count: number | null
           top_creative_id: string | null
           top_creative_url: string | null

@@ -58,7 +58,7 @@ function OverviewPage() {
         .slice(0, 10)
         .map((l) => ({
           id: l.id,
-          name: l.search_term || l.page_name || "—",
+          name: l.title || l.search_term || l.page_name || "—",
           value: l.active_ads_count ?? 0,
           niche: l.niche,
         })),
@@ -104,7 +104,7 @@ function OverviewPage() {
       label: "Biblioteca líder",
       value: leader?.active_ads_count ?? 0,
       icon: Crown,
-      sub: leader?.search_term ?? leader?.page_name ?? "—",
+      sub: leader?.title ?? leader?.search_term ?? leader?.page_name ?? "—",
     },
     { label: "Coletas na última 1h", value: collections1h, icon: Radio },
   ];
@@ -246,7 +246,7 @@ function OverviewPage() {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">
-                        {lib.search_term || lib.page_name || "—"}
+                        {lib.title || lib.search_term || lib.page_name || "—"}
                       </p>
                       {lib.niche && (
                         <p className="truncate text-xs text-muted-foreground">{lib.niche}</p>

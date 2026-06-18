@@ -192,6 +192,7 @@ export function useTopCreatives(libraryId: string, snapshotId: string | null) {
 
 export interface LibraryFormData {
   url: string;
+  title?: string | null;
   search_term?: string | null;
   page_name?: string | null;
   niche?: string | null;
