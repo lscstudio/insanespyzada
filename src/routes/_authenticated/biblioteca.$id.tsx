@@ -403,7 +403,7 @@ function LibraryDetailPage() {
                         </span>
                         {p.page_id ? (
                           <a
-                            href={`https://www.facebook.com/ads/library/?view_all_page_id=${p.page_id}`}
+                            href={`https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&view_all_page_id=${p.page_id}&search_type=page&media_type=all`}
                             target="_blank"
                             rel="noreferrer"
                             className="truncate text-sm font-medium hover:text-primary"
