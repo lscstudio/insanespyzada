@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import logoAsset from "@/assets/insanespy-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar · InsaneSpy" }] }),
@@ -136,13 +137,13 @@ function AuthPage() {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="relative w-full max-w-md"
       >
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <div className="grid h-10 w-10 place-items-center rounded-xl gradient-violet-cyan shadow-lg">
-            <Sparkles className="h-5 w-5 text-white" />
+        <div className="mb-6 flex items-center justify-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-xl border border-primary/30 bg-primary/10">
+            <img src={logoAsset.url} alt="InsaneSpy" className="h-7 w-7 object-contain" />
           </div>
           <div>
             <h1 className="text-lg font-semibold leading-none">InsaneSpy</h1>
-            <p className="text-xs text-muted-foreground">Inteligência competitiva</p>
+            <p className="text-xs text-muted-foreground">Você está sendo observado</p>
           </div>
         </div>
 
