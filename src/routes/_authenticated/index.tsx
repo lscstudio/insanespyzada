@@ -104,7 +104,7 @@ function OverviewPage() {
       label: "Biblioteca líder",
       value: leader?.active_ads_count ?? 0,
       icon: Crown,
-      sub: leader?.search_term ?? leader?.page_name ?? "—",
+      sub: leader?.title ?? leader?.search_term ?? leader?.page_name ?? "—",
     },
     { label: "Coletas na última 1h", value: collections1h, icon: Radio },
   ];
