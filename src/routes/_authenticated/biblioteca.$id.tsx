@@ -10,7 +10,9 @@ import {
   Layers,
   Pencil,
   Radio,
+  Copy,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useMemo, useState } from "react";
 import {
   Area,
