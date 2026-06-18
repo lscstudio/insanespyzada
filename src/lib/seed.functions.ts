@@ -126,11 +126,12 @@ export const seedDemoData = createServerFn({ method: "POST" })
 
 export const clearDemoData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async () => {
+  .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("libraries")
       .delete()
+      .eq("created_by", context.userId)
       .like("notes", "[DEMO]%");
     if (error) throw error;
     return { ok: true };
