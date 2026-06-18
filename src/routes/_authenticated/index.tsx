@@ -58,7 +58,7 @@ function OverviewPage() {
         .slice(0, 10)
         .map((l) => ({
           id: l.id,
-          name: l.search_term || l.page_name || "—",
+          name: l.title || l.search_term || l.page_name || "—",
           value: l.active_ads_count ?? 0,
           niche: l.niche,
         })),
