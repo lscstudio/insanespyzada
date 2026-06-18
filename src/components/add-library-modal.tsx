@@ -156,11 +156,23 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
               {library ? "Editar biblioteca" : "Adicionar biblioteca"}
             </DialogTitle>
             <DialogDescription>
-              Cole o link da Biblioteca de Anúncios da Meta. O termo de busca é extraído automaticamente.
+              Dê um nome curto pra essa biblioteca (oferta, mecanismo, ângulo) e cole o link da Meta Ad Library.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Título</Label>
+              <Input
+                id="title"
+                placeholder="Ex: Oferta do azeite — mecanismo digestivo"
+                {...form.register("title")}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Aparece em todos os lugares no lugar do link da biblioteca.
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="url">Link da biblioteca</Label>
               <Input
