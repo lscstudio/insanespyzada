@@ -17,6 +17,7 @@ export type Database = {
       creatives: {
         Row: {
           ad_archive_id: string | null
+          ad_url: string | null
           body_text: string | null
           captured_at: string
           creative_hash: string | null
@@ -24,11 +25,13 @@ export type Database = {
           id: string
           library_id: string | null
           media_type: string | null
+          page_name: string | null
           preview_url: string | null
           snapshot_id: string | null
         }
         Insert: {
           ad_archive_id?: string | null
+          ad_url?: string | null
           body_text?: string | null
           captured_at?: string
           creative_hash?: string | null
@@ -36,11 +39,13 @@ export type Database = {
           id?: string
           library_id?: string | null
           media_type?: string | null
+          page_name?: string | null
           preview_url?: string | null
           snapshot_id?: string | null
         }
         Update: {
           ad_archive_id?: string | null
+          ad_url?: string | null
           body_text?: string | null
           captured_at?: string
           creative_hash?: string | null
@@ -48,6 +53,7 @@ export type Database = {
           id?: string
           library_id?: string | null
           media_type?: string | null
+          page_name?: string | null
           preview_url?: string | null
           snapshot_id?: string | null
         }
@@ -155,6 +161,7 @@ export type Database = {
           error_message: string | null
           id: string
           library_id: string | null
+          pages: Json
           scrape_ok: boolean
           top_creative_count: number | null
           top_creative_id: string | null
@@ -168,6 +175,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           library_id?: string | null
+          pages?: Json
           scrape_ok?: boolean
           top_creative_count?: number | null
           top_creative_id?: string | null
@@ -181,6 +189,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           library_id?: string | null
+          pages?: Json
           scrape_ok?: boolean
           top_creative_count?: number | null
           top_creative_id?: string | null
@@ -268,6 +277,7 @@ export type Database = {
           niche: string | null
           notes: string | null
           page_name: string | null
+          pages: Json | null
           scrape_ok: boolean | null
           search_term: string | null
           status: string | null

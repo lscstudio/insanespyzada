@@ -1,15 +1,14 @@
 /**
  * Meta Ad Library collector — server-only.
  *
- * Uses Firecrawl to render the JS-heavy Ad Library page, then parses the
- * resulting HTML for:
- *   - active ads count ("~123 results" / "~123 resultados" / "Sobre 123")
- *   - creative image/video URLs from Meta's CDN (fbcdn.net, cdninstagram.com)
- *   - dedupes creatives by URL hash to estimate `unique_creatives` and pick
- *     the most-repeated one as the "top creative"
- *
- * Meta blocks raw server fetches, so Firecrawl (JS rendering + residential
- * routing) is required. Set the FIRECRAWL_API_KEY env var.
+ * Estratégia híbrida (precisão máxima):
+ *   1. Firecrawl renderiza a página (JS pesado da Meta) e devolve HTML +
+ *      markdown + um JSON estruturado extraído por LLM com schema rígido.
+ *   2. O LLM lê o DOM renderizado e nos devolve: total de anúncios ativos,
+ *      lista de páginas (nome + nº de ativos), lista de criativos com
+ *      Library ID, contagem real de "X anúncios usam esta criação", preview
+ *      URL, e link direto pro anúncio.
+ *   3. Se o JSON falhar, caímos no parser regex como fallback.
  */
 
 import crypto from "node:crypto";
@@ -18,6 +17,23 @@ import type { Database, TablesInsert } from "@/integrations/supabase/types";
 
 type LibraryRow = Database["public"]["Tables"]["libraries"]["Row"];
 
+export interface PageBreakdown {
+  name: string;
+  active_ads_count: number;
+  page_id?: string | null;
+}
+
+interface ParsedCreative {
+  creative_hash: string;
+  preview_url: string;
+  media_type: "image" | "video";
+  duplicate_count: number;
+  ad_archive_id: string | null;
+  page_name: string | null;
+  body_text: string | null;
+  ad_url: string | null;
+}
+
 interface ParsedResult {
   active_ads_count: number;
   total_results_text: string | null;
@@ -25,13 +41,8 @@ interface ParsedResult {
   top_creative_url: string | null;
   top_creative_id: string | null;
   top_creative_count: number;
-  creatives: Array<{
-    creative_hash: string;
-    preview_url: string;
-    media_type: "image" | "video";
-    duplicate_count: number;
-    ad_archive_id: string | null;
-  }>;
+  creatives: ParsedCreative[];
+  pages: PageBreakdown[];
 }
 
 export interface CollectReport {
@@ -45,6 +56,7 @@ export interface CollectReport {
     ok: boolean;
     active_ads_count?: number;
     unique_creatives?: number;
+    pages_count?: number;
     error?: string;
   }>;
 }
@@ -60,8 +72,95 @@ function getAdmin(): SupabaseClient<Database> {
   });
 }
 
-/** Call Firecrawl v2 scrape and return rendered HTML + markdown. */
-async function firecrawlScrape(url: string): Promise<{ html: string; markdown: string }> {
+// =====================================================================
+// Firecrawl: render + structured JSON extraction
+// =====================================================================
+
+interface FirecrawlPayload {
+  html: string;
+  markdown: string;
+  extracted: ExtractedShape | null;
+}
+
+interface ExtractedShape {
+  active_ads_count?: number | null;
+  total_results_text?: string | null;
+  pages?: Array<{
+    name?: string | null;
+    page_id?: string | null;
+    active_ads_count?: number | null;
+  }> | null;
+  creatives?: Array<{
+    page_name?: string | null;
+    library_id?: string | null;
+    preview_url?: string | null;
+    media_type?: string | null;
+    duplicate_count?: number | null;
+    body_text?: string | null;
+    ad_url?: string | null;
+  }> | null;
+}
+
+const EXTRACTION_PROMPT = `Você está lendo uma página da Meta Ad Library (Biblioteca de Anúncios do Facebook).
+
+Extraia com PRECISÃO ABSOLUTA:
+
+1. "active_ads_count" — o número TOTAL de anúncios ativos exibido no topo da página (ex: "~123 resultados", "Sobre 45 resultados", "Showing 12 results"). Converta para inteiro.
+2. "total_results_text" — o texto literal exibido (ex: "~123 resultados").
+3. "pages" — uma lista de TODAS as páginas distintas do Facebook/Instagram que aparecem rodando anúncios nesta listagem. Para cada página: "name" (nome exibido), "page_id" (se aparecer no link view_all_page_id=NUMERO) e "active_ads_count" (quantos anúncios dessa página específica aparecem nesta listagem).
+4. "creatives" — uma lista de até 40 criativos distintos vistos nos cards. Para cada um:
+   - "page_name" — nome da página que veicula o anúncio.
+   - "library_id" — número de 14-17 dígitos rotulado como "Library ID" / "Identificação da biblioteca" / "Identificador en la biblioteca".
+   - "preview_url" — URL do thumbnail/imagem/vídeo do criativo (somente fbcdn.net ou cdninstagram.com, NUNCA emoji/profile/rsrc).
+   - "media_type" — "image" ou "video".
+   - "duplicate_count" — número que aparece no rótulo "X anúncios usam esta criação e este texto" / "X ads use this creative and text". Se não aparecer, use 1.
+   - "body_text" — texto principal do anúncio, máximo 200 caracteres.
+   - "ad_url" — URL absoluta para abrir esse anúncio específico (ex: https://www.facebook.com/ads/library/?id=LIBRARY_ID).
+
+REGRAS CRÍTICAS:
+- NUNCA invente números. Se não encontrar, use 0 ou null.
+- O "duplicate_count" precisa vir do rótulo literal da Meta — não do número de vezes que a imagem aparece no DOM.
+- Ordene "creatives" do maior "duplicate_count" pro menor.
+- Ordene "pages" do maior "active_ads_count" pro menor.`;
+
+const EXTRACTION_SCHEMA = {
+  type: "object",
+  properties: {
+    active_ads_count: { type: "integer", minimum: 0 },
+    total_results_text: { type: ["string", "null"] },
+    pages: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          page_id: { type: ["string", "null"] },
+          active_ads_count: { type: "integer", minimum: 0 },
+        },
+        required: ["name", "active_ads_count"],
+      },
+    },
+    creatives: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          page_name: { type: ["string", "null"] },
+          library_id: { type: ["string", "null"] },
+          preview_url: { type: ["string", "null"] },
+          media_type: { type: "string", enum: ["image", "video"] },
+          duplicate_count: { type: "integer", minimum: 1 },
+          body_text: { type: ["string", "null"] },
+          ad_url: { type: ["string", "null"] },
+        },
+        required: ["duplicate_count"],
+      },
+    },
+  },
+  required: ["active_ads_count", "pages", "creatives"],
+} as const;
+
+async function firecrawlScrape(url: string): Promise<FirecrawlPayload> {
   const apiKey = process.env.FIRECRAWL_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -77,12 +176,18 @@ async function firecrawlScrape(url: string): Promise<{ html: string; markdown: s
     },
     body: JSON.stringify({
       url,
-      formats: ["html", "markdown"],
+      formats: [
+        "html",
+        "markdown",
+        {
+          type: "json",
+          prompt: EXTRACTION_PROMPT,
+          schema: EXTRACTION_SCHEMA,
+        },
+      ],
       onlyMainContent: false,
-      waitFor: 6000,
-      timeout: 60000,
-      // Force a fresh fetch — Firecrawl v2 caches scrapes by default,
-      // which made every "Atualizar agora" return the previous numbers.
+      waitFor: 8000,
+      timeout: 90000,
       maxAge: 0,
       location: { country: "BR", languages: ["pt-BR", "pt"] },
     }),
@@ -96,18 +201,20 @@ async function firecrawlScrape(url: string): Promise<{ html: string; markdown: s
   const json = (await res.json()) as {
     success?: boolean;
     error?: string;
-    data?: { html?: string; markdown?: string };
+    data?: { html?: string; markdown?: string; json?: ExtractedShape };
     html?: string;
     markdown?: string;
+    json?: ExtractedShape;
   };
   if (json.success === false) throw new Error(json.error || "Firecrawl falhou");
   const html = json.data?.html ?? json.html ?? "";
   const markdown = json.data?.markdown ?? json.markdown ?? "";
-  if (!html && !markdown) throw new Error("Firecrawl não retornou conteúdo renderizado");
-  return { html, markdown };
+  const extracted = json.data?.json ?? json.json ?? null;
+  if (!html && !markdown && !extracted)
+    throw new Error("Firecrawl não retornou conteúdo renderizado");
+  return { html, markdown, extracted };
 }
 
-/** Hash any string into a short stable id. */
 function hash(...parts: Array<string | null | undefined>): string {
   return crypto
     .createHash("sha1")
@@ -116,14 +223,68 @@ function hash(...parts: Array<string | null | undefined>): string {
     .slice(0, 16);
 }
 
-/** Parse Meta Ad Library rendered page. */
+const CDN_RE = /^https?:\/\/(?:scontent[\w.-]*\.fbcdn\.net|video[\w.-]*\.fbcdn\.net|(?!static\.)[\w.-]+\.cdninstagram\.com)\//i;
+const SKIP_RE = /\/(emoji|rsrc\.php|safe_image|profile|p[0-9]+x[0-9]+)\//i;
+
+function normalizeFromLLM(extracted: ExtractedShape): ParsedResult {
+  const seenHash = new Set<string>();
+  const creatives: ParsedCreative[] = [];
+
+  for (const c of extracted.creatives ?? []) {
+    const url = (c.preview_url ?? "").trim();
+    if (!url || !CDN_RE.test(url) || SKIP_RE.test(url)) continue;
+    const norm = url.split("?")[0];
+    const h = hash(norm);
+    if (seenHash.has(h)) continue;
+    seenHash.add(h);
+    const media: "image" | "video" =
+      c.media_type === "video" || /\.mp4(\?|$)/i.test(url) ? "video" : "image";
+    const dup = Math.max(1, c.duplicate_count ?? 1);
+    const adUrl =
+      c.ad_url ?? (c.library_id ? `https://www.facebook.com/ads/library/?id=${c.library_id}` : null);
+    creatives.push({
+      creative_hash: h,
+      preview_url: url,
+      media_type: media,
+      duplicate_count: dup,
+      ad_archive_id: c.library_id ?? null,
+      page_name: c.page_name ?? null,
+      body_text: c.body_text?.slice(0, 500) ?? null,
+      ad_url: adUrl,
+    });
+  }
+  creatives.sort((a, b) => b.duplicate_count - a.duplicate_count);
+
+  const pages: PageBreakdown[] = (extracted.pages ?? [])
+    .filter((p): p is { name: string; page_id?: string | null; active_ads_count: number } =>
+      Boolean(p && p.name && typeof p.active_ads_count === "number"),
+    )
+    .map((p) => ({
+      name: p.name.trim(),
+      page_id: p.page_id ?? null,
+      active_ads_count: Math.max(0, p.active_ads_count),
+    }))
+    .sort((a, b) => b.active_ads_count - a.active_ads_count);
+
+  const top = creatives[0];
+  return {
+    active_ads_count: Math.max(0, extracted.active_ads_count ?? 0),
+    total_results_text: extracted.total_results_text ?? null,
+    unique_creatives: creatives.length,
+    top_creative_url: top?.preview_url ?? null,
+    top_creative_id: top?.ad_archive_id ?? top?.creative_hash ?? null,
+    top_creative_count: top?.duplicate_count ?? 0,
+    creatives,
+    pages,
+  };
+}
+
+// =====================================================================
+// Fallback regex parser (mantido pra casos em que o LLM volte vazio)
+// =====================================================================
+
 export function parseAdLibraryPage(html: string, markdown: string): ParsedResult {
   const corpus = `${markdown}\n${html}`;
-
-  // ---- Active ads count -----------------------------------------------
-  // Examples Meta uses:
-  //   "~1,234 results"  /  "Showing 5 results"  /  "About 5 results"
-  //   "~1.234 resultados"  /  "Mostrando 5 resultados"  /  "Sobre 5 resultados"
   const countPatterns = [
     /[~≈]\s*([\d.,]+)\s*(?:results?|resultados?|anúncios?|ads)/i,
     /(?:showing|mostrando|exibindo)\s*([\d.,]+)\s*(?:results?|resultados?|anúncios?|ads)/i,
@@ -141,20 +302,11 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
     }
   }
 
-  // ---- Pair creatives with Meta's "Library ID" label ------------------
-  // Each ad card in the Ad Library shows "Library ID: <16-digit number>".
-  // We also capture Meta's own "X anúncios usam esta criação e este texto"
-  // ("X ads use this creative and text") — the REAL variation count, much
-  // more reliable than counting duplicate image URLs in the DOM.
-  const skipRe = /\/(emoji|rsrc\.php|safe_image|profile|p[0-9]+x[0-9]+)\//i;
   const tokenRe = new RegExp(
-    // group 1 = Library ID label + 14-17 digit number
     "(?:Library ID|Identifica[çc][aã]o da biblioteca|Identificaci[oó]n de la biblioteca|ID de la biblioteca|Identifiant de la biblioth[eè]que)\\s*[:#]?\\s*([0-9]{14,17})" +
       "|" +
-      // group 2 = Meta's variation-count phrase
       "([0-9][0-9.,]*)\\s*(?:an[úu]ncios?\\s+usam\\s+esta\\s+cria[çc][aã]o(?:\\s+e\\s+este\\s+texto)?|ads?\\s+use\\s+this\\s+(?:ad\\s+)?creative(?:\\s+and\\s+text)?|anuncios?\\s+usan\\s+esta\\s+(?:creatividad|cre[aá]tividad)(?:\\s+y\\s+este\\s+texto)?|varia[çc][õo]es?\\s+(?:desse|deste)\\s+an[úu]ncio|vers[õo]es?\\s+(?:desse|deste)\\s+an[úu]ncio|versions?\\s+of\\s+this\\s+ad)" +
       "|" +
-      // group 3 = creative URL on user-content CDN
       "(https?:\\/\\/(?:scontent[\\w.-]*\\.fbcdn\\.net|video[\\w.-]*\\.fbcdn\\.net|(?!static\\.)[\\w.-]+\\.cdninstagram\\.com)\\/[^\\s\"'<>)]+?\\.(?:jpe?g|png|webp|mp4|gif)(?:\\?[^\\s\"'<>)]*)?)",
     "gi",
   );
@@ -183,15 +335,13 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
       continue;
     }
     const u = m[3];
-    if (!u || skipRe.test(u)) continue;
+    if (!u || SKIP_RE.test(u)) continue;
     const norm = u.split("?")[0];
     const media: "image" | "video" = /\.mp4(\?|$)/i.test(u) ? "video" : "image";
     const cur = found.get(norm);
     if (cur) {
       cur.count += 1;
-      if (lastLibraryId && !cur.ad_ids.includes(lastLibraryId)) {
-        cur.ad_ids.push(lastLibraryId);
-      }
+      if (lastLibraryId && !cur.ad_ids.includes(lastLibraryId)) cur.ad_ids.push(lastLibraryId);
     } else {
       found.set(norm, {
         url: u,
@@ -202,59 +352,60 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
     }
   }
 
-  // Also scan markdown — Firecrawl often surfaces the variation phrase there
-  // even when the HTML wraps the number across multiple nodes.
-  const mdVariationRe =
-    /([0-9][0-9.,]*)\s*(?:an[úu]ncios?\s+usam\s+esta\s+cria[çc][aã]o(?:\s+e\s+este\s+texto)?|ads?\s+use\s+this\s+(?:ad\s+)?creative(?:\s+and\s+text)?|anuncios?\s+usan\s+esta\s+(?:creatividad|cre[aá]tividad)(?:\s+y\s+este\s+texto)?|varia[çc][õo]es?\s+(?:desse|deste)\s+an[úu]ncio|vers[õo]es?\s+(?:desse|deste)\s+an[úu]ncio|versions?\s+of\s+this\s+ad)/gi;
-  const globalMaxVariation = Array.from(markdown.matchAll(mdVariationRe))
-    .map((m) => parseInt(m[1].replace(/[.,]/g, ""), 10))
-    .filter((n) => Number.isFinite(n) && n > 0)
-    .reduce((a, b) => Math.max(a, b), 0);
-
-  // Effective duplicate count = max of (Meta's own variation label) OR
-  // url-occurrence count. Falls back to global markdown max when no Library
-  // ID anchor was attached.
-  const creativesArr = Array.from(found.values())
+  const creativesArr: ParsedCreative[] = Array.from(found.values())
     .map((c) => {
       const metaMax = c.ad_ids.reduce(
         (acc, id) => Math.max(acc, variationByAdId.get(id) ?? 0),
         0,
       );
-      const effective = Math.max(metaMax, c.count);
-      return { ...c, effective };
+      const effective = Math.max(metaMax, c.count, 1);
+      const adId = c.ad_ids[0] ?? null;
+      return {
+        creative_hash: hash(c.url),
+        preview_url: c.url,
+        media_type: c.media,
+        duplicate_count: effective,
+        ad_archive_id: adId,
+        page_name: null,
+        body_text: null,
+        ad_url: adId ? `https://www.facebook.com/ads/library/?id=${adId}` : null,
+      };
     })
-    .sort((a, b) => b.effective - a.effective || b.ad_ids.length - a.ad_ids.length)
-    .slice(0, 60)
-    .map((c) => ({
-      creative_hash: hash(c.url),
-      preview_url: c.url,
-      media_type: c.media,
-      duplicate_count: c.effective,
-      ad_archive_id: c.ad_ids[0] ?? null,
-    }));
+    .sort((a, b) => b.duplicate_count - a.duplicate_count)
+    .slice(0, 60);
 
   const top = creativesArr[0];
-  const topCount = Math.max(top?.duplicate_count ?? 0, globalMaxVariation);
-
   return {
     active_ads_count: count || creativesArr.length,
     total_results_text: totalText,
     unique_creatives: creativesArr.length,
     top_creative_url: top?.preview_url ?? null,
     top_creative_id: top?.ad_archive_id ?? top?.creative_hash ?? null,
-    top_creative_count: topCount,
+    top_creative_count: top?.duplicate_count ?? 0,
     creatives: creativesArr,
+    pages: [],
   };
 }
 
-/** Collect a single library and write snapshot + creatives. */
+// =====================================================================
+// Collector pipeline
+// =====================================================================
+
 async function collectOne(
   sb: SupabaseClient<Database>,
   lib: LibraryRow,
 ): Promise<{ ok: boolean; parsed?: ParsedResult; error?: string }> {
   try {
-    const { html, markdown } = await firecrawlScrape(lib.url);
-    const parsed = parseAdLibraryPage(html, markdown);
+    const { html, markdown, extracted } = await firecrawlScrape(lib.url);
+
+    // 1ª escolha: LLM extraction. Se vier vazio, cai pro regex.
+    let parsed: ParsedResult | null = null;
+    if (extracted && (extracted.creatives?.length || (extracted.active_ads_count ?? 0) > 0)) {
+      parsed = normalizeFromLLM(extracted);
+    }
+    if (!parsed || (parsed.active_ads_count === 0 && parsed.creatives.length === 0)) {
+      parsed = parseAdLibraryPage(html, markdown);
+    }
 
     const snapshotPayload: TablesInsert<"snapshots"> = {
       library_id: lib.id,
@@ -267,6 +418,7 @@ async function collectOne(
       top_creative_count: parsed.top_creative_count,
       total_results_text: parsed.total_results_text,
       error_message: null,
+      pages: parsed.pages as unknown as TablesInsert<"snapshots">["pages"],
     };
 
     const { data: snap, error: snapErr } = await sb
@@ -286,15 +438,22 @@ async function collectOne(
         preview_url: c.preview_url,
         media_type: c.media_type,
         duplicate_count: c.duplicate_count,
+        page_name: c.page_name,
+        body_text: c.body_text,
+        ad_url: c.ad_url,
       }));
       const { error: crErr } = await sb.from("creatives").insert(rows);
       if (crErr) throw crErr;
     }
 
+    // Atualiza page_name na lib quando há exatamente 1 página dominante
+    if (parsed.pages.length === 1 && parsed.pages[0].name && !lib.page_name) {
+      await sb.from("libraries").update({ page_name: parsed.pages[0].name }).eq("id", lib.id);
+    }
+
     return { ok: true, parsed };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    // Record the failure so the UI shows the "falha na última coleta" badge.
     await sb.from("snapshots").insert({
       library_id: lib.id,
       captured_at: new Date().toISOString(),
@@ -322,16 +481,13 @@ export async function runCollection(opts?: { libraryId?: string }): Promise<Coll
   let ok = 0;
   let failed = 0;
 
-  // Run with bounded concurrency so the Worker request finishes within its
-  // wall-time budget even when the user has many libraries. Serial + 1.2s
-  // delay used to silently exceed the timeout after ~5-6 libraries.
-  const CONCURRENCY = 4;
+  const CONCURRENCY = 3;
   let cursor = 0;
   async function worker() {
     while (cursor < list.length) {
       const idx = cursor++;
       const lib = list[idx];
-      const label = lib.search_term || lib.page_name || lib.id;
+      const label = lib.title || lib.search_term || lib.page_name || lib.id;
       const r = await collectOne(sb, lib);
       if (r.ok) {
         ok += 1;
@@ -341,6 +497,7 @@ export async function runCollection(opts?: { libraryId?: string }): Promise<Coll
           ok: true,
           active_ads_count: r.parsed!.active_ads_count,
           unique_creatives: r.parsed!.unique_creatives,
+          pages_count: r.parsed!.pages.length,
         });
       } else {
         failed += 1;

@@ -7,11 +7,9 @@ import {
   ArrowLeft,
   ExternalLink,
   Flame,
-  Image as ImageIcon,
   Layers,
   Pencil,
   Radio,
-  Video,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -299,78 +297,135 @@ function LibraryDetailPage() {
         </div>
       </Card>
 
-      {/* Best creative */}
-      <Card className="border-border/60 bg-card p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">Melhor criativo</h2>
+      {/* Best creative + Active pages ranking */}
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+        <Card className="border-border/60 bg-card p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Criativo mais escalado</h2>
+              <p className="text-sm text-muted-foreground">
+                Com mais duplicações conforme a própria Meta exibe.
+              </p>
+            </div>
+          </div>
+          {topCreatives.isLoading ? (
+            <Skeleton className="aspect-square w-full max-w-sm mx-auto rounded-2xl shimmer" />
+          ) : (topCreatives.data ?? []).length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Sem criativos no último snapshot.
+            </p>
+          ) : (
+            (() => {
+              const tc = (topCreatives.data ?? [])[0];
+              const href =
+                tc.ad_url ||
+                (tc.ad_archive_id
+                  ? `https://www.facebook.com/ads/library/?id=${tc.ad_archive_id}`
+                  : data.url);
+              return (
+                <motion.a
+                  key={tc.id}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ scale: 1.015 }}
+                  className="group relative mx-auto block aspect-square w-full max-w-sm overflow-hidden rounded-2xl border border-primary/60 bg-gradient-to-br from-primary/25 via-primary/10 to-background p-6 shadow-[0_0_60px_-15px_rgba(80,110,255,0.55)] transition-shadow hover:shadow-[0_0_80px_-10px_rgba(80,110,255,0.85)]"
+                >
+                  <Badge className="absolute right-3 top-3 z-10 border-0 bg-foreground text-background">
+                    #1 escalado
+                  </Badge>
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-4">
+                    <motion.div
+                      animate={{ scale: [1, 1.08, 1], rotate: [0, -3, 3, 0] }}
+                      transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                      className="rounded-full bg-primary/15 p-6 ring-1 ring-primary/40 backdrop-blur"
+                    >
+                      <Flame
+                        className="h-24 w-24 text-primary drop-shadow-[0_0_25px_rgba(120,140,255,0.85)]"
+                        strokeWidth={1.6}
+                      />
+                    </motion.div>
+                    <div className="text-center">
+                      <p className="text-4xl font-bold tabular-nums text-foreground">
+                        ×{formatNumber(tc.duplicate_count ?? 0)}
+                      </p>
+                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                        duplicações
+                      </p>
+                    </div>
+                    {tc.page_name && (
+                      <p className="line-clamp-1 text-sm text-foreground/80">{tc.page_name}</p>
+                    )}
+                    <span className="inline-flex items-center gap-1 text-xs text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                      Abrir criativo na Meta <ExternalLink className="h-3 w-3" />
+                    </span>
+                  </div>
+                </motion.a>
+              );
+            })()
+          )}
+        </Card>
+
+        <Card className="border-border/60 bg-card p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold">Páginas ativas</h2>
             <p className="text-sm text-muted-foreground">
-              Criativo mais duplicado do último snapshot.
+              Ranking por anúncios ativos nesta biblioteca.
             </p>
           </div>
-        </div>
-        {topCreatives.isLoading ? (
-          <Skeleton className="h-80 w-full max-w-lg mx-auto rounded-xl shimmer" />
-        ) : (topCreatives.data ?? []).length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Sem criativos no último snapshot.
-          </p>
-        ) : (
-          <motion.div
-            key={(topCreatives.data ?? [])[0].id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-xl border border-primary/60 bg-background/40 p-3 max-w-lg mx-auto"
-          >
-            <Badge className="absolute right-2 top-2 z-10 border-0 bg-foreground text-background">
-              #1
-            </Badge>
-            <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
-              {(topCreatives.data ?? [])[0].preview_url ? (
-                <img
-                  src={(topCreatives.data ?? [])[0].preview_url!}
-                  alt="Criativo"
-                  className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="grid h-full w-full place-items-center">
-                  <Flame className="h-16 w-16 text-muted-foreground/40" />
-                </div>
-              )}
-              <div className="absolute left-2 top-2 flex items-center gap-1 rounded-md bg-black/60 px-2 py-0.5 text-xs text-white backdrop-blur">
-                {(topCreatives.data ?? [])[0].media_type === "video" ? (
-                  <Video className="h-3 w-3" />
-                ) : (
-                  <ImageIcon className="h-3 w-3" />
-                )}
-                {(topCreatives.data ?? [])[0].media_type ?? "—"}
-              </div>
-            </div>
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-sm font-semibold">
-                ×{formatNumber((topCreatives.data ?? [])[0].duplicate_count ?? 0)}
-              </span>
-              {(topCreatives.data ?? [])[0].ad_archive_id && (
-                <Button asChild size="sm" variant="ghost">
-                  <a
-                    href={`https://www.facebook.com/ads/library/?id=${(topCreatives.data ?? [])[0].ad_archive_id}`}
-                    target="_blank"
-                    rel="noreferrer"
+          {(() => {
+            const pages = (data.pages ?? []) as { name: string; active_ads_count: number; page_id?: string | null }[];
+            if (pages.length === 0) {
+              return (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  Sem detecção de páginas no último snapshot.
+                </p>
+              );
+            }
+            const max = Math.max(...pages.map((p) => p.active_ads_count), 1);
+            return (
+              <ol className="space-y-2">
+                {pages.slice(0, 12).map((p, i) => (
+                  <li
+                    key={`${p.name}-${i}`}
+                    className="group relative overflow-hidden rounded-lg border border-border/50 bg-background/40 p-3"
                   >
-                    Abrir <ExternalLink className="h-3 w-3" />
-                  </a>
-                </Button>
-              )}
-            </div>
-            {(topCreatives.data ?? [])[0].body_text && (
-              <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-                {(topCreatives.data ?? [])[0].body_text}
-              </p>
-            )}
-          </motion.div>
-        )}
-      </Card>
+                    <div
+                      className="absolute inset-y-0 left-0 bg-primary/15 transition-all"
+                      style={{ width: `${(p.active_ads_count / max) * 100}%` }}
+                    />
+                    <div className="relative flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-primary/40 bg-primary/10 text-xs font-semibold text-primary">
+                          {i + 1}
+                        </span>
+                        {p.page_id ? (
+                          <a
+                            href={`https://www.facebook.com/ads/library/?view_all_page_id=${p.page_id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="truncate text-sm font-medium hover:text-primary"
+                          >
+                            {p.name}
+                          </a>
+                        ) : (
+                          <span className="truncate text-sm font-medium">{p.name}</span>
+                        )}
+                      </div>
+                      <span className="tabular-nums text-sm font-semibold text-foreground">
+                        {formatNumber(p.active_ads_count)}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            );
+          })()}
+        </Card>
+      </div>
+
 
       {/* History */}
       <Card className="border-border/60 bg-card p-6">
