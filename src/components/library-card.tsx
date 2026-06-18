@@ -62,8 +62,8 @@ export function HourlyTrendBadge({ trend, className }: { trend?: HourlyTrend; cl
     <span
       title={
         trend
-          ? `${trend.from} → ${trend.to} na última 1h`
-          : "Sem dados suficientes na última 1h"
+          ? `${trend.from} → ${trend.to} (Δ ${trend.delta >= 0 ? "+" : ""}${trend.delta}) vs coleta anterior`
+          : "Sem coleta anterior para comparar"
       }
       className={cn(
         "inline-flex h-7 w-7 items-center justify-center rounded-full border transition-all",
