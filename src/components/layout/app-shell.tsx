@@ -10,6 +10,7 @@ import {
   Sun,
   LogOut,
   Sparkles,
+  User as UserIcon,
 } from "lucide-react";
 
 import { useEffect, useState, type ReactNode } from "react";
@@ -20,11 +21,13 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AddLibraryModal } from "@/components/add-library-modal";
 import { signOut } from "@/hooks/use-auth";
+import { useProfile } from "@/hooks/use-profile";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/", label: "Visão Geral", icon: LayoutDashboard, exact: true },
   { to: "/bibliotecas", label: "Bibliotecas", icon: Library, exact: false },
+  { to: "/perfil", label: "Perfil", icon: UserIcon, exact: false },
   { to: "/configuracoes", label: "Configurações", icon: Settings, exact: false },
 ];
 
