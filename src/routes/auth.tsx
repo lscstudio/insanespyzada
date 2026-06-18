@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import logoAsset from "@/assets/insanespy-logo.png.asset.json";
+
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar · InsaneSpy" }] }),
@@ -138,8 +138,8 @@ function AuthPage() {
         className="relative w-full max-w-md"
       >
         <div className="mb-6 flex items-center justify-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-xl border border-primary/30 bg-primary/10">
-            <img src={logoAsset.url} alt="InsaneSpy" className="h-7 w-7 object-contain" />
+          <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-full border border-primary/30 bg-primary/10 p-[2px]">
+            <img src="/insanespy-logo.png" alt="InsaneSpy" className="h-full w-full object-cover" />
           </div>
           <div>
             <h1 className="text-lg font-semibold leading-none">InsaneSpy</h1>
