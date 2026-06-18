@@ -483,18 +483,38 @@ async function collectOne(
 
     return { ok: true, parsed };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    await sb.from("snapshots").insert({
-      library_id: lib.id,
-      captured_at: new Date().toISOString(),
-      scrape_ok: false,
-      active_ads_count: 0,
-      unique_creatives: 0,
-      top_creative_count: 0,
-      error_message: message.slice(0, 500),
-    });
-    return { ok: false, error: message };
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
+}
+
+/**
+ * Coleta com retry. firecrawlScrape já tenta 4x internamente, mas pode haver
+ * falha de DB ou de parsing. Tentamos a coleta inteira até `LIBRARY_RETRIES`
+ * vezes antes de gravar o snapshot de falha (assim o histórico fica limpo).
+ */
+async function collectOneRobust(
+  sb: SupabaseClient<Database>,
+  lib: LibraryRow,
+): Promise<{ ok: boolean; parsed?: ParsedResult; error?: string }> {
+  const LIBRARY_RETRIES = 2;
+  let lastError: string | undefined;
+  for (let attempt = 1; attempt <= LIBRARY_RETRIES; attempt++) {
+    const r = await collectOne(sb, lib);
+    if (r.ok) return r;
+    lastError = r.error;
+    if (attempt < LIBRARY_RETRIES) await sleep(15000);
+  }
+  // Grava snapshot de falha apenas após esgotar as tentativas.
+  await sb.from("snapshots").insert({
+    library_id: lib.id,
+    captured_at: new Date().toISOString(),
+    scrape_ok: false,
+    active_ads_count: 0,
+    unique_creatives: 0,
+    top_creative_count: 0,
+    error_message: (lastError ?? "unknown").slice(0, 500),
+  });
+  return { ok: false, error: lastError };
 }
 
 export async function runCollection(opts?: { libraryId?: string; userId?: string }): Promise<CollectReport> {
