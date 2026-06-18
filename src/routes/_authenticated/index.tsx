@@ -25,7 +25,7 @@ import { formatNumber } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
-      { title: "Visão Geral · AdSpy Dashboard" },
+      { title: "Visão Geral · InsaneSpy" },
       {
         name: "description",
         content: "KPIs e rankings da sua inteligência competitiva da Meta Ad Library.",

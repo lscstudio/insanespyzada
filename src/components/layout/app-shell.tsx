@@ -37,7 +37,7 @@ function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItem
         </div>
         {!collapsed && (
           <div className="leading-tight">
-            <div className="text-sm font-semibold tracking-tight">AdSpy</div>
+            <div className="text-sm font-semibold tracking-tight">InsaneSpy</div>
             <div className="text-[11px] text-muted-foreground">Dashboard</div>
           </div>
         )}

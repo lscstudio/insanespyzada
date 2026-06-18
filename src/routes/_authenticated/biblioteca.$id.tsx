@@ -46,7 +46,7 @@ import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/biblioteca/$id")({
-  head: () => ({ meta: [{ title: "Detalhe · AdSpy Dashboard" }] }),
+  head: () => ({ meta: [{ title: "Detalhe · InsaneSpy" }] }),
   component: LibraryDetailPage,
 });
 

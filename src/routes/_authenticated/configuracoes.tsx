@@ -32,7 +32,7 @@ import { triggerCollection } from "@/lib/collect.functions";
 import type { CollectReport } from "@/lib/collect.server";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
-  head: () => ({ meta: [{ title: "Configurações · AdSpy Dashboard" }] }),
+  head: () => ({ meta: [{ title: "Configurações · InsaneSpy" }] }),
   component: ConfiguracoesPage,
 });
 

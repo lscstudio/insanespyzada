@@ -77,13 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "AdSpy Dashboard" },
+      { title: "InsaneSpy - Você está sendo observado" },
       {
         name: "description",
         content:
           "Painel de inteligência competitiva para acompanhar bibliotecas da Meta Ad Library.",
       },
-      { property: "og:title", content: "AdSpy Dashboard" },
+      { property: "og:title", content: "InsaneSpy - Você está sendo observado" },
       {
         property: "og:description",
         content:
@@ -91,10 +91,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "AdSpy Dashboard" },
-      { name: "description", content: "Ad Insights Hub is a competitive intelligence web app for monitoring Meta Ad Library data." },
-      { property: "og:description", content: "Ad Insights Hub is a competitive intelligence web app for monitoring Meta Ad Library data." },
-      { name: "twitter:description", content: "Ad Insights Hub is a competitive intelligence web app for monitoring Meta Ad Library data." },
+      { name: "twitter:title", content: "InsaneSpy - Você está sendo observado" },
+      { name: "description", content: "InsaneSpy — Você está sendo observado. Inteligência competitiva para Meta Ad Library." },
+      { property: "og:description", content: "InsaneSpy — Você está sendo observado. Inteligência competitiva para Meta Ad Library." },
+      { name: "twitter:description", content: "InsaneSpy — Você está sendo observado. Inteligência competitiva para Meta Ad Library." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a8d66b62-e7a5-48eb-a131-f9cb032d0166/id-preview-352a3da4--0e595d07-d346-44f1-b286-e2780562b9ee.lovable.app-1781726580901.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a8d66b62-e7a5-48eb-a131-f9cb032d0166/id-preview-352a3da4--0e595d07-d346-44f1-b286-e2780562b9ee.lovable.app-1781726580901.png" },
     ],
