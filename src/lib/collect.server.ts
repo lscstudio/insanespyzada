@@ -539,7 +539,7 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
       const idx = cursor++;
       const lib = list[idx];
       const label = lib.title || lib.search_term || lib.page_name || lib.id;
-      const r = await collectOne(sb, lib);
+      const r = await collectOneRobust(sb, lib);
       if (r.ok) {
         ok += 1;
         details.push({
