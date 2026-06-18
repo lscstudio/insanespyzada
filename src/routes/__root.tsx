@@ -77,13 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "InsaneSpy" },
+      { title: "InsaneSpy - Você está sendo observado" },
       {
         name: "description",
         content:
           "Painel de inteligência competitiva para acompanhar bibliotecas da Meta Ad Library.",
       },
-      { property: "og:title", content: "InsaneSpy" },
+      { property: "og:title", content: "InsaneSpy - Você está sendo observado" },
       {
         property: "og:description",
         content:
@@ -91,7 +91,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "InsaneSpy" },
+      { name: "twitter:title", content: "InsaneSpy - Você está sendo observado" },
       { name: "description", content: "InsaneSpy — Você está sendo observado. Inteligência competitiva para Meta Ad Library." },
       { property: "og:description", content: "InsaneSpy — Você está sendo observado. Inteligência competitiva para Meta Ad Library." },
       { name: "twitter:description", content: "InsaneSpy — Você está sendo observado. Inteligência competitiva para Meta Ad Library." },
