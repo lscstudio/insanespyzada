@@ -138,7 +138,7 @@ function AuthPage() {
         className="relative w-full max-w-md"
       >
         <div className="mb-6 flex items-center justify-center gap-3">
-          <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-full border border-primary/30 bg-primary/10">
+          <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-full border border-primary/30 bg-primary/10 p-[2px]">
             <img src="/insanespy-logo.png" alt="InsaneSpy" className="h-full w-full object-cover" />
           </div>
           <div>
