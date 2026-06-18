@@ -33,8 +33,8 @@ function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItem
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className={cn("flex h-16 items-center gap-2 px-5", collapsed && "justify-center px-2")}>
-        <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-primary/30 bg-primary/10">
-          <img src="/insanespy-logo.png" alt="InsaneSpy" className="h-full w-full object-cover" />
+        <div className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-primary/30 bg-primary/10 p-1">
+          <img src="/insanespy-logo.png" alt="InsaneSpy" className="h-full w-full object-contain" />
         </div>
         {!collapsed && (
           <div className="leading-tight">
