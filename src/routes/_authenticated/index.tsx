@@ -246,7 +246,7 @@ function OverviewPage() {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">
-                        {lib.search_term || lib.page_name || "—"}
+                        {lib.title || lib.search_term || lib.page_name || "—"}
                       </p>
                       {lib.niche && (
                         <p className="truncate text-xs text-muted-foreground">{lib.niche}</p>
