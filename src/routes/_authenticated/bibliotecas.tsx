@@ -91,7 +91,7 @@ function BibliotecasPage() {
       if (niche !== "all" && l.niche !== niche) return false;
       if (language !== "all" && l.language !== language) return false;
       if (!q) return true;
-      const hay = [l.search_term, l.page_name, l.niche, l.notes]
+      const hay = [l.title, l.search_term, l.page_name, l.niche, l.notes]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
