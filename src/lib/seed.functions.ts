@@ -54,6 +54,7 @@ export const seedDemoData = createServerFn({ method: "POST" })
           language: d.language,
           notes: d.notes,
           status: "active",
+          created_by: context.userId,
         })
         .select()
         .single();
