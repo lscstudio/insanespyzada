@@ -33,6 +33,7 @@ import { LANGUAGES, extractSearchTerm, isMetaAdLibraryUrl } from "@/lib/format";
 import type { LibraryLatest } from "@/lib/types";
 
 const schema = z.object({
+  title: z.string().trim().max(120).optional().nullable(),
   url: z
     .string()
     .trim()
@@ -63,6 +64,7 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
 
   const defaults = useMemo<FormValues>(
     () => ({
+      title: library?.title ?? "",
       url: library?.url ?? "",
       niche: library?.niche ?? "",
       language: library?.language ?? "PT",
