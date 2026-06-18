@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/")({
       { title: "Visão Geral · InsaneSpy" },
       {
         name: "description",
-        content: "KPIs e rankings da sua inteligência competitiva da Meta Ad Library.",
+        content: "Você está sendo observado — KPIs e rankings da Meta Ad Library.",
       },
     ],
   }),

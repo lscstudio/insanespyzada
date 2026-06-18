@@ -81,20 +81,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Painel de inteligência competitiva para acompanhar bibliotecas da Meta Ad Library.",
+          "InsaneSpy — Você está sendo observado. Monitoramento da Meta Ad Library.",
       },
       { property: "og:title", content: "InsaneSpy - Você está sendo observado" },
       {
         property: "og:description",
         content:
-          "Painel de inteligência competitiva para acompanhar bibliotecas da Meta Ad Library.",
+          "InsaneSpy — Você está sendo observado. Monitoramento da Meta Ad Library.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "InsaneSpy - Você está sendo observado" },
-      { name: "description", content: "InsaneSpy — Você está sendo observado. Inteligência competitiva para Meta Ad Library." },
-      { property: "og:description", content: "InsaneSpy — Você está sendo observado. Inteligência competitiva para Meta Ad Library." },
-      { name: "twitter:description", content: "InsaneSpy — Você está sendo observado. Inteligência competitiva para Meta Ad Library." },
+      { name: "twitter:description", content: "InsaneSpy — Você está sendo observado." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a8d66b62-e7a5-48eb-a131-f9cb032d0166/id-preview-352a3da4--0e595d07-d346-44f1-b286-e2780562b9ee.lovable.app-1781726580901.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a8d66b62-e7a5-48eb-a131-f9cb032d0166/id-preview-352a3da4--0e595d07-d346-44f1-b286-e2780562b9ee.lovable.app-1781726580901.png" },
     ],
