@@ -227,17 +227,24 @@ function LibraryDetailPage() {
             <p className="text-sm text-muted-foreground">
               {mode === "day"
                 ? "Média diária de anúncios ativos."
-                : "Snapshots crus das últimas 48 horas."}
+                : `Snapshots crus das últimas ${hourRange} horas.`}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Tabs value={mode} onValueChange={(v) => setMode(v as "day" | "hour")}>
               <TabsList>
+                <TabsTrigger value="hour">Hora</TabsTrigger>
                 <TabsTrigger value="day">Dia</TabsTrigger>
-                <TabsTrigger value="hour">Hora (48h)</TabsTrigger>
               </TabsList>
             </Tabs>
-            {mode === "day" && (
+            {mode === "hour" ? (
+              <Tabs value={hourRange} onValueChange={(v) => setHourRange(v as "24" | "48")}>
+                <TabsList>
+                  <TabsTrigger value="24">24h</TabsTrigger>
+                  <TabsTrigger value="48">48h</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            ) : (
               <Tabs value={range} onValueChange={(v) => setRange(v as "7" | "14" | "30" | "90")}>
                 <TabsList>
                   <TabsTrigger value="7">7d</TabsTrigger>
