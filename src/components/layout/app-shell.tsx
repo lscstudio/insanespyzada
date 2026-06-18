@@ -181,6 +181,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   )}
                 </AnimatePresence>
               </Button>
+              <ProfileBadge />
               <Button variant="ghost" size="icon" aria-label="Sair" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
               </Button>
