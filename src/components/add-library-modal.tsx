@@ -95,6 +95,7 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
         id: library?.id,
         values: {
           ...values,
+          title: values.title?.trim() || null,
           niche: values.niche || null,
           search_term: searchTermPreview ?? null,
         },
