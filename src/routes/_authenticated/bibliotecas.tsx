@@ -26,7 +26,7 @@ import { LANGUAGES } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/bibliotecas")({
   head: () => ({
     meta: [
-      { title: "Bibliotecas · AdSpy Dashboard" },
+      { title: "Bibliotecas · InsaneSpy" },
       {
         name: "description",
         content: "Todas as bibliotecas monitoradas com filtros, busca e ações.",

@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar · AdSpy Dashboard" }] }),
+  head: () => ({ meta: [{ title: "Entrar · InsaneSpy" }] }),
   component: AuthPage,
 });
 
@@ -141,7 +141,7 @@ function AuthPage() {
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold leading-none">AdSpy Dashboard</h1>
+            <h1 className="text-lg font-semibold leading-none">InsaneSpy</h1>
             <p className="text-xs text-muted-foreground">Inteligência competitiva</p>
           </div>
         </div>

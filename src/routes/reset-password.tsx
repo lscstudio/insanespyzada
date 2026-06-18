@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Redefinir senha · AdSpy Dashboard" }] }),
+  head: () => ({ meta: [{ title: "Redefinir senha · InsaneSpy" }] }),
   component: ResetPasswordPage,
 });
 
