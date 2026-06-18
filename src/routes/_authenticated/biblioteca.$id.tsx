@@ -59,6 +59,7 @@ function LibraryDetailPage() {
 
   const [range, setRange] = useState<"7" | "14" | "30" | "90">("14");
   const [mode, setMode] = useState<"day" | "hour">("day");
+  const [hourRange, setHourRange] = useState<"24" | "48">("24");
   const [editOpen, setEditOpen] = useState(false);
   const [page, setPage] = useState(0);
   const pageSize = 10;
@@ -68,10 +69,14 @@ function LibraryDetailPage() {
 
   const chartData = useMemo(() => {
     if (mode === "hour") {
-      return (snaps48.data ?? []).map((s) => ({
-        ts: s.captured_at,
-        value: s.active_ads_count ?? 0,
-      }));
+      const hours = Number(hourRange);
+      const cutoff = Date.now() - hours * 3600_000;
+      return (snaps48.data ?? [])
+        .filter((s) => new Date(s.captured_at).getTime() >= cutoff)
+        .map((s) => ({
+          ts: s.captured_at,
+          value: s.active_ads_count ?? 0,
+        }));
     }
     const days = Number(range);
     const cutoff = new Date();
@@ -95,7 +100,7 @@ function LibraryDetailPage() {
       out.push({ ts: key, value: Math.round(v?.avg ?? 0), max: v?.max ?? 0 });
     }
     return out;
-  }, [mode, range, daily.data, snaps48.data]);
+  }, [mode, range, hourRange, daily.data, snaps48.data]);
 
   if (lib.isLoading) {
     return (
