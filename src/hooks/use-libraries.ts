@@ -42,22 +42,25 @@ export function useLibraryTrend() {
 }
 
 /**
- * Trend for the last ~1 hour, computed client-side from raw snapshots.
- * Returns one entry per library that has at least 1 snapshot in the window.
+ * Trend = comparação entre as duas últimas coletas bem-sucedidas de cada
+ * biblioteca, independente do intervalo (hora, dia, etc).
+ * Seta verde se subiu, vermelha se caiu, neutra se igual.
  */
 export function useHourlyTrend() {
   return useQuery({
     queryKey: ["hourly_trend"],
     refetchInterval: ONE_MIN,
     queryFn: async (): Promise<Record<string, HourlyTrend>> => {
-      // Fetch slightly more than 1h so we always have a baseline.
-      const since = new Date(Date.now() - 90 * 60_000).toISOString();
+      // 48h cobre o caso de coletas que falharam por algumas horas.
+      const since = new Date(Date.now() - 48 * 3600_000).toISOString();
       const { data, error } = await supabase
         .from("snapshots")
-        .select("library_id, captured_at, active_ads_count")
+        .select("library_id, captured_at, active_ads_count, scrape_ok")
         .gte("captured_at", since)
-        .order("captured_at", { ascending: true });
+        .eq("scrape_ok", true)
+        .order("captured_at", { ascending: false });
       if (error) throw error;
+
       const groups = new Map<string, { ts: number; v: number }[]>();
       for (const row of (data ?? []) as Array<{
         library_id: string;
@@ -68,21 +71,19 @@ export function useHourlyTrend() {
         list.push({ ts: new Date(row.captured_at).getTime(), v: row.active_ads_count ?? 0 });
         groups.set(row.library_id, list);
       }
+
       const out: Record<string, HourlyTrend> = {};
-      const oneHourAgo = Date.now() - 60 * 60_000;
       for (const [libId, list] of groups) {
         if (list.length === 0) continue;
-        const latest = list[list.length - 1];
-        // Baseline = oldest snapshot >= 1h old, or oldest available if none.
-        let baseline = list.find((s) => s.ts <= oneHourAgo);
-        if (!baseline) baseline = list[0];
-        if (baseline === latest) {
+        const latest = list[0]; // já vem desc
+        const previous = list[1];
+        if (!previous) {
           out[libId] = { library_id: libId, direction: "flat", delta: 0, from: latest.v, to: latest.v };
           continue;
         }
-        const delta = latest.v - baseline.v;
+        const delta = latest.v - previous.v;
         const direction = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
-        out[libId] = { library_id: libId, direction, delta, from: baseline.v, to: latest.v };
+        out[libId] = { library_id: libId, direction, delta, from: previous.v, to: latest.v };
       }
       return out;
     },

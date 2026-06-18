@@ -59,6 +59,7 @@ function LibraryDetailPage() {
 
   const [range, setRange] = useState<"7" | "14" | "30" | "90">("14");
   const [mode, setMode] = useState<"day" | "hour">("day");
+  const [hourRange, setHourRange] = useState<"24" | "48">("24");
   const [editOpen, setEditOpen] = useState(false);
   const [page, setPage] = useState(0);
   const pageSize = 10;
@@ -68,10 +69,14 @@ function LibraryDetailPage() {
 
   const chartData = useMemo(() => {
     if (mode === "hour") {
-      return (snaps48.data ?? []).map((s) => ({
-        ts: s.captured_at,
-        value: s.active_ads_count ?? 0,
-      }));
+      const hours = Number(hourRange);
+      const cutoff = Date.now() - hours * 3600_000;
+      return (snaps48.data ?? [])
+        .filter((s) => new Date(s.captured_at).getTime() >= cutoff)
+        .map((s) => ({
+          ts: s.captured_at,
+          value: s.active_ads_count ?? 0,
+        }));
     }
     const days = Number(range);
     const cutoff = new Date();
@@ -95,7 +100,7 @@ function LibraryDetailPage() {
       out.push({ ts: key, value: Math.round(v?.avg ?? 0), max: v?.max ?? 0 });
     }
     return out;
-  }, [mode, range, daily.data, snaps48.data]);
+  }, [mode, range, hourRange, daily.data, snaps48.data]);
 
   if (lib.isLoading) {
     return (
@@ -186,7 +191,7 @@ function LibraryDetailPage() {
             <HourlyTrendBadge trend={trend} />
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Variação em relação à última 1h
+            Variação vs coleta anterior
           </p>
         </SummaryCard>
 
@@ -222,17 +227,24 @@ function LibraryDetailPage() {
             <p className="text-sm text-muted-foreground">
               {mode === "day"
                 ? "Média diária de anúncios ativos."
-                : "Snapshots crus das últimas 48 horas."}
+                : `Snapshots crus das últimas ${hourRange} horas.`}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Tabs value={mode} onValueChange={(v) => setMode(v as "day" | "hour")}>
               <TabsList>
+                <TabsTrigger value="hour">Hora</TabsTrigger>
                 <TabsTrigger value="day">Dia</TabsTrigger>
-                <TabsTrigger value="hour">Hora (48h)</TabsTrigger>
               </TabsList>
             </Tabs>
-            {mode === "day" && (
+            {mode === "hour" ? (
+              <Tabs value={hourRange} onValueChange={(v) => setHourRange(v as "24" | "48")}>
+                <TabsList>
+                  <TabsTrigger value="24">24h</TabsTrigger>
+                  <TabsTrigger value="48">48h</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            ) : (
               <Tabs value={range} onValueChange={(v) => setRange(v as "7" | "14" | "30" | "90")}>
                 <TabsList>
                   <TabsTrigger value="7">7d</TabsTrigger>

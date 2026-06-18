@@ -160,14 +160,9 @@ const EXTRACTION_SCHEMA = {
   required: ["active_ads_count", "pages", "creatives"],
 } as const;
 
-async function firecrawlScrape(url: string): Promise<FirecrawlPayload> {
-  const apiKey = process.env.FIRECRAWL_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "FIRECRAWL_API_KEY não configurada. Conecte o Firecrawl em Configurações para ativar a coleta.",
-    );
-  }
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+async function firecrawlScrapeOnce(url: string, apiKey: string): Promise<FirecrawlPayload> {
   const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
     method: "POST",
     headers: {
@@ -187,7 +182,7 @@ async function firecrawlScrape(url: string): Promise<FirecrawlPayload> {
       ],
       onlyMainContent: false,
       waitFor: 8000,
-      timeout: 90000,
+      timeout: 120000,
       maxAge: 0,
       location: { country: "BR", languages: ["pt-BR", "pt"] },
     }),
@@ -195,7 +190,13 @@ async function firecrawlScrape(url: string): Promise<FirecrawlPayload> {
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Firecrawl ${res.status}: ${text.slice(0, 300)}`);
+    const err = new Error(`Firecrawl ${res.status}: ${text.slice(0, 300)}`) as Error & {
+      status?: number;
+      transient?: boolean;
+    };
+    err.status = res.status;
+    err.transient = res.status === 408 || res.status === 429 || res.status >= 500;
+    throw err;
   }
 
   const json = (await res.json()) as {
@@ -210,9 +211,38 @@ async function firecrawlScrape(url: string): Promise<FirecrawlPayload> {
   const html = json.data?.html ?? json.html ?? "";
   const markdown = json.data?.markdown ?? json.markdown ?? "";
   const extracted = json.data?.json ?? json.json ?? null;
-  if (!html && !markdown && !extracted)
-    throw new Error("Firecrawl não retornou conteúdo renderizado");
+  if (!html && !markdown && !extracted) {
+    const err = new Error("Firecrawl não retornou conteúdo renderizado") as Error & {
+      transient?: boolean;
+    };
+    err.transient = true;
+    throw err;
+  }
   return { html, markdown, extracted };
+}
+
+async function firecrawlScrape(url: string): Promise<FirecrawlPayload> {
+  const apiKey = process.env.FIRECRAWL_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "FIRECRAWL_API_KEY não configurada. Conecte o Firecrawl em Configurações para ativar a coleta.",
+    );
+  }
+  const MAX_ATTEMPTS = 4;
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await firecrawlScrapeOnce(url, apiKey);
+    } catch (err) {
+      lastErr = err;
+      const transient = (err as { transient?: boolean }).transient ?? true;
+      if (!transient || attempt === MAX_ATTEMPTS) break;
+      // Backoff: 3s, 8s, 20s
+      const wait = attempt === 1 ? 3000 : attempt === 2 ? 8000 : 20000;
+      await sleep(wait);
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
 function hash(...parts: Array<string | null | undefined>): string {
@@ -453,18 +483,38 @@ async function collectOne(
 
     return { ok: true, parsed };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    await sb.from("snapshots").insert({
-      library_id: lib.id,
-      captured_at: new Date().toISOString(),
-      scrape_ok: false,
-      active_ads_count: 0,
-      unique_creatives: 0,
-      top_creative_count: 0,
-      error_message: message.slice(0, 500),
-    });
-    return { ok: false, error: message };
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
+}
+
+/**
+ * Coleta com retry. firecrawlScrape já tenta 4x internamente, mas pode haver
+ * falha de DB ou de parsing. Tentamos a coleta inteira até `LIBRARY_RETRIES`
+ * vezes antes de gravar o snapshot de falha (assim o histórico fica limpo).
+ */
+async function collectOneRobust(
+  sb: SupabaseClient<Database>,
+  lib: LibraryRow,
+): Promise<{ ok: boolean; parsed?: ParsedResult; error?: string }> {
+  const LIBRARY_RETRIES = 2;
+  let lastError: string | undefined;
+  for (let attempt = 1; attempt <= LIBRARY_RETRIES; attempt++) {
+    const r = await collectOne(sb, lib);
+    if (r.ok) return r;
+    lastError = r.error;
+    if (attempt < LIBRARY_RETRIES) await sleep(15000);
+  }
+  // Grava snapshot de falha apenas após esgotar as tentativas.
+  await sb.from("snapshots").insert({
+    library_id: lib.id,
+    captured_at: new Date().toISOString(),
+    scrape_ok: false,
+    active_ads_count: 0,
+    unique_creatives: 0,
+    top_creative_count: 0,
+    error_message: (lastError ?? "unknown").slice(0, 500),
+  });
+  return { ok: false, error: lastError };
 }
 
 export async function runCollection(opts?: { libraryId?: string; userId?: string }): Promise<CollectReport> {
@@ -489,7 +539,7 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
       const idx = cursor++;
       const lib = list[idx];
       const label = lib.title || lib.search_term || lib.page_name || lib.id;
-      const r = await collectOne(sb, lib);
+      const r = await collectOneRobust(sb, lib);
       if (r.ok) {
         ok += 1;
         details.push({
