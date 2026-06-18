@@ -404,14 +404,24 @@ function LibraryDetailPage() {
                           {i + 1}
                         </span>
                         {p.page_id ? (
-                          <a
-                            href={`https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&view_all_page_id=${p.page_id}&search_type=page&media_type=all`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="truncate text-sm font-medium hover:text-primary"
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(p.page_id!);
+                                toast.success("ID da página copiado", {
+                                  description: `${p.name} • ${p.page_id}`,
+                                });
+                              } catch {
+                                toast.error("Não foi possível copiar o ID");
+                              }
+                            }}
+                            className="group flex min-w-0 items-center gap-1.5 truncate text-left text-sm font-medium hover:text-primary"
+                            title={`Copiar ID: ${p.page_id}`}
                           >
-                            {p.name}
-                          </a>
+                            <span className="truncate">{p.name}</span>
+                            <Copy className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-70" />
+                          </button>
                         ) : (
                           <span className="truncate text-sm font-medium">{p.name}</span>
                         )}
