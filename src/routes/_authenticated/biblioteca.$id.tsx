@@ -7,11 +7,9 @@ import {
   ArrowLeft,
   ExternalLink,
   Flame,
-  Image as ImageIcon,
   Layers,
   Pencil,
   Radio,
-  Video,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
