@@ -70,7 +70,7 @@
 .dark {
   --radius: 0.875rem;
 
-  --background: oklch(0.16 0.02 264);
+  --background: oklch(0.19 0.05 264);
   --foreground: oklch(0.97 0.005 260);
 
   --card: oklch(0.21 0.035 264);
