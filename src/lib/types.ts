@@ -16,6 +16,12 @@ export interface Library {
   updated_at: string;
 }
 
+export interface PageBreakdown {
+  name: string;
+  active_ads_count: number;
+  page_id?: string | null;
+}
+
 export interface Snapshot {
   id: string;
   library_id: string;
@@ -28,6 +34,7 @@ export interface Snapshot {
   unique_creatives: number | null;
   scrape_ok: boolean;
   error_message: string | null;
+  pages: PageBreakdown[] | null;
 }
 
 export interface Creative {
@@ -40,6 +47,8 @@ export interface Creative {
   preview_url: string | null;
   media_type: string | null;
   body_text: string | null;
+  page_name: string | null;
+  ad_url: string | null;
   captured_at: string;
 }
 
@@ -55,6 +64,7 @@ export interface LibraryLatest extends Library {
   unique_creatives: number | null;
   scrape_ok: boolean | null;
   error_message: string | null;
+  pages: PageBreakdown[] | null;
 }
 
 // View: library_trend = comparison vs previous snapshot
