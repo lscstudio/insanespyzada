@@ -11,6 +11,7 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react";
+import logoAsset from "@/assets/insanespy-logo.png.asset.json";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -32,13 +33,13 @@ function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItem
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className={cn("flex h-16 items-center gap-2 px-5", collapsed && "justify-center px-2")}>
-        <div className="grid h-9 w-9 place-items-center rounded-xl border border-border/60 bg-card">
-          <Sparkles className="h-4 w-4 text-foreground" />
+        <div className="grid h-9 w-9 place-items-center rounded-xl border border-primary/30 bg-primary/10">
+          <img src={logoAsset.url} alt="InsaneSpy" className="h-6 w-6 object-contain" />
         </div>
         {!collapsed && (
           <div className="leading-tight">
             <div className="text-sm font-semibold tracking-tight">InsaneSpy</div>
-            <div className="text-[11px] text-muted-foreground">Dashboard</div>
+            <div className="text-[11px] text-muted-foreground">Você está sendo observado</div>
           </div>
         )}
       </div>
@@ -142,7 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             <div className="hidden flex-1 md:block">
               <h1 className="text-sm font-medium text-muted-foreground">
-                Inteligência competitiva · Meta Ad Library
+                Você está sendo observado
               </h1>
             </div>
 
