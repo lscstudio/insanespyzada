@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { formatDistanceToNow, format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
+import { useLang, useT, tf } from "@/lib/i18n";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -49,6 +50,9 @@ export const Route = createFileRoute("/_authenticated/biblioteca/$id")({
 });
 
 function LibraryDetailPage() {
+  const t = useT();
+  const { lang } = useLang();
+  const dLocale = lang === "en" ? enUS : ptBR;
   const { id } = Route.useParams();
   const lib = useLibrary(id);
   const trends = useHourlyTrend();
@@ -117,17 +121,17 @@ function LibraryDetailPage() {
       <div className="space-y-4">
         <Button asChild variant="ghost" size="sm">
           <Link to="/bibliotecas">
-            <ArrowLeft className="h-4 w-4" /> Voltar
+            <ArrowLeft className="h-4 w-4" /> {t("Voltar")}
           </Link>
         </Button>
         <Card className="border-border/60 p-8 text-center">
-          <p className="text-sm text-muted-foreground">Biblioteca não encontrada.</p>
+          <p className="text-sm text-muted-foreground">{t("Biblioteca não encontrada.")}</p>
         </Card>
       </div>
     );
   }
 
-  const title = data.title || data.search_term || data.page_name || "Biblioteca";
+  const title = data.title || data.search_term || data.page_name || t("Biblioteca");
 
   const totalHistory = history.data?.length ?? 0;
   const pagedHistory = (history.data ?? []).slice(page * pageSize, (page + 1) * pageSize);
@@ -136,7 +140,7 @@ function LibraryDetailPage() {
     <div className="space-y-6">
       <Button asChild variant="ghost" size="sm">
         <Link to="/bibliotecas">
-          <ArrowLeft className="h-4 w-4" /> Voltar
+          <ArrowLeft className="h-4 w-4" /> {t("Voltar")}
         </Link>
       </Button>
 
@@ -154,12 +158,12 @@ function LibraryDetailPage() {
             {data.language && <Badge variant="outline">{data.language}</Badge>}
             {data.status === "paused" && (
               <Badge variant="outline" className="border-warning/40 text-warning">
-                Pausada
+                {t("Pausada")}
               </Badge>
             )}
             {data.scrape_ok === false && (
               <Badge variant="outline" className="border-warning/40 bg-warning/10 text-warning">
-                <AlertTriangle className="h-3 w-3" /> falha na última coleta
+                <AlertTriangle className="h-3 w-3" /> {t("falha na última coleta")}
               </Badge>
             )}
           </div>
@@ -171,18 +175,18 @@ function LibraryDetailPage() {
         <div className="flex gap-2">
           <Button asChild variant="outline">
             <a href={data.url} target="_blank" rel="noreferrer">
-              <ExternalLink className="h-4 w-4" /> Abrir na Meta
+              <ExternalLink className="h-4 w-4" /> {t("Abrir na Meta")}
             </a>
           </Button>
           <Button onClick={() => setEditOpen(true)}>
-            <Pencil className="h-4 w-4" /> Editar
+            <Pencil className="h-4 w-4" /> {t("Editar")}
           </Button>
         </div>
       </motion.div>
 
       {/* Summary cards */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <SummaryCard label="Anúncios ativos" icon={Layers}>
+        <SummaryCard label={t("Anúncios ativos")} icon={Layers}>
           <div className="flex items-end justify-between gap-3">
             <CountUp
               value={data.active_ads_count ?? 0}
@@ -191,30 +195,30 @@ function LibraryDetailPage() {
             <HourlyTrendBadge trend={trend} />
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Variação vs coleta anterior
+            {t("Variação vs coleta anterior")}
           </p>
         </SummaryCard>
 
-        <SummaryCard label="Última coleta" icon={Radio}>
+        <SummaryCard label={t("Última coleta")} icon={Radio}>
           <p className="text-base font-semibold" title={data.captured_at ?? ""}>
             {data.captured_at
               ? formatDistanceToNow(new Date(data.captured_at), {
                   addSuffix: true,
-                  locale: ptBR,
+                  locale: dLocale,
                 })
               : "—"}
           </p>
           {data.captured_at && (
             <p className="mt-1 text-xs text-muted-foreground">
-              {format(new Date(data.captured_at), "dd 'de' MMMM, HH:mm", { locale: ptBR })}
+              {format(new Date(data.captured_at), lang === "en" ? "MMMM dd, HH:mm" : "dd 'de' MMMM, HH:mm", { locale: dLocale })}
             </p>
           )}
         </SummaryCard>
 
-        <SummaryCard label="Status" icon={Layers}>
+        <SummaryCard label={t("Status")} icon={Layers}>
           <p className="text-base font-semibold capitalize">{data.status}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {data.scrape_ok === false ? "Última coleta falhou" : "Mineração saudável"}
+            {data.scrape_ok === false ? t("Última coleta falhou") : t("Mineração saudável")}
           </p>
         </SummaryCard>
       </div>
@@ -223,18 +227,18 @@ function LibraryDetailPage() {
       <Card className="border-border/60 bg-card p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold">Evolução</h2>
+            <h2 className="text-lg font-semibold">{t("Evolução")}</h2>
             <p className="text-sm text-muted-foreground">
               {mode === "day"
-                ? "Média diária de anúncios ativos."
-                : `Snapshots crus das últimas ${hourRange} horas.`}
+                ? t("Média diária de anúncios ativos.")
+                : tf(t("Snapshots crus das últimas {h} horas."), { h: hourRange })}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Tabs value={mode} onValueChange={(v) => setMode(v as "day" | "hour")}>
               <TabsList>
-                <TabsTrigger value="hour">Hora</TabsTrigger>
-                <TabsTrigger value="day">Dia</TabsTrigger>
+                <TabsTrigger value="hour">{t("Hora")}</TabsTrigger>
+                <TabsTrigger value="day">{t("Dia")}</TabsTrigger>
               </TabsList>
             </Tabs>
             {mode === "hour" ? (
@@ -291,7 +295,7 @@ function LibraryDetailPage() {
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={11}
                   tickFormatter={(d: string) =>
-                    format(new Date(d), "dd/MM HH:mm", { locale: ptBR })
+                    format(new Date(d), "dd/MM HH:mm", { locale: dLocale })
                   }
                 />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
@@ -314,9 +318,9 @@ function LibraryDetailPage() {
         <Card className="border-border/60 bg-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Criativo mais escalado</h2>
+              <h2 className="text-lg font-semibold">{t("Criativo mais escalado")}</h2>
               <p className="text-sm text-muted-foreground">
-                Com mais duplicações conforme a própria Meta exibe.
+                {t("Com mais duplicações conforme a própria Meta exibe.")}
               </p>
             </div>
           </div>
@@ -324,7 +328,7 @@ function LibraryDetailPage() {
             <Skeleton className="aspect-square w-full max-w-sm mx-auto rounded-2xl shimmer" />
           ) : (topCreatives.data ?? []).length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Sem criativos no último snapshot.
+              {t("Sem criativos no último snapshot.")}
             </p>
           ) : (
             (() => {
@@ -346,7 +350,7 @@ function LibraryDetailPage() {
                   className="group relative mx-auto block aspect-square w-full max-w-sm overflow-hidden rounded-2xl border border-primary/60 bg-gradient-to-br from-primary/25 via-primary/10 to-background p-6 shadow-[0_0_60px_-15px_rgba(80,110,255,0.55)] transition-shadow hover:shadow-[0_0_80px_-10px_rgba(80,110,255,0.85)]"
                 >
                   <Badge className="absolute right-3 top-3 z-10 border-0 bg-foreground text-background">
-                    #1 escalado
+                    {t("#1 escalado")}
                   </Badge>
                   <div className="flex h-full w-full flex-col items-center justify-center gap-4">
                     <motion.div
@@ -364,14 +368,14 @@ function LibraryDetailPage() {
                         ×{formatNumber(tc.duplicate_count ?? 0)}
                       </p>
                       <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                        duplicações
+                        {t("duplicações")}
                       </p>
                     </div>
                     {tc.page_name && (
                       <p className="line-clamp-1 text-sm text-foreground/80">{tc.page_name}</p>
                     )}
                     <span className="inline-flex items-center gap-1 text-xs text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                      Abrir criativo na Meta <ExternalLink className="h-3 w-3" />
+                      {t("Abrir criativo na Meta")} <ExternalLink className="h-3 w-3" />
                     </span>
                   </div>
                 </motion.a>
@@ -382,9 +386,9 @@ function LibraryDetailPage() {
 
         <Card className="border-border/60 bg-card p-6">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold">Páginas ativas</h2>
+            <h2 className="text-lg font-semibold">{t("Páginas ativas")}</h2>
             <p className="text-sm text-muted-foreground">
-              Ranking por anúncios ativos nesta biblioteca.
+              {t("Ranking por anúncios ativos nesta biblioteca.")}
             </p>
           </div>
           {(() => {
@@ -392,7 +396,7 @@ function LibraryDetailPage() {
             if (pages.length === 0) {
               return (
                 <p className="py-8 text-center text-sm text-muted-foreground">
-                  Sem detecção de páginas no último snapshot.
+                  {t("Sem detecção de páginas no último snapshot.")}
                 </p>
               );
             }
@@ -431,31 +435,31 @@ function LibraryDetailPage() {
       {/* History */}
       <Card className="border-border/60 bg-card p-6">
         <div className="mb-4">
-          <h2 className="text-lg font-semibold">Histórico de snapshots</h2>
-          <p className="text-sm text-muted-foreground">{totalHistory} coletas registradas.</p>
+          <h2 className="text-lg font-semibold">{t("Histórico de snapshots")}</h2>
+          <p className="text-sm text-muted-foreground">{tf(t("{n} coletas registradas."), { n: totalHistory })}</p>
         </div>
         {history.isLoading ? (
           <Skeleton className="h-40 w-full rounded-xl shimmer" />
         ) : pagedHistory.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Sem snapshots ainda.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">{t("Sem snapshots ainda.")}</p>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
-                    <th className="py-2 pr-4 font-medium">Coletado em</th>
-                    <th className="py-2 pr-4 font-medium">Ativos</th>
-                    <th className="py-2 pr-4 font-medium">Top</th>
-                    <th className="py-2 pr-4 font-medium">Únicos</th>
-                    <th className="py-2 pr-4 font-medium">Status</th>
+                    <th className="py-2 pr-4 font-medium">{t("Coletado em")}</th>
+                    <th className="py-2 pr-4 font-medium">{t("Ativos")}</th>
+                    <th className="py-2 pr-4 font-medium">{t("Top")}</th>
+                    <th className="py-2 pr-4 font-medium">{t("Únicos")}</th>
+                    <th className="py-2 pr-4 font-medium">{t("Status")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pagedHistory.map((s) => (
                     <tr key={s.id} className="border-t border-border/40">
                       <td className="py-2 pr-4" title={s.captured_at}>
-                        {format(new Date(s.captured_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        {format(new Date(s.captured_at), lang === "en" ? "MM/dd/yyyy HH:mm" : "dd/MM/yyyy HH:mm", { locale: dLocale })}
                       </td>
                       <td className="py-2 pr-4 font-medium tabular-nums">
                         {formatNumber(s.active_ads_count)}
@@ -468,9 +472,9 @@ function LibraryDetailPage() {
                       </td>
                       <td className="py-2 pr-4">
                         {s.scrape_ok ? (
-                          <span className="text-xs text-success">OK</span>
+                          <span className="text-xs text-success">{t("OK")}</span>
                         ) : (
-                          <span className="text-xs text-warning">{s.error_message || "Falhou"}</span>
+                          <span className="text-xs text-warning">{s.error_message || t("Falhou")}</span>
                         )}
                       </td>
                     </tr>
@@ -481,7 +485,7 @@ function LibraryDetailPage() {
             {totalHistory > pageSize && (
               <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
                 <span>
-                  Página {page + 1} de {Math.ceil(totalHistory / pageSize)}
+                  {tf(t("Página {a} de {b}"), { a: page + 1, b: Math.ceil(totalHistory / pageSize) })}
                 </span>
                 <div className="flex gap-2">
                   <Button
@@ -490,7 +494,7 @@ function LibraryDetailPage() {
                     disabled={page === 0}
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
                   >
-                    Anterior
+                    {t("Anterior")}
                   </Button>
                   <Button
                     variant="outline"
@@ -498,7 +502,7 @@ function LibraryDetailPage() {
                     disabled={(page + 1) * pageSize >= totalHistory}
                     onClick={() => setPage((p) => p + 1)}
                   >
-                    Próxima
+                    {t("Próxima")}
                   </Button>
                 </div>
               </div>
@@ -537,22 +541,25 @@ function SummaryCard({
 }
 
 function DetailTooltip({ active, payload, label, mode }: any) {
+  const t = useT();
+  const { lang } = useLang();
+  const dLocale = lang === "en" ? enUS : ptBR;
   if (!active || !payload?.length) return null;
   const value = payload[0].value;
   const max = payload[0].payload?.max;
   const abs =
     mode === "day"
-      ? new Date(label).toLocaleDateString("pt-BR")
-      : format(new Date(label), "dd/MM HH:mm", { locale: ptBR });
+      ? new Date(label).toLocaleDateString(lang === "en" ? "en-US" : "pt-BR")
+      : format(new Date(label), "dd/MM HH:mm", { locale: dLocale });
   return (
     <div className="rounded-lg border border-border/60 bg-popover/95 p-3 text-xs shadow-xl backdrop-blur">
       <p className="font-medium text-foreground">{abs}</p>
       <p className="mt-1 text-sm font-semibold text-primary">
-        {mode === "day" ? "Média: " : ""}
+        {mode === "day" ? `${t("Média:")} ` : ""}
         {formatNumber(value)}
       </p>
       {mode === "day" && max ? (
-        <p className="text-xs text-muted-foreground">Máximo: {formatNumber(max)}</p>
+        <p className="text-xs text-muted-foreground">{t("Máximo:")} {formatNumber(max)}</p>
       ) : null}
     </div>
   );

@@ -220,7 +220,106 @@ const DICT: Record<string, string> = {
     "Something went wrong. Try again or go back home.",
   "Tentar novamente": "Try again",
   "Início": "Home",
+
+  // Sidebar extra
+  "Painel": "Dashboard",
+
+  // Painel admin
+  "A página que você procura não existe.": "The page you are looking for does not exist.",
+  "Painel Administrativo": "Admin Dashboard",
+  "APIs, créditos e uso por conta — atualizado em tempo real.":
+    "APIs, credits and usage per account — updated in real time.",
+  "APIs": "APIs",
+  "Contas": "Accounts",
+  "APIs Conectadas": "Connected APIs",
+  "com erro": "with errors",
+  "Funcionando": "Working",
+  "configuradas": "configured",
+  "Em Uso": "In Use",
+  "pool ativo c/ failover": "active pool w/ failover",
+  "Créditos Totais": "Total Credits",
+  "Créditos por chave": "Credits per key",
+  "Distribuição por provider": "Distribution by provider",
+  "Status detalhado das chaves": "Detailed key status",
+  "Vazia": "Empty",
+  "Online": "Online",
+  "Falha": "Failed",
+  "créditos": "credits",
+  "usados": "used",
+  "total": "total",
+  "Coletas (30d)": "Collections (30d)",
+  "Créditos consumidos (30d)": "Credits used (30d)",
+  "Coletas por dia (últimos 30 dias)": "Collections per day (last 30 days)",
+  "Top consumidores (30d)": "Top consumers (30d)",
+  "(sem email)": "(no email)",
+  "Todas as contas": "All accounts",
+  "Filtrar por email...": "Filter by email...",
+  "coletas/30d": "collections/30d",
+  "último login": "last login",
+  "créditos 30d": "credits 30d",
+  "Ver →": "View →",
+  "Nenhuma conta encontrada.": "No accounts found.",
+  "Voltar": "Back",
+  "anúncios ativos": "active ads",
+  "Última coleta:": "Last collection:",
+  "Sem coletas": "No collections",
+  "Sem nome": "No name",
+  "ads ativos": "active ads",
+
+  // Library detail
+  "Biblioteca não encontrada.": "Library not found.",
+  "falha na última coleta": "failure on last collection",
+  "Variação vs coleta anterior": "Change vs previous collection",
+  "Última coleta falhou": "Last collection failed",
+  "Mineração saudável": "Mining healthy",
+  "Evolução": "Evolution",
+  "Média diária de anúncios ativos.": "Daily average of active ads.",
+  "Snapshots crus das últimas {h} horas.": "Raw snapshots from the last {h} hours.",
+  "Hora": "Hour",
+  "Dia": "Day",
+  "Criativo mais escalado": "Top scaled creative",
+  "Com mais duplicações conforme a própria Meta exibe.":
+    "With most duplications as shown by Meta itself.",
+  "Sem criativos no último snapshot.": "No creatives in the last snapshot.",
+  "#1 escalado": "#1 scaled",
+  "duplicações": "duplications",
+  "Abrir criativo na Meta": "Open creative on Meta",
+  "Páginas ativas": "Active pages",
+  "Ranking por anúncios ativos nesta biblioteca.": "Ranking by active ads in this library.",
+  "Sem detecção de páginas no último snapshot.": "No pages detected in the last snapshot.",
+  "Histórico de snapshots": "Snapshot history",
+  "{n} coletas registradas.": "{n} collections recorded.",
+  "Sem snapshots ainda.": "No snapshots yet.",
+  "Coletado em": "Captured at",
+  "Ativos": "Active",
+  "Top": "Top",
+  "Únicos": "Unique",
+  "OK": "OK",
+  "Falhou": "Failed",
+  "Página {a} de {b}": "Page {a} of {b}",
+  "Anterior": "Previous",
+  "Próxima": "Next",
+  "Média:": "Average:",
+  "Máximo:": "Maximum:",
+  "Biblioteca": "Library",
+  "Esta ação remove permanentemente": "This action permanently removes",
+
+  // Reset password
+  "Redefinir senha": "Reset password",
+  "A senha deve ter pelo menos 8 caracteres": "Password must be at least 8 characters",
+  "Senha atualizada": "Password updated",
+  "Não foi possível atualizar a senha": "Could not update password",
+  "Link inválido ou expirado. Solicite uma nova redefinição na tela de login.":
+    "Invalid or expired link. Request a new reset on the login screen.",
+  "Confirmar senha": "Confirm password",
+  "Salvar nova senha": "Save new password",
 };
+
+// Simple template helper: tf("foo {x}", { x: 1 })
+export function tf(str: string, vars: Record<string, string | number>) {
+  return str.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
+}
+
 
 type Ctx = { lang: Lang; setLang: (l: Lang) => void; t: (key: string) => string };
 
