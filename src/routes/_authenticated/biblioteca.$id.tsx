@@ -542,22 +542,25 @@ function SummaryCard({
 }
 
 function DetailTooltip({ active, payload, label, mode }: any) {
+  const t = useT();
+  const { lang } = useLang();
+  const dLocale = lang === "en" ? enUS : ptBR;
   if (!active || !payload?.length) return null;
   const value = payload[0].value;
   const max = payload[0].payload?.max;
   const abs =
     mode === "day"
-      ? new Date(label).toLocaleDateString("pt-BR")
-      : format(new Date(label), "dd/MM HH:mm", { locale: ptBR });
+      ? new Date(label).toLocaleDateString(lang === "en" ? "en-US" : "pt-BR")
+      : format(new Date(label), "dd/MM HH:mm", { locale: dLocale });
   return (
     <div className="rounded-lg border border-border/60 bg-popover/95 p-3 text-xs shadow-xl backdrop-blur">
       <p className="font-medium text-foreground">{abs}</p>
       <p className="mt-1 text-sm font-semibold text-primary">
-        {mode === "day" ? "Média: " : ""}
+        {mode === "day" ? `${t("Média:")} ` : ""}
         {formatNumber(value)}
       </p>
       {mode === "day" && max ? (
-        <p className="text-xs text-muted-foreground">Máximo: {formatNumber(max)}</p>
+        <p className="text-xs text-muted-foreground">{t("Máximo:")} {formatNumber(max)}</p>
       ) : null}
     </div>
   );
