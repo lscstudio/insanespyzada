@@ -122,17 +122,17 @@ function LibraryDetailPage() {
       <div className="space-y-4">
         <Button asChild variant="ghost" size="sm">
           <Link to="/bibliotecas">
-            <ArrowLeft className="h-4 w-4" /> Voltar
+            <ArrowLeft className="h-4 w-4" /> {t("Voltar")}
           </Link>
         </Button>
         <Card className="border-border/60 p-8 text-center">
-          <p className="text-sm text-muted-foreground">Biblioteca não encontrada.</p>
+          <p className="text-sm text-muted-foreground">{t("Biblioteca não encontrada.")}</p>
         </Card>
       </div>
     );
   }
 
-  const title = data.title || data.search_term || data.page_name || "Biblioteca";
+  const title = data.title || data.search_term || data.page_name || t("Biblioteca");
 
   const totalHistory = history.data?.length ?? 0;
   const pagedHistory = (history.data ?? []).slice(page * pageSize, (page + 1) * pageSize);
@@ -141,7 +141,7 @@ function LibraryDetailPage() {
     <div className="space-y-6">
       <Button asChild variant="ghost" size="sm">
         <Link to="/bibliotecas">
-          <ArrowLeft className="h-4 w-4" /> Voltar
+          <ArrowLeft className="h-4 w-4" /> {t("Voltar")}
         </Link>
       </Button>
 
