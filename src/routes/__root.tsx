@@ -10,6 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { LanguageProvider } from "@/lib/i18n";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -123,10 +124,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <Outlet />
-        <Toaster richColors position="top-right" theme="dark" />
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <Outlet />
+          <Toaster richColors position="top-right" theme="dark" />
+        </ThemeProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }
