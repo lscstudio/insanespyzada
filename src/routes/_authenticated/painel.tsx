@@ -121,6 +121,7 @@ function PainelContent() {
         <TabsList>
           <TabsTrigger value="apis"><Zap className="mr-1.5 h-4 w-4" />{t("APIs")}</TabsTrigger>
           <TabsTrigger value="contas"><Users className="mr-1.5 h-4 w-4" />{t("Contas")}</TabsTrigger>
+          <TabsTrigger value="membros"><UserCog className="mr-1.5 h-4 w-4" />{t("Membros")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="apis" className="space-y-6">
@@ -128,7 +129,11 @@ function PainelContent() {
         </TabsContent>
 
         <TabsContent value="contas" className="space-y-6">
-          <UsagePanel query={usageQ} />
+          <UsagePanel fallbackQuery={usageQ} />
+        </TabsContent>
+
+        <TabsContent value="membros" className="space-y-6">
+          <MembersPanel />
         </TabsContent>
       </Tabs>
     </div>
