@@ -73,6 +73,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "creatives_library_id_fkey"
+            columns: ["library_id"]
+            isOneToOne: false
+            referencedRelation: "library_trend"
+            referencedColumns: ["library_id"]
+          },
+          {
             foreignKeyName: "creatives_snapshot_id_fkey"
             columns: ["snapshot_id"]
             isOneToOne: false
@@ -239,6 +246,13 @@ export type Database = {
             referencedRelation: "library_latest"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "snapshots_library_id_fkey"
+            columns: ["library_id"]
+            isOneToOne: false
+            referencedRelation: "library_trend"
+            referencedColumns: ["library_id"]
+          },
         ]
       }
       user_roles: {
@@ -289,6 +303,13 @@ export type Database = {
             referencedRelation: "library_latest"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "snapshots_library_id_fkey"
+            columns: ["library_id"]
+            isOneToOne: false
+            referencedRelation: "library_trend"
+            referencedColumns: ["library_id"]
+          },
         ]
       }
       library_latest: {
@@ -321,30 +342,15 @@ export type Database = {
       }
       library_trend: {
         Row: {
-          captured_at: string | null
-          current_active_ads: number | null
+          current_at: string | null
+          current_count: number | null
           delta: number | null
-          delta_pct: number | null
+          direction: string | null
           library_id: string | null
-          previous_active_ads: number | null
-          trend_direction: string | null
+          previous_at: string | null
+          previous_count: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "snapshots_library_id_fkey"
-            columns: ["library_id"]
-            isOneToOne: false
-            referencedRelation: "libraries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "snapshots_library_id_fkey"
-            columns: ["library_id"]
-            isOneToOne: false
-            referencedRelation: "library_latest"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
