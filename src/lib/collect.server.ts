@@ -287,8 +287,8 @@ function isCreditsExhausted(err: unknown): boolean {
     msg.includes("no credits") ||
     msg.includes("credit limit") ||
     msg.includes("quota exceeded") ||
-    msg.includes("exceeded the maximum number of concurrent requests") === false &&
-      (msg.includes("scraperapi 403") || msg.includes("scraperapi 401"))
+    msg.includes("scraperapi 401") ||
+    msg.includes("scraperapi 403")
   );
 }
 
