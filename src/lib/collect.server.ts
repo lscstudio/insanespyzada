@@ -390,7 +390,7 @@ async function tryKeyWithRetry(key: PoolKey, url: string): Promise<FirecrawlPayl
  * - Erro definitivo (404/URL inválida): falha imediato.
  */
 async function scrapePage(url: string): Promise<FirecrawlPayload> {
-  const pool = buildPool();
+  const pool = await buildPool();
   if (pool.length === 0) {
     throw new Error(
       "Nenhuma chave de scraping disponível (todas esgotadas ou não configuradas). Aguarde 1h ou adicione novas chaves.",
