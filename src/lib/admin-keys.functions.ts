@@ -13,6 +13,15 @@ async function assertAdmin(supabase: any, userId: string) {
 const FC_NAMES = ["FIRECRAWL_API_KEY", "FIRECRAWL_API_KEY_2", "FIRECRAWL_API_KEY_3", "FIRECRAWL_API_KEY_4"];
 const SA_NAMES = ["SCRAPERAPI_KEY", "SCRAPERAPI_KEY_2", "SCRAPERAPI_KEY_3"];
 
+interface DbKeyRow {
+  id: string;
+  provider: "firecrawl" | "scraperapi";
+  label: string;
+  key: string;
+  active: boolean;
+  created_at: string;
+}
+
 export type ApiProvider = "firecrawl" | "scraperapi";
 export interface ApiKeyStatus {
   provider: ApiProvider;
