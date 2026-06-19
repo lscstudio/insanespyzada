@@ -170,7 +170,6 @@ const DICT: Record<string, string> = {
   "Crie, edite e exclua os nichos disponíveis ao adicionar bibliotecas.":
     "Create, edit and delete the niches available when adding libraries.",
   "Ex.: Saúde, Coaching, Imobiliário…": "Ex.: Health, Coaching, Real Estate…",
-  "Carregando…": "Loading…",
   "Nenhum nicho ainda. Crie o primeiro acima.": "No niches yet. Create the first one above.",
   "Nicho criado": "Niche created",
   "Nicho atualizado": "Niche updated",
