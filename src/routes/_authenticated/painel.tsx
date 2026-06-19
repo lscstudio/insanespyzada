@@ -214,11 +214,14 @@ function ApiOverview({ query }: { query: ReturnType<typeof useQuery<any>> }) {
 }
 
 function KeyRow({ k }: { k: ApiKeyStatus }) {
+  const t = useT();
+  const { lang } = useLang();
+  const locale = lang === "en" ? "en-US" : "pt-BR";
   const statusBadge = !k.configured
-    ? <Badge variant="outline" className="gap-1 text-muted-foreground"><AlertTriangle className="h-3 w-3" />Vazia</Badge>
+    ? <Badge variant="outline" className="gap-1 text-muted-foreground"><AlertTriangle className="h-3 w-3" />{t("Vazia")}</Badge>
     : k.working
-      ? <Badge className="gap-1 bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/20"><CheckCircle2 className="h-3 w-3" />Online</Badge>
-      : <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Falha</Badge>;
+      ? <Badge className="gap-1 bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/20"><CheckCircle2 className="h-3 w-3" />{t("Online")}</Badge>
+      : <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />{t("Falha")}</Badge>;
 
   const pct = k.limit && k.limit > 0 ? Math.min(100, ((k.used ?? 0) / k.limit) * 100) : null;
   const providerDot = k.provider === "firecrawl" ? "bg-violet-500" : "bg-cyan-500";
@@ -242,9 +245,9 @@ function KeyRow({ k }: { k: ApiKeyStatus }) {
           )}
           <div>
             <div className="text-lg font-semibold tabular-nums">
-              {k.credits !== null ? k.credits.toLocaleString("pt-BR") : "—"}
+              {k.credits !== null ? k.credits.toLocaleString(locale) : "—"}
             </div>
-            <div className="text-[10px] uppercase text-muted-foreground tracking-wide">créditos</div>
+            <div className="text-[10px] uppercase text-muted-foreground tracking-wide">{t("créditos")}</div>
           </div>
         </div>
       </div>
@@ -252,8 +255,8 @@ function KeyRow({ k }: { k: ApiKeyStatus }) {
         <div className="mt-2">
           <Progress value={pct} className="h-1.5" />
           <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
-            <span>{(k.used ?? 0).toLocaleString("pt-BR")} usados</span>
-            <span>{(k.limit ?? 0).toLocaleString("pt-BR")} total</span>
+            <span>{(k.used ?? 0).toLocaleString(locale)} {t("usados")}</span>
+            <span>{(k.limit ?? 0).toLocaleString(locale)} {t("total")}</span>
           </div>
         </div>
       )}
