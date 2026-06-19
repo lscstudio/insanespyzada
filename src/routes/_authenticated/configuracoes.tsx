@@ -230,10 +230,14 @@ function NichesManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    const name = newName.trim();
-    if (!name) return;
+  const checkFn = useServerFn(checkIsAdmin);
+  const { data: adminData, isLoading: adminLoading } = useQuery({
+    queryKey: ["admin", "isAdmin"],
+    queryFn: () => checkFn(),
+    staleTime: 5 * 60_000,
+  });
+  const isAdmin = !!adminData?.isAdmin;
+
     try {
       await create.mutateAsync(name);
       setNewName("");
