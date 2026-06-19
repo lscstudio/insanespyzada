@@ -29,8 +29,12 @@ import {
 } from "@/hooks/use-libraries";
 import { clearDemoData, seedDemoData } from "@/lib/seed.functions";
 import { triggerCollection } from "@/lib/collect.functions";
+import { checkIsAdmin } from "@/lib/admin.functions";
 import type { CollectReport } from "@/lib/collect.server";
 import { useT } from "@/lib/i18n";
+import { useQuery } from "@tanstack/react-query";
+import { Lock } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações · InsaneSpy" }] }),
@@ -226,6 +230,14 @@ function NichesManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
 
+  const checkFn = useServerFn(checkIsAdmin);
+  const { data: adminData, isLoading: adminLoading } = useQuery({
+    queryKey: ["admin", "isAdmin"],
+    queryFn: () => checkFn(),
+    staleTime: 5 * 60_000,
+  });
+  const isAdmin = !!adminData?.isAdmin;
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     const name = newName.trim();
@@ -240,6 +252,7 @@ function NichesManager() {
       });
     }
   }
+
 
   async function handleSaveEdit(id: string, previousName: string) {
     const name = editingValue.trim();
@@ -276,40 +289,53 @@ function NichesManager() {
           <Tags className="h-5 w-5 text-foreground" />
         </div>
         <div className="flex-1">
-          <h2 className="text-lg font-semibold">{t("Nichos")}</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">{t("Nichos")}</h2>
+            {!adminLoading && !isAdmin && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/40 px-2 py-0.5 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3" /> {t("Somente leitura")}
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            {t("Crie, edite e exclua os nichos disponíveis ao adicionar bibliotecas.")}
+            {isAdmin
+              ? t("Crie, edite e exclua os nichos disponíveis ao adicionar bibliotecas.")
+              : t("Apenas administradores podem gerenciar nichos. Mudanças aparecem em tempo real.")}
           </p>
 
-          <form onSubmit={handleCreate} className="mt-4 flex gap-2">
-            <Input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder={t("Ex.: Saúde, Coaching, Imobiliário…")}
-              maxLength={80}
-            />
-            <Button type="submit" disabled={create.isPending || !newName.trim()}>
-              {create.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
-              {t("Adicionar")}
-            </Button>
-          </form>
+          {isAdmin && (
+            <form onSubmit={handleCreate} className="mt-4 flex gap-2">
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder={t("Ex.: Saúde, Coaching, Imobiliário…")}
+                maxLength={80}
+              />
+              <Button type="submit" disabled={create.isPending || !newName.trim()}>
+                {create.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {t("Adicionar")}
+              </Button>
+            </form>
+          )}
 
           <div className="mt-5">
             {niches.isLoading ? (
               <p className="text-sm text-muted-foreground">{t("Carregando…")}</p>
             ) : (niches.data ?? []).length === 0 ? (
               <p className="rounded-xl border border-dashed border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
-                {t("Nenhum nicho ainda. Crie o primeiro acima.")}
+                {isAdmin
+                  ? t("Nenhum nicho ainda. Crie o primeiro acima.")
+                  : t("Nenhum nicho cadastrado ainda.")}
               </p>
             ) : (
               <ul className="divide-y divide-border/40 rounded-xl border border-border/50 bg-background/30">
                 {(niches.data ?? []).map((n) => (
                   <li key={n.id} className="flex items-center gap-2 px-3 py-2">
-                    {editingId === n.id ? (
+                    {isAdmin && editingId === n.id ? (
                       <>
                         <Input
                           value={editingValue}
@@ -331,27 +357,31 @@ function NichesManager() {
                     ) : (
                       <>
                         <span className="flex-1 truncate text-sm font-medium">{n.name}</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => {
-                            setEditingId(n.id);
-                            setEditingValue(n.name);
-                          }}
-                          aria-label={`${t("Editar")} ${n.name}`}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => handleDelete(n.id, n.name)}
-                          aria-label={`${t("Excluir")} ${n.name}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setEditingId(n.id);
+                                setEditingValue(n.name);
+                              }}
+                              aria-label={`${t("Editar")} ${n.name}`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => handleDelete(n.id, n.name)}
+                              aria-label={`${t("Excluir")} ${n.name}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                       </>
                     )}
                   </li>
@@ -359,6 +389,7 @@ function NichesManager() {
               </ul>
             )}
           </div>
+
         </div>
       </div>
     </Card>
