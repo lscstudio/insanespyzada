@@ -68,6 +68,7 @@ function PainelPage() {
 }
 
 function PainelContent() {
+  const t = useT();
   const apiFn = useServerFn(getApiPoolStatus);
   const usageFn = useServerFn(getUsageRanking);
 
@@ -86,8 +87,8 @@ function PainelContent() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Painel Administrativo</h1>
-          <p className="text-sm text-muted-foreground">APIs, créditos e uso por conta — atualizado em tempo real.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Painel Administrativo")}</h1>
+          <p className="text-sm text-muted-foreground">{t("APIs, créditos e uso por conta — atualizado em tempo real.")}</p>
         </div>
         <Button
           variant="outline"
@@ -96,14 +97,14 @@ function PainelContent() {
           disabled={apiQ.isFetching || usageQ.isFetching}
         >
           <RefreshCw className={cn("mr-2 h-4 w-4", (apiQ.isFetching || usageQ.isFetching) && "animate-spin")} />
-          Atualizar
+          {t("Atualizar")}
         </Button>
       </header>
 
       <Tabs defaultValue="apis" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="apis"><Zap className="mr-1.5 h-4 w-4" />APIs</TabsTrigger>
-          <TabsTrigger value="contas"><Users className="mr-1.5 h-4 w-4" />Contas</TabsTrigger>
+          <TabsTrigger value="apis"><Zap className="mr-1.5 h-4 w-4" />{t("APIs")}</TabsTrigger>
+          <TabsTrigger value="contas"><Users className="mr-1.5 h-4 w-4" />{t("Contas")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="apis" className="space-y-6">
