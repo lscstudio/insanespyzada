@@ -31,11 +31,25 @@ import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { to: "/", labelKey: "Visão Geral", icon: LayoutDashboard, exact: true },
-  { to: "/bibliotecas", labelKey: "Bibliotecas", icon: Library, exact: false },
-  { to: "/perfil", labelKey: "Perfil", icon: UserIcon, exact: false },
-  { to: "/configuracoes", labelKey: "Configurações", icon: Settings, exact: false },
+  { to: "/", labelKey: "Visão Geral", icon: LayoutDashboard, exact: true, admin: false },
+  { to: "/bibliotecas", labelKey: "Bibliotecas", icon: Library, exact: false, admin: false },
+  { to: "/perfil", labelKey: "Perfil", icon: UserIcon, exact: false, admin: false },
+  { to: "/painel", labelKey: "Painel", icon: Shield, exact: false, admin: true },
+  { to: "/configuracoes", labelKey: "Configurações", icon: Settings, exact: false, admin: false },
 ] as const;
+
+function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItemClick?: () => void }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const t = useT();
+  const checkFn = useServerFn(checkIsAdmin);
+  const { data: adminData } = useQuery({
+    queryKey: ["admin", "isAdmin"],
+    queryFn: () => checkFn({}),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const isAdmin = !!adminData?.isAdmin;
+  const items = NAV_ITEMS.filter((i) => !i.admin || isAdmin);
 
 function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItemClick?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
