@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { checkIsAdmin, listLibrariesForAccount } from "@/lib/admin.functions";
 import { getApiPoolStatus, getUsageRanking, type ApiKeyStatus } from "@/lib/admin-keys.functions";
 import { cn } from "@/lib/utils";
+import { useLang, useT, tf } from "@/lib/i18n";
 
 function NotFoundView() {
   return (
