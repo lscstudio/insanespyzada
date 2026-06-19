@@ -323,7 +323,6 @@ const DICT: Record<string, string> = {
   "Rótulo": "Label",
   "ex: Conta 5": "ex: Account 5",
   "Chave de API": "API key",
-  "Ativar": "Enable",
   "Desativar": "Disable",
   "Remover": "Remove",
   "Remover esta chave do pool?": "Remove this key from the pool?",
@@ -370,7 +369,6 @@ const DICT: Record<string, string> = {
   "Esta ação bloqueia o login do usuário por 100 anos. Você pode desbanir depois. Para confirmar, digite o email do usuário abaixo:":
     "This action blocks the user's login for 100 years. You can unban them later. To confirm, type the user's email below:",
   "Digite para confirmar": "Type to confirm",
-  "Cancelar": "Cancel",
   "Banir definitivamente": "Ban permanently",
   "Limite de bibliotecas": "Library limit",
   "Quantidade exata": "Exact amount",
