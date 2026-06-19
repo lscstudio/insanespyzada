@@ -29,8 +29,12 @@ import {
 } from "@/hooks/use-libraries";
 import { clearDemoData, seedDemoData } from "@/lib/seed.functions";
 import { triggerCollection } from "@/lib/collect.functions";
+import { checkIsAdmin } from "@/lib/admin.functions";
 import type { CollectReport } from "@/lib/collect.server";
 import { useT } from "@/lib/i18n";
+import { useQuery } from "@tanstack/react-query";
+import { Lock } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações · InsaneSpy" }] }),
