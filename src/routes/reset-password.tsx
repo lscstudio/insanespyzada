@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({ meta: [{ title: "Redefinir senha · InsaneSpy" }] }),
@@ -17,13 +18,13 @@ export const Route = createFileRoute("/reset-password")({
 
 function ResetPasswordPage() {
   const navigate = useNavigate();
+  const t = useT();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Supabase puts the recovery token in the URL hash and creates a session.
     const hash = typeof window !== "undefined" ? window.location.hash : "";
     if (hash.includes("type=recovery") || hash.includes("access_token")) {
       setReady(true);
@@ -35,23 +36,23 @@ function ResetPasswordPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 8) {
-      toast.error("A senha deve ter pelo menos 8 caracteres");
+      toast.error(t("A senha deve ter pelo menos 8 caracteres"));
       return;
     }
     if (password !== confirm) {
-      toast.error("As senhas não coincidem");
+      toast.error(t("Senhas não coincidem"));
       return;
     }
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast.success("Senha atualizada", { description: "Você já pode entrar." });
+      toast.success(t("Senha atualizada"), { description: t("Você já pode entrar.") });
       await supabase.auth.signOut();
       navigate({ to: "/auth" });
     } catch (err) {
-      toast.error("Não foi possível atualizar a senha", {
-        description: err instanceof Error ? err.message : "Erro desconhecido",
+      toast.error(t("Não foi possível atualizar a senha"), {
+        description: err instanceof Error ? err.message : t("Erro desconhecido"),
       });
     } finally {
       setLoading(false);
@@ -75,29 +76,29 @@ function ResetPasswordPage() {
           <div className="grid h-10 w-10 place-items-center rounded-xl gradient-violet-cyan shadow-lg">
             <ShieldCheck className="h-5 w-5 text-white" />
           </div>
-          <h1 className="text-lg font-semibold">Redefinir senha</h1>
+          <h1 className="text-lg font-semibold">{t("Redefinir senha")}</h1>
         </div>
 
         <Card className="glass-card border-border/60 p-6">
           {!ready ? (
             <p className="text-sm text-muted-foreground">
-              Link inválido ou expirado. Solicite uma nova redefinição na tela de login.
+              {t("Link inválido ou expirado. Solicite uma nova redefinição na tela de login.")}
             </p>
           ) : (
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">Nova senha</Label>
+                <Label htmlFor="password">{t("Nova senha")}</Label>
                 <Input
                   id="password"
                   type="password"
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder={t("Mínimo 8 caracteres")}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirm">Confirmar senha</Label>
+                <Label htmlFor="confirm">{t("Confirmar senha")}</Label>
                 <Input
                   id="confirm"
                   type="password"
@@ -112,7 +113,7 @@ function ResetPasswordPage() {
                 className="w-full gradient-violet-cyan text-white shadow-lg shadow-primary/20"
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                Salvar nova senha
+                {t("Salvar nova senha")}
               </Button>
             </form>
           )}
