@@ -296,7 +296,7 @@ function LibraryDetailPage() {
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={11}
                   tickFormatter={(d: string) =>
-                    format(new Date(d), "dd/MM HH:mm", { locale: ptBR })
+                    format(new Date(d), "dd/MM HH:mm", { locale: dLocale })
                   }
                 />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
