@@ -61,7 +61,15 @@ export function useRealtimeRefresh() {
           }
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "niches" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["niches"] });
+        },
+      )
       .subscribe();
+
 
     return () => {
       supabase.removeChannel(channel);
