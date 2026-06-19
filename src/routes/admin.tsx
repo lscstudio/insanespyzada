@@ -34,7 +34,7 @@ function NotFoundView() {
   );
 }
 
-export const Route = createFileRoute("/_authenticated/admin")({
+export const Route = createFileRoute("/admin")({
   component: AdminPanel,
   notFoundComponent: NotFoundView,
 });
