@@ -217,7 +217,59 @@ function buildPool(): PoolKey[] {
 }
 
 async function firecrawlScrapeOnce(url: string, apiKey: string): Promise<FirecrawlPayload> {
-...
+  const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url,
+      formats: [
+        "html",
+        "markdown",
+        {
+          type: "json",
+          prompt: EXTRACTION_PROMPT,
+          schema: EXTRACTION_SCHEMA,
+        },
+      ],
+      onlyMainContent: false,
+      waitFor: 8000,
+      timeout: 120000,
+      maxAge: 0,
+      location: { country: "BR", languages: ["pt-BR", "pt"] },
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    const err = new Error(`Firecrawl ${res.status}: ${text.slice(0, 300)}`) as Error & {
+      status?: number;
+      transient?: boolean;
+    };
+    err.status = res.status;
+    err.transient = res.status === 408 || res.status === 429 || res.status >= 500;
+    throw err;
+  }
+
+  const json = (await res.json()) as {
+    success?: boolean;
+    error?: string;
+    data?: { html?: string; markdown?: string; json?: ExtractedShape };
+    html?: string;
+    markdown?: string;
+    json?: ExtractedShape;
+  };
+  if (json.success === false) throw new Error(json.error || "Firecrawl falhou");
+  const html = json.data?.html ?? json.html ?? "";
+  const markdown = json.data?.markdown ?? json.markdown ?? "";
+  const extracted = json.data?.json ?? json.json ?? null;
+  if (!html && !markdown && !extracted) {
+    const err = new Error("Firecrawl não retornou conteúdo renderizado") as Error & {
+      transient?: boolean;
+    };
+    err.transient = true;
     throw err;
   }
   return { html, markdown, extracted };
