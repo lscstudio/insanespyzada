@@ -238,6 +238,10 @@ function NichesManager() {
   });
   const isAdmin = !!adminData?.isAdmin;
 
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    const name = newName.trim();
+    if (!name) return;
     try {
       await create.mutateAsync(name);
       setNewName("");
@@ -248,6 +252,7 @@ function NichesManager() {
       });
     }
   }
+
 
   async function handleSaveEdit(id: string, previousName: string) {
     const name = editingValue.trim();
