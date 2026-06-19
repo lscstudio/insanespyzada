@@ -436,31 +436,31 @@ function LibraryDetailPage() {
       {/* History */}
       <Card className="border-border/60 bg-card p-6">
         <div className="mb-4">
-          <h2 className="text-lg font-semibold">Histórico de snapshots</h2>
-          <p className="text-sm text-muted-foreground">{totalHistory} coletas registradas.</p>
+          <h2 className="text-lg font-semibold">{t("Histórico de snapshots")}</h2>
+          <p className="text-sm text-muted-foreground">{tf(t("{n} coletas registradas."), { n: totalHistory })}</p>
         </div>
         {history.isLoading ? (
           <Skeleton className="h-40 w-full rounded-xl shimmer" />
         ) : pagedHistory.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Sem snapshots ainda.</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">{t("Sem snapshots ainda.")}</p>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
-                    <th className="py-2 pr-4 font-medium">Coletado em</th>
-                    <th className="py-2 pr-4 font-medium">Ativos</th>
-                    <th className="py-2 pr-4 font-medium">Top</th>
-                    <th className="py-2 pr-4 font-medium">Únicos</th>
-                    <th className="py-2 pr-4 font-medium">Status</th>
+                    <th className="py-2 pr-4 font-medium">{t("Coletado em")}</th>
+                    <th className="py-2 pr-4 font-medium">{t("Ativos")}</th>
+                    <th className="py-2 pr-4 font-medium">{t("Top")}</th>
+                    <th className="py-2 pr-4 font-medium">{t("Únicos")}</th>
+                    <th className="py-2 pr-4 font-medium">{t("Status")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pagedHistory.map((s) => (
                     <tr key={s.id} className="border-t border-border/40">
                       <td className="py-2 pr-4" title={s.captured_at}>
-                        {format(new Date(s.captured_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        {format(new Date(s.captured_at), lang === "en" ? "MM/dd/yyyy HH:mm" : "dd/MM/yyyy HH:mm", { locale: dLocale })}
                       </td>
                       <td className="py-2 pr-4 font-medium tabular-nums">
                         {formatNumber(s.active_ads_count)}
@@ -473,9 +473,9 @@ function LibraryDetailPage() {
                       </td>
                       <td className="py-2 pr-4">
                         {s.scrape_ok ? (
-                          <span className="text-xs text-success">OK</span>
+                          <span className="text-xs text-success">{t("OK")}</span>
                         ) : (
-                          <span className="text-xs text-warning">{s.error_message || "Falhou"}</span>
+                          <span className="text-xs text-warning">{s.error_message || t("Falhou")}</span>
                         )}
                       </td>
                     </tr>
@@ -486,7 +486,7 @@ function LibraryDetailPage() {
             {totalHistory > pageSize && (
               <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
                 <span>
-                  Página {page + 1} de {Math.ceil(totalHistory / pageSize)}
+                  {tf(t("Página {a} de {b}"), { a: page + 1, b: Math.ceil(totalHistory / pageSize) })}
                 </span>
                 <div className="flex gap-2">
                   <Button
@@ -495,7 +495,7 @@ function LibraryDetailPage() {
                     disabled={page === 0}
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
                   >
-                    Anterior
+                    {t("Anterior")}
                   </Button>
                   <Button
                     variant="outline"
@@ -503,7 +503,7 @@ function LibraryDetailPage() {
                     disabled={(page + 1) * pageSize >= totalHistory}
                     onClick={() => setPage((p) => p + 1)}
                   >
-                    Próxima
+                    {t("Próxima")}
                   </Button>
                 </div>
               </div>
