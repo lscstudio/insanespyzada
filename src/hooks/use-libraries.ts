@@ -49,7 +49,7 @@ export function useLibraryTrend() {
 export function useHourlyTrend() {
   return useQuery({
     queryKey: ["hourly_trend"],
-    refetchInterval: ONE_MIN,
+    refetchInterval: FIVE_MIN,
     queryFn: async (): Promise<Record<string, HourlyTrend>> => {
       // 48h cobre o caso de coletas que falharam por algumas horas.
       const since = new Date(Date.now() - 48 * 3600_000).toISOString();
@@ -230,9 +230,9 @@ export function useSaveLibrary() {
       return data as unknown as Library;
     },
     onSuccess: () => {
-      qc.invalidateQueries();
       qc.invalidateQueries({ queryKey: ["library_latest"] });
       qc.invalidateQueries({ queryKey: ["library_trend"] });
+      qc.invalidateQueries({ queryKey: ["hourly_trend"] });
     },
   });
 }

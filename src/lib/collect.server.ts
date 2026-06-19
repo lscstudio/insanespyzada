@@ -602,28 +602,47 @@ async function collectOne(
       .single();
     if (snapErr) throw snapErr;
 
-    if (parsed.creatives.length > 0) {
-      const rows: TablesInsert<"creatives">[] = parsed.creatives.map((c) => ({
-        library_id: lib.id,
-        snapshot_id: snap.id,
-        captured_at: snap.captured_at,
-        ad_archive_id: c.ad_archive_id,
-        creative_hash: c.creative_hash,
-        preview_url: c.preview_url,
-        media_type: c.media_type,
-        duplicate_count: c.duplicate_count,
-        page_name: c.page_name,
-        body_text: c.body_text,
-        ad_url: c.ad_url,
-      }));
-      const { error: crErr } = await sb.from("creatives").insert(rows);
-      if (crErr) throw crErr;
-    }
+    // Build creatives rows + optional page_name update, then dispatch
+    // both independent writes in parallel.
+    const creativesRows: TablesInsert<"creatives">[] =
+      parsed.creatives.length > 0
+        ? parsed.creatives.map((c) => ({
+            library_id: lib.id,
+            snapshot_id: snap.id,
+            captured_at: snap.captured_at,
+            ad_archive_id: c.ad_archive_id,
+            creative_hash: c.creative_hash,
+            preview_url: c.preview_url,
+            media_type: c.media_type,
+            duplicate_count: c.duplicate_count,
+            page_name: c.page_name,
+            body_text: c.body_text,
+            ad_url: c.ad_url,
+          }))
+        : [];
 
-    // Atualiza page_name na lib quando há exatamente 1 página dominante
-    if (parsed.pages.length === 1 && parsed.pages[0].name && !lib.page_name) {
-      await sb.from("libraries").update({ page_name: parsed.pages[0].name }).eq("id", lib.id);
+    const writes: Promise<unknown>[] = [];
+    if (creativesRows.length > 0) {
+      writes.push(
+        sb.from("creatives").insert(creativesRows).then((res) => {
+          if (res.error) throw res.error;
+        }),
+      );
     }
+    if (parsed.pages.length === 1 && parsed.pages[0].name && !lib.page_name) {
+      writes.push(
+        sb
+          .from("libraries")
+          .update({ page_name: parsed.pages[0].name })
+          .eq("id", lib.id)
+          .then((res) => {
+            if (res.error) {
+              console.warn(`[collect] page_name update falhou para ${lib.id}: ${res.error.message}`);
+            }
+          }),
+      );
+    }
+    if (writes.length > 0) await Promise.all(writes);
 
     return { ok: true, parsed };
   } catch (err) {
@@ -676,7 +695,7 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
   let ok = 0;
   let failed = 0;
 
-  const CONCURRENCY = 3;
+  const CONCURRENCY = 5;
   let cursor = 0;
   async function worker() {
     while (cursor < list.length) {
