@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   Loader2, Activity, KeyRound, Coins, Zap, CheckCircle2, XCircle, AlertTriangle,
   Users, ArrowLeft, ExternalLink, TrendingUp, Trophy, RefreshCw, Plus, Trash2, Power,
+  Shield, ShieldOff, Ban, Infinity as InfinityIcon, UserCog,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -20,11 +21,20 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { checkIsAdmin, listLibrariesForAccount } from "@/lib/admin.functions";
 import {
   getApiPoolStatus, getUsageRanking, addApiKey, deleteApiKey, toggleApiKey,
   type ApiKeyStatus,
 } from "@/lib/admin-keys.functions";
+import {
+  listMembers, setAdminRole, setLibraryLimit, banMember, unbanMember,
+  getUsageRangeStats, type MemberRow,
+} from "@/lib/admin-members.functions";
 import { cn } from "@/lib/utils";
 import { useLang, useT } from "@/lib/i18n";
 
