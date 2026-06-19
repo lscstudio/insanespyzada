@@ -621,25 +621,26 @@ async function collectOne(
           }))
         : [];
 
-    const writes: Promise<unknown>[] = [];
+    const writes: Promise<void>[] = [];
     if (creativesRows.length > 0) {
       writes.push(
-        sb.from("creatives").insert(creativesRows).then((res) => {
-          if (res.error) throw res.error;
-        }),
+        (async () => {
+          const { error: crErr } = await sb.from("creatives").insert(creativesRows);
+          if (crErr) throw crErr;
+        })(),
       );
     }
     if (parsed.pages.length === 1 && parsed.pages[0].name && !lib.page_name) {
       writes.push(
-        sb
-          .from("libraries")
-          .update({ page_name: parsed.pages[0].name })
-          .eq("id", lib.id)
-          .then((res) => {
-            if (res.error) {
-              console.warn(`[collect] page_name update falhou para ${lib.id}: ${res.error.message}`);
-            }
-          }),
+        (async () => {
+          const { error: upErr } = await sb
+            .from("libraries")
+            .update({ page_name: parsed.pages[0].name })
+            .eq("id", lib.id);
+          if (upErr) {
+            console.warn(`[collect] page_name update falhou para ${lib.id}: ${upErr.message}`);
+          }
+        })(),
       );
     }
     if (writes.length > 0) await Promise.all(writes);
