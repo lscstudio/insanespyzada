@@ -1,23 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 /**
- * Public collection endpoint for pg_cron.
- * Auth: the request must include `apikey: <SUPABASE_PUBLISHABLE_KEY>` header
- * (the project's anon key — same one the frontend already uses).
- *
- * pg_cron will call this on a schedule; see the cron job set up in the DB.
+ * Obscured collection endpoint for pg_cron.
+ * Auth: the request must include `apikey: <SUPABASE_PUBLISHABLE_KEY>` header.
+ * The previous /api/public/hooks/collect path is intentionally removed.
  */
-export const Route = createFileRoute("/api/public/hooks/collect")({
+export const Route = createFileRoute(
+  "/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b",
+)({
   server: {
     handlers: {
       POST: async ({ request }) => {
         const provided = request.headers.get("apikey") ?? "";
         const expected = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
         if (!expected || provided !== expected) {
-          return new Response(JSON.stringify({ error: "unauthorized" }), {
-            status: 401,
-            headers: { "content-type": "application/json" },
-          });
+          return new Response("Not found", { status: 404 });
         }
         try {
           const { runCollection } = await import("@/lib/collect.server");
@@ -34,11 +31,7 @@ export const Route = createFileRoute("/api/public/hooks/collect")({
           });
         }
       },
-      GET: async () =>
-        new Response(JSON.stringify({ ok: true, hint: "POST with apikey header" }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
+      GET: async () => new Response("Not found", { status: 404 }),
     },
   },
 });
