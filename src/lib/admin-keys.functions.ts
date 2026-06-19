@@ -34,6 +34,8 @@ export interface ApiKeyStatus {
   used: number | null;
   error: string | null;
   latency_ms: number | null;
+  source: "env" | "db";
+  id?: string | null;
 }
 
 async function checkFirecrawl(name: string, key: string): Promise<ApiKeyStatus> {
