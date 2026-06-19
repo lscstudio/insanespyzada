@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
+import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedBibliotecasRouteImport } from './routes/_authenticated/bibliotecas'
 import { Route as AuthenticatedBibliotecaIdRouteImport } from './routes/_authenticated/biblioteca.$id'
@@ -49,6 +50,11 @@ const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedConfiguracoesRoute =
   AuthenticatedConfiguracoesRouteImport.update({
     id: '/configuracoes',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/bibliotecas': typeof AuthenticatedBibliotecasRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/painel': typeof AuthenticatedPainelRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
   '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/bibliotecas': typeof AuthenticatedBibliotecasRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/painel': typeof AuthenticatedPainelRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/': typeof AuthenticatedIndexRoute
   '/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/bibliotecas': typeof AuthenticatedBibliotecasRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/bibliotecas'
     | '/configuracoes'
+    | '/painel'
     | '/perfil'
     | '/biblioteca/$id'
     | '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/bibliotecas'
     | '/configuracoes'
+    | '/painel'
     | '/perfil'
     | '/'
     | '/biblioteca/$id'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/bibliotecas'
     | '/_authenticated/configuracoes'
+    | '/_authenticated/painel'
     | '/_authenticated/perfil'
     | '/_authenticated/'
     | '/_authenticated/biblioteca/$id'
@@ -198,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/painel': {
+      id: '/_authenticated/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof AuthenticatedPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes': {
       id: '/_authenticated/configuracoes'
       path: '/configuracoes'
@@ -232,6 +251,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBibliotecasRoute: typeof AuthenticatedBibliotecasRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedBibliotecaIdRoute: typeof AuthenticatedBibliotecaIdRoute
@@ -240,6 +260,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBibliotecasRoute: AuthenticatedBibliotecasRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedBibliotecaIdRoute: AuthenticatedBibliotecaIdRoute,

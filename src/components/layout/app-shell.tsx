@@ -7,11 +7,15 @@ import {
   Moon,
   Plus,
   Settings,
+  Shield,
   Sun,
   LogOut,
   Sparkles,
   User as UserIcon,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { checkIsAdmin } from "@/lib/admin.functions";
 
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
