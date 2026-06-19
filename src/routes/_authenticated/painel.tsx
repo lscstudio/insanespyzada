@@ -385,6 +385,9 @@ function UsagePanel({ query }: { query: ReturnType<typeof useQuery<any>> }) {
 }
 
 function AccountDetail({ user, onBack }: { user: { id: string; email: string }; onBack: () => void }) {
+  const t = useT();
+  const { lang } = useLang();
+  const locale = lang === "en" ? "en-US" : "pt-BR";
   const listFn = useServerFn(listLibrariesForAccount);
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin", "libraries", user.id],
@@ -396,11 +399,11 @@ function AccountDetail({ user, onBack }: { user: { id: string; email: string }; 
   return (
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2">
-        <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
+        <ArrowLeft className="mr-1 h-4 w-4" /> {t("Voltar")}
       </Button>
       <div>
         <h2 className="text-xl font-semibold tracking-tight">{user.email}</h2>
-        <p className="text-sm text-muted-foreground">{data?.length ?? 0} bibliotecas · {totalAds} anúncios ativos</p>
+        <p className="text-sm text-muted-foreground">{data?.length ?? 0} {t("bibliotecas")} · {totalAds} {t("anúncios ativos")}</p>
       </div>
       {isLoading && <div className="grid place-items-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
       {error && <Card><CardContent className="p-4 text-sm text-destructive">{(error as Error).message}</CardContent></Card>}
@@ -409,18 +412,18 @@ function AccountDetail({ user, onBack }: { user: { id: string; email: string }; 
           <div key={l.id} className="flex items-center justify-between rounded-lg border border-border/60 bg-card/40 p-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="truncate text-sm font-medium">{l.page_name || l.search_term || "Sem nome"}</span>
+                <span className="truncate text-sm font-medium">{l.page_name || l.search_term || t("Sem nome")}</span>
                 {l.niche && <Badge variant="outline" className="text-xs">{l.niche}</Badge>}
                 <Badge variant={l.status === "active" ? "default" : "secondary"} className="text-xs">{l.status}</Badge>
               </div>
               <div className="mt-0.5 text-[11px] text-muted-foreground">
-                {l.last_captured_at ? `Última coleta: ${new Date(l.last_captured_at).toLocaleString("pt-BR")}` : "Sem coletas"}
+                {l.last_captured_at ? `${t("Última coleta:")} ${new Date(l.last_captured_at).toLocaleString(locale)}` : t("Sem coletas")}
               </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right">
                 <div className="text-lg font-semibold tabular-nums">{l.active_ads_count}</div>
-                <div className="text-[10px] uppercase text-muted-foreground">ads ativos</div>
+                <div className="text-[10px] uppercase text-muted-foreground">{t("ads ativos")}</div>
               </div>
               {l.url && <a href={l.url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-foreground"><ExternalLink className="h-4 w-4" /></a>}
             </div>
