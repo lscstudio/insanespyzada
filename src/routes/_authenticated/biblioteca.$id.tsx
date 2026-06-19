@@ -351,7 +351,7 @@ function LibraryDetailPage() {
                   className="group relative mx-auto block aspect-square w-full max-w-sm overflow-hidden rounded-2xl border border-primary/60 bg-gradient-to-br from-primary/25 via-primary/10 to-background p-6 shadow-[0_0_60px_-15px_rgba(80,110,255,0.55)] transition-shadow hover:shadow-[0_0_80px_-10px_rgba(80,110,255,0.85)]"
                 >
                   <Badge className="absolute right-3 top-3 z-10 border-0 bg-foreground text-background">
-                    #1 escalado
+                    {t("#1 escalado")}
                   </Badge>
                   <div className="flex h-full w-full flex-col items-center justify-center gap-4">
                     <motion.div
@@ -369,14 +369,14 @@ function LibraryDetailPage() {
                         ×{formatNumber(tc.duplicate_count ?? 0)}
                       </p>
                       <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                        duplicações
+                        {t("duplicações")}
                       </p>
                     </div>
                     {tc.page_name && (
                       <p className="line-clamp-1 text-sm text-foreground/80">{tc.page_name}</p>
                     )}
                     <span className="inline-flex items-center gap-1 text-xs text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                      Abrir criativo na Meta <ExternalLink className="h-3 w-3" />
+                      {t("Abrir criativo na Meta")} <ExternalLink className="h-3 w-3" />
                     </span>
                   </div>
                 </motion.a>
