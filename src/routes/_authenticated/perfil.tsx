@@ -23,6 +23,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile, useUpdateProfile, useUploadAvatar } from "@/hooks/use-profile";
 import { deleteMyAccount } from "@/lib/account.functions";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({ meta: [{ title: "Perfil · InsaneSpy" }] }),
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/_authenticated/perfil")({
 });
 
 function PerfilPage() {
+  const t = useT();
   const { data, isLoading } = useProfile();
   const updateProfile = useUpdateProfile();
   const uploadAvatar = useUploadAvatar();
@@ -58,18 +60,18 @@ function PerfilPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Selecione uma imagem");
+      toast.error(t("Selecione uma imagem"));
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("Imagem muito grande (máx 5MB)");
+      toast.error(t("Imagem muito grande (máx 5MB)"));
       return;
     }
     try {
       await uploadAvatar.mutateAsync(file);
-      toast.success("Foto atualizada");
+      toast.success(t("Foto atualizada"));
     } catch (err) {
-      toast.error("Erro ao enviar foto", {
+      toast.error(t("Erro ao enviar foto"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -81,9 +83,9 @@ function PerfilPage() {
     setSavingName(true);
     try {
       await updateProfile.mutateAsync({ display_name: name.trim() || null });
-      toast.success("Nome atualizado");
+      toast.success(t("Nome atualizado"));
     } catch (err) {
-      toast.error("Erro ao salvar nome", {
+      toast.error(t("Erro ao salvar nome"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -97,11 +99,11 @@ function PerfilPage() {
     try {
       const { error } = await supabase.auth.updateUser({ email });
       if (error) throw error;
-      toast.success("Verifique seu e-mail", {
-        description: "Enviamos um link de confirmação para o novo endereço.",
+      toast.success(t("Verifique seu e-mail"), {
+        description: t("Enviamos um link de confirmação para o novo endereço."),
       });
     } catch (err) {
-      toast.error("Erro ao atualizar e-mail", {
+      toast.error(t("Erro ao atualizar e-mail"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -111,11 +113,11 @@ function PerfilPage() {
 
   async function handleSavePassword() {
     if (password.length < 6) {
-      toast.error("Senha precisa ter ao menos 6 caracteres");
+      toast.error(t("Senha precisa ter ao menos 6 caracteres"));
       return;
     }
     if (password !== password2) {
-      toast.error("Senhas não coincidem");
+      toast.error(t("Senhas não coincidem"));
       return;
     }
     setSavingPwd(true);
@@ -124,9 +126,9 @@ function PerfilPage() {
       if (error) throw error;
       setPassword("");
       setPassword2("");
-      toast.success("Senha alterada");
+      toast.success(t("Senha alterada"));
     } catch (err) {
-      toast.error("Erro ao alterar senha", {
+      toast.error(t("Erro ao alterar senha"), {
         description: err instanceof Error ? err.message : undefined,
       });
     } finally {
@@ -139,10 +141,10 @@ function PerfilPage() {
     try {
       await deleteAcc();
       await supabase.auth.signOut();
-      toast.success("Conta excluída");
+      toast.success(t("Conta excluída"));
       navigate({ to: "/auth" });
     } catch (err) {
-      toast.error("Erro ao excluir conta", {
+      toast.error(t("Erro ao excluir conta"), {
         description: err instanceof Error ? err.message : undefined,
       });
       setDeleting(false);
@@ -171,8 +173,8 @@ function PerfilPage() {
       className="mx-auto max-w-3xl space-y-6"
     >
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Perfil</h1>
-        <p className="text-sm text-muted-foreground">Gerencie sua conta e preferências.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Perfil")}</h1>
+        <p className="text-sm text-muted-foreground">{t("Gerencie sua conta e preferências.")}</p>
       </div>
 
       {/* Avatar + nome */}
@@ -191,7 +193,7 @@ function PerfilPage() {
               onClick={() => fileInput.current?.click()}
               disabled={uploadAvatar.isPending}
               className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full border border-border bg-background shadow-md transition hover:bg-accent"
-              aria-label="Trocar foto"
+              aria-label={t("Trocar foto")}
             >
               {uploadAvatar.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -211,17 +213,17 @@ function PerfilPage() {
           <div className="flex-1 space-y-3">
             <div>
               <Label htmlFor="name" className="flex items-center gap-2">
-                <UserIcon className="h-4 w-4 text-muted-foreground" /> Nome de exibição
+                <UserIcon className="h-4 w-4 text-muted-foreground" /> {t("Nome de exibição")}
               </Label>
               <div className="mt-1.5 flex gap-2">
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Como devemos te chamar?"
+                  placeholder={t("Como devemos te chamar?")}
                 />
                 <Button onClick={handleSaveName} disabled={savingName}>
-                  {savingName ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+                  {savingName ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Salvar")}
                 </Button>
               </div>
             </div>
@@ -232,7 +234,7 @@ function PerfilPage() {
       {/* Email */}
       <Card className="space-y-3 p-6">
         <Label htmlFor="email" className="flex items-center gap-2">
-          <Mail className="h-4 w-4 text-muted-foreground" /> E-mail
+          <Mail className="h-4 w-4 text-muted-foreground" /> {t("E-mail")}
         </Label>
         <div className="flex gap-2">
           <Input
@@ -246,35 +248,35 @@ function PerfilPage() {
             disabled={savingEmail || email === data?.email}
             variant="secondary"
           >
-            {savingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : "Atualizar"}
+            {savingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Atualizar")}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Você receberá um e-mail de confirmação no novo endereço.
+          {t("Você receberá um e-mail de confirmação no novo endereço.")}
         </p>
       </Card>
 
       {/* Senha */}
       <Card className="space-y-3 p-6">
         <Label className="flex items-center gap-2">
-          <Lock className="h-4 w-4 text-muted-foreground" /> Alterar senha
+          <Lock className="h-4 w-4 text-muted-foreground" /> {t("Alterar senha")}
         </Label>
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
             type="password"
-            placeholder="Nova senha"
+            placeholder={t("Nova senha")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <Input
             type="password"
-            placeholder="Confirmar nova senha"
+            placeholder={t("Confirmar nova senha")}
             value={password2}
             onChange={(e) => setPassword2(e.target.value)}
           />
         </div>
         <Button onClick={handleSavePassword} disabled={savingPwd} variant="secondary">
-          {savingPwd ? <Loader2 className="h-4 w-4 animate-spin" /> : "Alterar senha"}
+          {savingPwd ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Alterar senha")}
         </Button>
       </Card>
 
@@ -282,33 +284,32 @@ function PerfilPage() {
       <Card className="space-y-3 border-destructive/40 bg-destructive/5 p-6">
         <div className="flex items-center gap-2 text-destructive">
           <AlertTriangle className="h-4 w-4" />
-          <h2 className="font-semibold">Zona perigosa</h2>
+          <h2 className="font-semibold">{t("Zona perigosa")}</h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          Excluir sua conta remove permanentemente todas as suas bibliotecas, snapshots,
-          criativos e sua foto. Esta ação não pode ser desfeita.
+          {t("Excluir sua conta remove permanentemente todas as suas bibliotecas, snapshots, criativos e sua foto. Esta ação não pode ser desfeita.")}
         </p>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" disabled={deleting}>
               <Trash2 className="h-4 w-4" />
-              Excluir minha conta
+              {t("Excluir minha conta")}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+              <AlertDialogTitle>{t("Tem certeza?")}</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação é irreversível. Todos os seus dados serão apagados imediatamente.
+                {t("Esta ação é irreversível. Todos os seus dados serão apagados imediatamente.")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel>{t("Cancelar")}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sim, excluir"}
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Sim, excluir")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
