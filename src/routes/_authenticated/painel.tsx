@@ -141,6 +141,9 @@ function MetricCard({
 }
 
 function ApiOverview({ query }: { query: ReturnType<typeof useQuery<any>> }) {
+  const t = useT();
+  const { lang } = useLang();
+  const locale = lang === "en" ? "en-US" : "pt-BR";
   if (query.isLoading) {
     return <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   }
@@ -162,15 +165,15 @@ function ApiOverview({ query }: { query: ReturnType<typeof useQuery<any>> }) {
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard icon={KeyRound} label="APIs Conectadas" value={`${summary.configured}/${summary.total_slots}`} sub={`${summary.broken} com erro`} />
-        <MetricCard icon={CheckCircle2} label="Funcionando" value={summary.working} sub={`de ${summary.configured} configuradas`} accent="bg-emerald-500/10 text-emerald-500" />
-        <MetricCard icon={Activity} label="Em Uso" value={summary.working} sub="pool ativo c/ failover" accent="bg-amber-500/10 text-amber-500" />
-        <MetricCard icon={Coins} label="Créditos Totais" value={summary.total_credits.toLocaleString("pt-BR")} sub={`FC ${summary.firecrawl_credits.toLocaleString("pt-BR")} · SA ${summary.scraperapi_credits.toLocaleString("pt-BR")}`} accent="bg-violet-500/10 text-violet-500" />
+        <MetricCard icon={KeyRound} label={t("APIs Conectadas")} value={`${summary.configured}/${summary.total_slots}`} sub={`${summary.broken} ${t("com erro")}`} />
+        <MetricCard icon={CheckCircle2} label={t("Funcionando")} value={summary.working} sub={`${t("de")} ${summary.configured} ${t("configuradas")}`} accent="bg-emerald-500/10 text-emerald-500" />
+        <MetricCard icon={Activity} label={t("Em Uso")} value={summary.working} sub={t("pool ativo c/ failover")} accent="bg-amber-500/10 text-amber-500" />
+        <MetricCard icon={Coins} label={t("Créditos Totais")} value={summary.total_credits.toLocaleString(locale)} sub={`FC ${summary.firecrawl_credits.toLocaleString(locale)} · SA ${summary.scraperapi_credits.toLocaleString(locale)}`} accent="bg-violet-500/10 text-violet-500" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="text-base">Créditos por chave</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t("Créditos por chave")}</CardTitle></CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barData} margin={{ top: 5, right: 12, left: 0, bottom: 30 }}>
@@ -185,7 +188,7 @@ function ApiOverview({ query }: { query: ReturnType<typeof useQuery<any>> }) {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Distribuição por provider</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t("Distribuição por provider")}</CardTitle></CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -201,7 +204,7 @@ function ApiOverview({ query }: { query: ReturnType<typeof useQuery<any>> }) {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Status detalhado das chaves</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{t("Status detalhado das chaves")}</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           {keys.map((k) => <KeyRow key={k.name} k={k} />)}
         </CardContent>
