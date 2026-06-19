@@ -518,7 +518,7 @@ async function collectOne(
   lib: LibraryRow,
 ): Promise<{ ok: boolean; parsed?: ParsedResult; error?: string }> {
   try {
-    const { html, markdown, extracted } = await firecrawlScrape(lib.url);
+    const { html, markdown, extracted } = await scrapePage(lib.url);
 
     // 1ª escolha: LLM extraction. Se vier vazio, cai pro regex.
     let parsed: ParsedResult | null = null;
