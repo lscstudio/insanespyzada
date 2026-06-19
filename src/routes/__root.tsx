@@ -99,10 +99,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "InsaneSpy — Você está sendo observado." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a8d66b62-e7a5-48eb-a131-f9cb032d0166/id-preview-352a3da4--0e595d07-d346-44f1-b286-e2780562b9ee.lovable.app-1781726580901.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a8d66b62-e7a5-48eb-a131-f9cb032d0166/id-preview-352a3da4--0e595d07-d346-44f1-b286-e2780562b9ee.lovable.app-1781726580901.png" },
+    ],
+    links: [
+      { rel: "stylesheet", href: appCss },
       { rel: "icon", type: "image/png", href: "/insanespy-logo.png" },
       { rel: "apple-touch-icon", href: "/insanespy-logo.png" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
   }),
   shellComponent: RootShell,
   component: RootComponent,
