@@ -308,7 +308,6 @@ const DICT: Record<string, string> = {
   "Redefinir senha": "Reset password",
   "A senha deve ter pelo menos 8 caracteres": "Password must be at least 8 characters",
   "Senha atualizada": "Password updated",
-  "Você já pode entrar.": "You can now sign in.",
   "Não foi possível atualizar a senha": "Could not update password",
   "Link inválido ou expirado. Solicite uma nova redefinição na tela de login.":
     "Invalid or expired link. Request a new reset on the login screen.",
