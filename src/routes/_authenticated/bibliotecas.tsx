@@ -22,6 +22,7 @@ import { AddLibraryModal } from "@/components/add-library-modal";
 import { useHourlyTrend, useLibrariesLatest, useNiches } from "@/hooks/use-libraries";
 import { triggerCollection } from "@/lib/collect.functions";
 import { LANGUAGES } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/bibliotecas")({
   head: () => ({
@@ -37,6 +38,7 @@ export const Route = createFileRoute("/_authenticated/bibliotecas")({
 });
 
 function BibliotecasPage() {
+  const t = useT();
   const libs = useLibrariesLatest();
   const trends = useHourlyTrend();
   const nichesQuery = useNiches();
@@ -55,20 +57,20 @@ function BibliotecasPage() {
     try {
       const report = await collect({ data: {} });
       if (report.libraries_total === 0) {
-        toast.info("Nenhuma biblioteca ativa para atualizar");
+        toast.info(t("Nenhuma biblioteca ativa para atualizar"));
       } else if (report.libraries_failed === 0) {
-        toast.success(`${report.libraries_ok} biblioteca(s) atualizadas`, {
-          description: `Em ${(report.duration_ms / 1000).toFixed(1)}s.`,
+        toast.success(`${report.libraries_ok} ${t("biblioteca(s) atualizadas")}`, {
+          description: `${(report.duration_ms / 1000).toFixed(1)}s.`,
         });
       } else {
         toast.warning(
-          `${report.libraries_ok} ok · ${report.libraries_failed} falha(s)`,
+          `${report.libraries_ok} ok · ${report.libraries_failed} ${t("falha(s)")}`,
         );
       }
       await qc.invalidateQueries();
     } catch (e) {
-      toast.error("Falha ao atualizar", {
-        description: e instanceof Error ? e.message : "Erro desconhecido",
+      toast.error(t("Falha ao atualizar"), {
+        description: e instanceof Error ? e.message : t("Erro desconhecido"),
       });
     } finally {
       setRefreshing(false);
@@ -105,10 +107,11 @@ function BibliotecasPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bibliotecas</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("Bibliotecas")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {filtered.length} de {data.length} biblioteca{data.length === 1 ? "" : "s"} monitorada
-            {data.length === 1 ? "" : "s"}.
+            {filtered.length} {t("de")} {data.length}{" "}
+            {data.length === 1 ? t("biblioteca") : t("bibliotecas")}{" "}
+            {data.length === 1 ? t("monitorada") : t("monitoradas")}.
           </p>
         </div>
         <div className="flex gap-2">
@@ -118,10 +121,10 @@ function BibliotecasPage() {
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
-            {refreshing ? "Atualizando..." : "Atualizar agora"}
+            {refreshing ? t("Atualizando...") : t("Atualizar agora")}
           </Button>
           <Button onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4" /> Adicionar biblioteca
+            <Plus className="h-4 w-4" /> {t("Adicionar biblioteca")}
           </Button>
         </div>
 
@@ -134,7 +137,7 @@ function BibliotecasPage() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por termo, nicho ou observações…"
+              placeholder={t("Buscar por termo, nicho ou observações…")}
               className="pl-9"
             />
           </div>
@@ -143,10 +146,10 @@ function BibliotecasPage() {
             <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
             <Select value={niche} onValueChange={setNiche}>
               <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Nicho" />
+                <SelectValue placeholder={t("Nicho")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os nichos</SelectItem>
+                <SelectItem value="all">{t("Todos os nichos")}</SelectItem>
                 {niches.map((n) => (
                   <SelectItem key={n} value={n}>
                     {n}
@@ -157,10 +160,10 @@ function BibliotecasPage() {
 
             <Select value={language} onValueChange={setLanguage}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Idioma" />
+                <SelectValue placeholder={t("Idioma")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos idiomas</SelectItem>
+                <SelectItem value="all">{t("Todos idiomas")}</SelectItem>
                 {LANGUAGES.map((l) => (
                   <SelectItem key={l.value} value={l.value}>
                     {l.label}
@@ -171,13 +174,13 @@ function BibliotecasPage() {
 
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t("Status")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos status</SelectItem>
-                <SelectItem value="active">Ativa</SelectItem>
-                <SelectItem value="paused">Pausada</SelectItem>
-                <SelectItem value="archived">Arquivada</SelectItem>
+                <SelectItem value="all">{t("Todos status")}</SelectItem>
+                <SelectItem value="active">{t("Ativa")}</SelectItem>
+                <SelectItem value="paused">{t("Pausada")}</SelectItem>
+                <SelectItem value="archived">{t("Arquivada")}</SelectItem>
               </SelectContent>
             </Select>
 
@@ -188,7 +191,7 @@ function BibliotecasPage() {
                 variant={view === "grid" ? "secondary" : "ghost"}
                 className="rounded-none"
                 onClick={() => setView("grid")}
-                aria-label="Visualização em grade"
+                aria-label={t("Visualização em grade")}
               >
                 <LayoutGrid className="h-4 w-4" />
               </Button>
@@ -198,7 +201,7 @@ function BibliotecasPage() {
                 variant={view === "list" ? "secondary" : "ghost"}
                 className="rounded-none"
                 onClick={() => setView("list")}
-                aria-label="Visualização em lista"
+                aria-label={t("Visualização em lista")}
               >
                 <List className="h-4 w-4" />
               </Button>
@@ -236,6 +239,7 @@ function BibliotecasPage() {
 }
 
 function EmptyState({ onAdd, hasAny }: { onAdd: () => void; hasAny: boolean }) {
+  const t = useT();
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -246,14 +250,13 @@ function EmptyState({ onAdd, hasAny }: { onAdd: () => void; hasAny: boolean }) {
         <Plus className="h-6 w-6 text-foreground" />
       </div>
       <h2 className="mt-4 text-xl font-semibold">
-        {hasAny ? "Nenhum resultado para os filtros" : "Comece adicionando sua primeira biblioteca"}
+        {hasAny ? t("Nenhum resultado para os filtros") : t("Comece adicionando sua primeira biblioteca")}
       </h2>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        Cole o link de uma busca na Biblioteca de Anúncios da Meta. A mineração roda na hora e os
-        números aparecem aqui automaticamente.
+        {t("Cole o link de uma busca na Biblioteca de Anúncios da Meta. A mineração roda na hora e os números aparecem aqui automaticamente.")}
       </p>
       <Button onClick={onAdd} className="mt-6">
-        <Plus className="h-4 w-4" /> Adicionar biblioteca
+        <Plus className="h-4 w-4" /> {t("Adicionar biblioteca")}
       </Button>
     </motion.div>
   );

@@ -30,6 +30,7 @@ import {
 import { useNiches, useSaveLibrary } from "@/hooks/use-libraries";
 import { triggerCollection } from "@/lib/collect.functions";
 import { LANGUAGES, extractSearchTerm, isMetaAdLibraryUrl } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import type { LibraryLatest } from "@/lib/types";
 
 const schema = z.object({
@@ -56,6 +57,7 @@ interface Props {
 }
 
 export function AddLibraryModal({ open, onOpenChange, library }: Props) {
+  const t = useT();
   const save = useSaveLibrary();
   const niches = useNiches();
   const collect = useServerFn(triggerCollection);
@@ -103,40 +105,39 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
 
       if (saved.status === "active") {
         setMining(true);
-        toast.loading("Minerando biblioteca agora…", {
+        toast.loading(t("Minerando…"), {
           id: `collect-${saved.id}`,
-          description: "Buscando anúncios ativos e criativos reais na Meta.",
         });
         try {
           const report = await collect({ data: { libraryId: saved.id } });
           const detail = report.details[0];
           await qc.invalidateQueries();
           if (detail?.ok) {
-            toast.success("Biblioteca minerada ao vivo", {
+            toast.success(t("Biblioteca adicionada"), {
               id: `collect-${saved.id}`,
-              description: `${detail.active_ads_count ?? 0} anúncios ativos · ${detail.unique_creatives ?? 0} criativos únicos.`,
+              description: `${detail.active_ads_count ?? 0} ${t("Anúncios ativos")}.`,
             });
           } else {
-            toast.error("Biblioteca salva, mas a mineração falhou", {
+            toast.error(t("Não foi possível salvar"), {
               id: `collect-${saved.id}`,
-              description: detail?.error?.slice(0, 120) ?? "A Meta não retornou dados para essa URL agora.",
+              description: detail?.error?.slice(0, 120) ?? "",
             });
           }
         } catch (e) {
-          toast.error("Biblioteca salva, mas a mineração falhou", {
+          toast.error(t("Não foi possível salvar"), {
             id: `collect-${saved.id}`,
-            description: e instanceof Error ? e.message.slice(0, 120) : "Erro desconhecido na mineração.",
+            description: e instanceof Error ? e.message.slice(0, 120) : t("Erro desconhecido"),
           });
         } finally {
           setMining(false);
         }
       } else {
-        toast.success(library ? "Biblioteca atualizada" : "Biblioteca adicionada");
+        toast.success(library ? t("Biblioteca atualizada") : t("Biblioteca adicionada"));
       }
       onOpenChange(false);
     } catch (e) {
-      toast.error("Não foi possível salvar", {
-        description: e instanceof Error ? e.message : "Erro desconhecido",
+      toast.error(t("Não foi possível salvar"), {
+        description: e instanceof Error ? e.message : t("Erro desconhecido"),
       });
     }
   }
@@ -153,28 +154,28 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
         >
           <DialogHeader>
             <DialogTitle className="text-xl">
-              {library ? "Editar biblioteca" : "Adicionar biblioteca"}
+              {library ? t("Editar biblioteca") : t("Adicionar biblioteca")}
             </DialogTitle>
             <DialogDescription>
-              Dê um nome curto pra essa biblioteca (oferta, mecanismo, ângulo) e cole o link da Meta Ad Library.
+              {t("Dê um nome curto pra essa biblioteca (oferta, mecanismo, ângulo) e cole o link da Meta Ad Library.")}
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Título</Label>
+              <Label htmlFor="title">{t("Título")}</Label>
               <Input
                 id="title"
-                placeholder="Ex: Oferta do azeite — mecanismo digestivo"
+                placeholder={t("Ex: Oferta do azeite — mecanismo digestivo")}
                 {...form.register("title")}
               />
               <p className="text-[11px] text-muted-foreground">
-                Aparece em todos os lugares no lugar do link da biblioteca.
+                {t("Aparece em todos os lugares no lugar do link da biblioteca.")}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="url">Link da biblioteca</Label>
+              <Label htmlFor="url">{t("Link da biblioteca")}</Label>
               <Input
                 id="url"
                 placeholder="https://www.facebook.com/ads/library/?q=..."
@@ -189,14 +190,14 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
                   animate={{ opacity: 1 }}
                   className="text-xs text-muted-foreground"
                 >
-                  Termo detectado: <span className="text-foreground font-medium">{searchTermPreview}</span>
+                  {t("Termo detectado:")} <span className="text-foreground font-medium">{searchTermPreview}</span>
                 </motion.p>
               )}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Nicho</Label>
+                <Label>{t("Nicho")}</Label>
                 <Select
                   value={nicheValue || NONE_NICHE}
                   onValueChange={(v) =>
@@ -204,10 +205,10 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione um nicho" />
+                    <SelectValue placeholder={t("Selecione um nicho")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NONE_NICHE}>Sem nicho</SelectItem>
+                    <SelectItem value={NONE_NICHE}>{t("Sem nicho")}</SelectItem>
                     {(niches.data ?? []).map((n) => (
                       <SelectItem key={n.id} value={n.name}>
                         {n.name}
@@ -216,17 +217,17 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
-                  Gerencie nichos em Configurações.
+                  {t("Gerencie nichos em Configurações.")}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label>Idioma</Label>
+                <Label>{t("Idioma")}</Label>
                 <Select
                   value={form.watch("language")}
                   onValueChange={(v) => form.setValue("language", v, { shouldValidate: true })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
+                    <SelectValue placeholder={t("Selecione")} />
                   </SelectTrigger>
                   <SelectContent>
                     {LANGUAGES.map((l) => (
@@ -240,26 +241,26 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Observações</Label>
+              <Label htmlFor="notes">{t("Observações")}</Label>
               <Textarea
                 id="notes"
                 rows={4}
-                placeholder="Oferta, mecanismo, ângulo…"
+                placeholder={t("Oferta, mecanismo, ângulo…")}
                 {...form.register("notes")}
               />
             </div>
 
             <p className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              Ao adicionar uma biblioteca ativa, a mineração roda na hora e atualiza os dados ao vivo.
+              {t("Ao adicionar uma biblioteca ativa, a mineração roda na hora e atualiza os dados ao vivo.")}
             </p>
 
             <DialogFooter className="gap-2">
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-                Cancelar
+                {t("Cancelar")}
               </Button>
               <Button type="submit" disabled={save.isPending || mining}>
                 {(save.isPending || mining) && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mining ? "Minerando…" : save.isPending ? "Salvando…" : library ? "Salvar e minerar" : "Adicionar e minerar"}
+                {mining ? t("Minerando…") : save.isPending ? t("Salvando…") : library ? t("Salvar e minerar") : t("Adicionar e minerar")}
               </Button>
             </DialogFooter>
           </form>

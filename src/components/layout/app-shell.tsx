@@ -20,19 +20,22 @@ import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AddLibraryModal } from "@/components/add-library-modal";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { signOut } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { to: "/", label: "Visão Geral", icon: LayoutDashboard, exact: true },
-  { to: "/bibliotecas", label: "Bibliotecas", icon: Library, exact: false },
-  { to: "/perfil", label: "Perfil", icon: UserIcon, exact: false },
-  { to: "/configuracoes", label: "Configurações", icon: Settings, exact: false },
-];
+const NAV_ITEMS = [
+  { to: "/", labelKey: "Visão Geral", icon: LayoutDashboard, exact: true },
+  { to: "/bibliotecas", labelKey: "Bibliotecas", icon: Library, exact: false },
+  { to: "/perfil", labelKey: "Perfil", icon: UserIcon, exact: false },
+  { to: "/configuracoes", labelKey: "Configurações", icon: Settings, exact: false },
+] as const;
 
 function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItemClick?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const t = useT();
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className={cn("flex h-16 items-center gap-2 px-5", collapsed && "justify-center px-2")}>
@@ -42,12 +45,12 @@ function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItem
         {!collapsed && (
           <div className="leading-tight">
             <div className="text-sm font-semibold tracking-tight">InsaneSpy</div>
-            <div className="text-[11px] text-muted-foreground">Você está sendo observado</div>
+            <div className="text-[11px] text-muted-foreground">{t("Você está sendo observado")}</div>
           </div>
         )}
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {NAV.map((item) => {
+        {NAV_ITEMS.map((item) => {
           const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
           const Icon = item.icon;
           return (
@@ -70,14 +73,14 @@ function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItem
                 />
               )}
               <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && <span>{t(item.labelKey)}</span>}
             </Link>
           );
         })}
       </nav>
       {!collapsed && (
         <div className="m-3 rounded-xl border border-border/50 bg-card/40 p-3 text-[11px] leading-relaxed text-muted-foreground">
-          Bibliotecas novas são mineradas na hora.
+          {t("Bibliotecas novas são mineradas na hora.")}
         </div>
       )}
     </div>
@@ -91,6 +94,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const t = useT();
 
   useEffect(() => {
     setMobileOpen(false);
@@ -98,7 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   async function handleLogout() {
     await signOut();
-    toast.success("Você saiu");
+    toast.success(t("Você saiu"));
     navigate({ to: "/auth" });
   }
 
@@ -130,7 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               size="icon"
               className="md:hidden"
               onClick={() => setMobileOpen(true)}
-              aria-label="Abrir menu"
+              aria-label={t("Abrir menu")}
             >
               <Menu className="h-5 w-5" />
             </Button>
@@ -139,24 +143,25 @@ export function AppShell({ children }: { children: ReactNode }) {
               size="icon"
               className="hidden md:inline-flex"
               onClick={() => setCollapsed((c) => !c)}
-              aria-label="Recolher sidebar"
+              aria-label={t("Recolher sidebar")}
             >
               <Menu className="h-5 w-5" />
             </Button>
 
             <div className="hidden flex-1 md:block">
               <h1 className="text-sm font-medium text-muted-foreground">
-                Você está sendo observado
+                {t("Você está sendo observado")}
               </h1>
             </div>
 
             <div className="ml-auto flex items-center gap-2">
               <Button onClick={() => setAddOpen(true)}>
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Adicionar biblioteca</span>
-                <span className="sm:hidden">Nova</span>
+                <span className="hidden sm:inline">{t("Adicionar biblioteca")}</span>
+                <span className="sm:hidden">{t("Nova")}</span>
               </Button>
-              <Button variant="ghost" size="icon" onClick={toggle} aria-label="Alternar tema">
+              <LanguageSwitcher />
+              <Button variant="ghost" size="icon" onClick={toggle} aria-label={t("Alternar tema")}>
                 <AnimatePresence mode="wait" initial={false}>
                   {theme === "dark" ? (
                     <motion.span
@@ -182,7 +187,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </AnimatePresence>
               </Button>
               <ProfileBadge />
-              <Button variant="ghost" size="icon" aria-label="Sair" onClick={handleLogout}>
+              <Button variant="ghost" size="icon" aria-label={t("Sair")} onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>

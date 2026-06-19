@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ptBR, enUS } from "date-fns/locale";
 import {
   AlertTriangle,
   ArrowDown,
@@ -41,6 +41,7 @@ import { CountUp } from "@/components/count-up";
 import { AddLibraryModal } from "@/components/add-library-modal";
 import { useDeleteLibrary, useToggleLibraryStatus } from "@/hooks/use-libraries";
 import type { HourlyTrend, LibraryLatest } from "@/lib/types";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -50,6 +51,7 @@ interface Props {
 }
 
 export function HourlyTrendBadge({ trend, className }: { trend?: HourlyTrend; className?: string }) {
+  const { t } = useLang();
   const dir = trend?.direction ?? "flat";
   const Icon = dir === "up" ? ArrowUp : dir === "down" ? ArrowDown : Minus;
   const color =
@@ -62,8 +64,8 @@ export function HourlyTrendBadge({ trend, className }: { trend?: HourlyTrend; cl
     <span
       title={
         trend
-          ? `${trend.from} → ${trend.to} (Δ ${trend.delta >= 0 ? "+" : ""}${trend.delta}) vs coleta anterior`
-          : "Sem coleta anterior para comparar"
+          ? `${trend.from} → ${trend.to} (Δ ${trend.delta >= 0 ? "+" : ""}${trend.delta})`
+          : t("Sem coleta anterior para comparar")
       }
       className={cn(
         "inline-flex h-7 w-7 items-center justify-center rounded-full border transition-all",
@@ -77,12 +79,13 @@ export function HourlyTrendBadge({ trend, className }: { trend?: HourlyTrend; cl
 }
 
 export function LibraryCard({ library, trend, index = 0 }: Props) {
+  const { lang, t } = useLang();
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const del = useDeleteLibrary();
   const toggle = useToggleLibraryStatus();
 
-  const title = library.title || library.search_term || library.page_name || "Sem título";
+  const title = library.title || library.search_term || library.page_name || t("Sem título");
 
   return (
     <>
@@ -109,12 +112,12 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                   )}
                   {library.status === "paused" && (
                     <Badge variant="outline" className="border-warning/40 text-warning">
-                      Pausada
+                      {t("Pausada")}
                     </Badge>
                   )}
                   {library.scrape_ok === false && (
                     <Badge variant="outline" className="border-warning/40 bg-warning/10 text-warning">
-                      <AlertTriangle className="h-3 w-3" /> falha
+                      <AlertTriangle className="h-3 w-3" /> {t("falha")}
                     </Badge>
                   )}
                 </div>
@@ -135,7 +138,7 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                      <Pencil className="h-4 w-4" /> Editar
+                      <Pencil className="h-4 w-4" /> {t("Editar")}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() =>
@@ -147,7 +150,7 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                           {
                             onSuccess: () =>
                               toast.success(
-                                library.status === "active" ? "Biblioteca pausada" : "Biblioteca ativada",
+                                library.status === "active" ? t("Biblioteca pausada") : t("Biblioteca ativada"),
                               ),
                           },
                         )
@@ -155,17 +158,17 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                     >
                       {library.status === "active" ? (
                         <>
-                          <Pause className="h-4 w-4" /> Pausar
+                          <Pause className="h-4 w-4" /> {t("Pausar")}
                         </>
                       ) : (
                         <>
-                          <Play className="h-4 w-4" /> Ativar
+                          <Play className="h-4 w-4" /> {t("Ativar")}
                         </>
                       )}
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <a href={library.url} target="_blank" rel="noreferrer">
-                        <ExternalLink className="h-4 w-4" /> Abrir na Meta
+                        <ExternalLink className="h-4 w-4" /> {t("Abrir na Meta")}
                       </a>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -173,7 +176,7 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                       className="text-destructive focus:text-destructive"
                       onClick={() => setConfirmDelete(true)}
                     >
-                      <Trash2 className="h-4 w-4" /> Excluir
+                      <Trash2 className="h-4 w-4" /> {t("Excluir")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -183,7 +186,7 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
             <div className="mt-6 flex items-end justify-between gap-3">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                  Anúncios ativos
+                  {t("Anúncios ativos")}
                 </p>
                 <CountUp
                   value={library.active_ads_count ?? 0}
@@ -195,11 +198,11 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
 
             <div className="mt-5 flex items-center justify-between border-t border-border/40 pt-3 text-[11px] text-muted-foreground">
               <span title={library.captured_at ?? ""}>
-                Atualizado{" "}
+                {t("Atualizado")}{" "}
                 {library.captured_at
                   ? formatDistanceToNow(new Date(library.captured_at), {
                       addSuffix: true,
-                      locale: ptBR,
+                      locale: lang === "en" ? enUS : ptBR,
                     })
                   : "—"}
               </span>
@@ -213,22 +216,22 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir biblioteca?</AlertDialogTitle>
+            <AlertDialogTitle>{t("Excluir biblioteca?")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação remove permanentemente “{title}” do seu painel.
+              {t("Esta ação remove permanentemente")} “{title}”.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t("Cancelar")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() =>
                 del.mutate(library.id, {
-                  onSuccess: () => toast.success("Biblioteca excluída"),
+                  onSuccess: () => toast.success(t("Biblioteca excluída")),
                 })
               }
             >
-              Excluir
+              {t("Excluir")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

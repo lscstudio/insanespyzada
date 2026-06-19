@@ -9,26 +9,29 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { useT } from "@/lib/i18n";
 import { ThemeProvider } from "@/components/theme-provider";
+import { LanguageProvider } from "@/lib/i18n";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
+  const t = useT();
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold">Página não encontrada</h2>
+        <h2 className="mt-4 text-xl font-semibold">{t("Página não encontrada")}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          A página que você procura não existe ou foi movida.
+          {t("A página que você procura não existe ou foi movida.")}
         </p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md gradient-violet-cyan px-4 py-2 text-sm font-medium text-white"
           >
-            Voltar ao início
+            {t("Voltar ao início")}
           </Link>
         </div>
       </div>
@@ -39,6 +42,7 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const t = useT();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
@@ -46,9 +50,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight">Esta página não carregou</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{t("Esta página não carregou")}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Algo deu errado. Tente novamente ou volte ao início.
+          {t("Algo deu errado. Tente novamente ou volte ao início.")}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -58,13 +62,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className="inline-flex items-center justify-center rounded-md gradient-violet-cyan px-4 py-2 text-sm font-medium text-white"
           >
-            Tentar novamente
+            {t("Tentar novamente")}
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Início
+            {t("Início")}
           </a>
         </div>
       </div>
@@ -123,10 +127,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <Outlet />
-        <Toaster richColors position="top-right" theme="dark" />
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <Outlet />
+          <Toaster richColors position="top-right" theme="dark" />
+        </ThemeProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

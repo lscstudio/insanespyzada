@@ -21,6 +21,7 @@ import { CountUp } from "@/components/count-up";
 import { HourlyTrendBadge } from "@/components/library-card";
 import { useDailyStats, useHourlyTrend, useLibrariesLatest } from "@/hooks/use-libraries";
 import { formatNumber } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 function OverviewPage() {
+  const t = useT();
   const libs = useLibrariesLatest();
   const trends = useHourlyTrend();
   const daily = useDailyStats();
@@ -98,15 +100,15 @@ function OverviewPage() {
   }, [data, trends.data]);
 
   const kpis = [
-    { label: "Bibliotecas ativas", value: active.length, icon: Layers },
-    { label: "Anúncios ativos (soma)", value: totalAds, icon: Activity },
+    { label: t("Bibliotecas ativas"), value: active.length, icon: Layers },
+    { label: t("Anúncios ativos (soma)"), value: totalAds, icon: Activity },
     {
-      label: "Biblioteca líder",
+      label: t("Biblioteca líder"),
       value: leader?.active_ads_count ?? 0,
       icon: Crown,
       sub: leader?.title ?? leader?.search_term ?? leader?.page_name ?? "—",
     },
-    { label: "Coletas na última 1h", value: collections1h, icon: Radio },
+    { label: t("Coletas na última 1h"), value: collections1h, icon: Radio },
   ];
 
   const isLoading = libs.isLoading || daily.isLoading;
@@ -114,9 +116,9 @@ function OverviewPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Visão Geral</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("Visão Geral")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Panorama em tempo quase real das bibliotecas que você monitora.
+          {t("Panorama em tempo quase real das bibliotecas que você monitora.")}
         </p>
       </div>
 
@@ -155,16 +157,16 @@ function OverviewPage() {
       <Card className="border-border/50 bg-card/60 p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold">Evolução de anúncios ativos</h2>
+            <h2 className="text-lg font-semibold">{t("Evolução de anúncios ativos")}</h2>
             <p className="text-sm text-muted-foreground">
-              Soma diária da média de anúncios ativos.
+              {t("Soma diária da média de anúncios ativos.")}
             </p>
           </div>
           <Tabs value={range} onValueChange={(v) => setRange(v as "7" | "14" | "30")}>
             <TabsList>
-              <TabsTrigger value="7">7 dias</TabsTrigger>
-              <TabsTrigger value="14">14 dias</TabsTrigger>
-              <TabsTrigger value="30">30 dias</TabsTrigger>
+              <TabsTrigger value="7">{t("7 dias")}</TabsTrigger>
+              <TabsTrigger value="14">{t("14 dias")}</TabsTrigger>
+              <TabsTrigger value="30">{t("30 dias")}</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -212,23 +214,23 @@ function OverviewPage() {
       {/* Top scaled + Hourly movers */}
       <div className="grid gap-4 lg:grid-cols-2">
         <RankingCard
-          title="Mais escaladas"
-          subtitle="Top 10 por anúncios ativos"
+          title={t("Mais escaladas")}
+          subtitle={t("Top 10 por anúncios ativos")}
           items={topScaled}
         />
 
         <Card className="border-border/50 bg-card/60 p-6">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold">Movimentação na última 1h</h2>
+            <h2 className="text-lg font-semibold">{t("Movimentação na última 1h")}</h2>
             <p className="text-sm text-muted-foreground">
-              Bibliotecas que subiram ou caíram em anúncios ativos.
+              {t("Bibliotecas que subiram ou caíram em anúncios ativos.")}
             </p>
           </div>
           {isLoading ? (
             <Skeleton className="h-40 w-full rounded-xl shimmer" />
           ) : movers.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Sem variações na última 1h. Tudo estável.
+              {t("Sem variações na última 1h. Tudo estável.")}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -267,11 +269,11 @@ function OverviewPage() {
       {data.length === 0 && !isLoading && (
         <Card className="border-dashed border-border/60 bg-card/30 p-8 text-center">
           <p className="text-sm text-muted-foreground">
-            Nenhuma biblioteca ainda. Vá para{" "}
+            {t("Nenhuma biblioteca ainda. Vá para")}{" "}
             <Link to="/bibliotecas" className="text-foreground underline-offset-4 hover:underline">
-              Bibliotecas
+              {t("Bibliotecas")}
             </Link>{" "}
-            e adicione a primeira.
+            {t("e adicione a primeira.")}
           </p>
         </Card>
       )}
@@ -288,6 +290,7 @@ function RankingCard({
   subtitle: string;
   items: { id: string; name: string; value: number; niche?: string | null }[];
 }) {
+  const t = useT();
   const max = Math.max(1, ...items.map((i) => i.value));
   return (
     <Card className="border-border/50 bg-card/60 p-6">
@@ -296,7 +299,7 @@ function RankingCard({
         <p className="text-sm text-muted-foreground">{subtitle}</p>
       </div>
       {items.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">Sem dados ainda.</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">{t("Sem dados ainda.")}</p>
       ) : (
         <ol className="space-y-2">
           {items.map((it, i) => {
@@ -353,7 +356,7 @@ function ChartTooltip({ active, payload, label }: any) {
     <div className="rounded-lg border border-border/60 bg-popover/95 p-3 text-xs shadow-xl backdrop-blur">
       <p className="font-medium text-foreground">{abs}</p>
       <p className="text-muted-foreground">{rel}</p>
-      <p className="mt-1 text-sm font-semibold text-foreground">{formatNumber(value)} anúncios</p>
+      <p className="mt-1 text-sm font-semibold text-foreground">{formatNumber(value)}</p>
     </div>
   );
 }
