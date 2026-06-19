@@ -221,6 +221,21 @@ async function firecrawlScrapeOnce(url: string, apiKey: string): Promise<Firecra
   return { html, markdown, extracted };
 }
 
+function isCreditsExhausted(err: unknown): boolean {
+  const e = err as { status?: number; message?: string } | null;
+  if (!e) return false;
+  if (e.status === 402) return true;
+  const msg = (e.message ?? "").toLowerCase();
+  return (
+    msg.includes("insufficient credits") ||
+    msg.includes("payment required") ||
+    msg.includes("out of credits") ||
+    msg.includes("no credits") ||
+    msg.includes("credit limit") ||
+    msg.includes("quota exceeded")
+  );
+}
+
 async function firecrawlScrape(url: string): Promise<FirecrawlPayload> {
   const apiKey = process.env.FIRECRAWL_API_KEY;
   if (!apiKey) {
@@ -235,6 +250,11 @@ async function firecrawlScrape(url: string): Promise<FirecrawlPayload> {
       return await firecrawlScrapeOnce(url, apiKey);
     } catch (err) {
       lastErr = err;
+      // Sem créditos → não retentar, lança imediato pro fallback.
+      if (isCreditsExhausted(err)) {
+        (err as { creditsExhausted?: boolean }).creditsExhausted = true;
+        throw err;
+      }
       const transient = (err as { transient?: boolean }).transient ?? true;
       if (!transient || attempt === MAX_ATTEMPTS) break;
       // Backoff: 3s, 8s, 20s
@@ -243,6 +263,78 @@ async function firecrawlScrape(url: string): Promise<FirecrawlPayload> {
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}
+
+// =====================================================================
+// ScraperAPI fallback (quando o Firecrawl ficar sem créditos)
+// =====================================================================
+
+async function scraperApiScrape(url: string): Promise<FirecrawlPayload> {
+  const apiKey = process.env.SCRAPERAPI_KEY;
+  if (!apiKey) {
+    throw new Error("SCRAPERAPI_KEY não configurada (fallback indisponível).");
+  }
+  const endpoint = new URL("https://api.scraperapi.com/");
+  endpoint.searchParams.set("api_key", apiKey);
+  endpoint.searchParams.set("url", url);
+  endpoint.searchParams.set("render", "true");
+  endpoint.searchParams.set("country_code", "br");
+  endpoint.searchParams.set("device_type", "desktop");
+
+  const MAX_ATTEMPTS = 3;
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(endpoint.toString(), {
+        method: "GET",
+        signal: AbortSignal.timeout(120000),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`ScraperAPI ${res.status}: ${text.slice(0, 300)}`);
+      }
+      const html = await res.text();
+      if (!html || html.length < 500) {
+        throw new Error("ScraperAPI retornou HTML vazio/curto demais");
+      }
+      return { html, markdown: "", extracted: null };
+    } catch (err) {
+      lastErr = err;
+      if (attempt === MAX_ATTEMPTS) break;
+      await sleep(attempt === 1 ? 4000 : 12000);
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}
+
+/**
+ * Tenta Firecrawl primeiro; se ficar sem créditos (ou falhar de vez), cai
+ * pro ScraperAPI automaticamente. Retorna sempre o shape FirecrawlPayload.
+ */
+async function scrapePage(url: string): Promise<FirecrawlPayload> {
+  try {
+    return await firecrawlScrape(url);
+  } catch (err) {
+    const noCredits = isCreditsExhausted(err) || (err as { creditsExhausted?: boolean }).creditsExhausted;
+    if (noCredits) {
+      console.warn("[collect] Firecrawl sem créditos — usando ScraperAPI como fallback.");
+      return await scraperApiScrape(url);
+    }
+    // Demais falhas do Firecrawl: ainda tenta o ScraperAPI se disponível.
+    if (process.env.SCRAPERAPI_KEY) {
+      console.warn(
+        `[collect] Firecrawl falhou (${err instanceof Error ? err.message : String(err)}). Tentando ScraperAPI.`,
+      );
+      try {
+        return await scraperApiScrape(url);
+      } catch (fallbackErr) {
+        const orig = err instanceof Error ? err.message : String(err);
+        const fb = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+        throw new Error(`Firecrawl: ${orig} | ScraperAPI: ${fb}`);
+      }
+    }
+    throw err;
+  }
 }
 
 function hash(...parts: Array<string | null | undefined>): string {
