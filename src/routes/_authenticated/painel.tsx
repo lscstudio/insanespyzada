@@ -660,3 +660,233 @@ function AccountDetail({ user, onBack }: { user: { id: string; email: string }; 
     </div>
   );
 }
+
+// ============ Membros ============
+
+function MembersPanel() {
+  const t = useT();
+  const { lang } = useLang();
+  const locale = lang === "en" ? "en-US" : "pt-BR";
+  const qc = useQueryClient();
+  const listFn = useServerFn(listMembers);
+  const [filter, setFilter] = useState("");
+
+  const query = useQuery({
+    queryKey: ["admin", "members"],
+    queryFn: () => listFn({}),
+    refetchInterval: 60_000,
+  });
+
+  if (query.isLoading) {
+    return <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  }
+  if (query.error) {
+    return <Card><CardContent className="p-4 text-sm text-destructive">{(query.error as Error).message}</CardContent></Card>;
+  }
+
+  const members = (query.data ?? []) as MemberRow[];
+  const filtered = members.filter((m) => m.email.toLowerCase().includes(filter.toLowerCase()));
+  const adminCount = members.filter((m) => m.is_admin).length;
+  const bannedCount = members.filter((m) => m.is_banned).length;
+  const limitedCount = members.filter((m) => m.library_limit !== null).length;
+
+  const onChanged = () => qc.invalidateQueries({ queryKey: ["admin", "members"] });
+
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard icon={Users} label={t("Membros")} value={members.length} />
+        <MetricCard icon={Shield} label={t("Administradores")} value={adminCount} accent="bg-violet-500/10 text-violet-500" />
+        <MetricCard icon={InfinityIcon} label={t("Com limite")} value={`${limitedCount}/${members.length}`} accent="bg-cyan-500/10 text-cyan-500" />
+        <MetricCard icon={Ban} label={t("Banidos")} value={bannedCount} accent="bg-rose-500/10 text-rose-500" />
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle className="text-base">{t("Gerenciar membros")}</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("Promova a admin, defina limites de bibliotecas ou bana usuários. Mudanças são aplicadas em tempo real.")}
+            </p>
+          </div>
+          <Input
+            placeholder={t("Filtrar por email...")}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="h-8 max-w-xs"
+          />
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {filtered.map((m) => (
+            <MemberRowItem key={m.id} member={m} onChanged={onChanged} locale={locale} />
+          ))}
+          {filtered.length === 0 && (
+            <div className="py-6 text-center text-sm text-muted-foreground">{t("Nenhum membro encontrado.")}</div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function MemberRowItem({
+  member, onChanged, locale,
+}: { member: MemberRow; onChanged: () => void; locale: string }) {
+  const t = useT();
+  const adminFn = useServerFn(setAdminRole);
+  const limitFn = useServerFn(setLibraryLimit);
+  const banFn = useServerFn(banMember);
+  const unbanFn = useServerFn(unbanMember);
+
+  const [limitMode, setLimitMode] = useState<"unlimited" | "fixed">(
+    member.library_limit === null ? "unlimited" : "fixed",
+  );
+  const [limitValue, setLimitValue] = useState<string>(
+    member.library_limit === null ? "10" : String(member.library_limit),
+  );
+  const [confirmText, setConfirmText] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const adminM = useMutation({
+    mutationFn: (makeAdmin: boolean) => adminFn({ data: { userId: member.id, makeAdmin } }),
+    onSuccess: () => { toast.success(t("Permissão atualizada")); onChanged(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const limitM = useMutation({
+    mutationFn: (limit: number | null) => limitFn({ data: { userId: member.id, limit } }),
+    onSuccess: () => { toast.success(t("Limite atualizado")); onChanged(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const banM = useMutation({
+    mutationFn: () => banFn({ data: { userId: member.id, confirm: true } }),
+    onSuccess: () => { toast.success(t("Usuário banido")); setOpen(false); setConfirmText(""); onChanged(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const unbanM = useMutation({
+    mutationFn: () => unbanFn({ data: { userId: member.id } }),
+    onSuccess: () => { toast.success(t("Banimento removido")); onChanged(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const saveLimit = () => {
+    if (limitMode === "unlimited") return limitM.mutate(null);
+    const n = parseInt(limitValue, 10);
+    if (!Number.isFinite(n) || n < 0) return toast.error(t("Número inválido"));
+    limitM.mutate(n);
+  };
+
+  const expectedConfirm = (member.email || member.id.slice(0, 8)).trim();
+  const canBan = confirmText.trim().toLowerCase() === expectedConfirm.toLowerCase();
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-card/40 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className={cn(
+            "grid h-9 w-9 place-items-center rounded-full text-sm font-semibold",
+            member.is_owner ? "bg-amber-500/20 text-amber-500" :
+            member.is_admin ? "bg-violet-500/20 text-violet-500" :
+            "bg-muted text-muted-foreground"
+          )}>
+            {(member.email || "?").slice(0, 1).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="truncate font-medium">{member.email || t("(sem email)")}</span>
+              {member.is_owner && <Badge className="bg-amber-500/15 text-amber-500 hover:bg-amber-500/20">{t("Dono")}</Badge>}
+              {member.is_admin && !member.is_owner && <Badge className="bg-violet-500/15 text-violet-500 hover:bg-violet-500/20"><Shield className="mr-1 h-3 w-3" />{t("Admin")}</Badge>}
+              {member.is_banned && <Badge variant="destructive"><Ban className="mr-1 h-3 w-3" />{t("Banido")}</Badge>}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {member.libraries_count} {t("bibliotecas")}
+              {" · "}
+              {member.library_limit === null ? t("ilimitado") : `${t("limite")} ${member.library_limit}`}
+              {member.last_sign_in_at && <> · {t("último login")} {new Date(member.last_sign_in_at).toLocaleDateString(locale)}</>}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {!member.is_owner && (
+            <Button
+              size="sm"
+              variant={member.is_admin ? "outline" : "default"}
+              disabled={adminM.isPending}
+              onClick={() => adminM.mutate(!member.is_admin)}
+              className={member.is_admin ? "" : "bg-violet-500 hover:bg-violet-600 text-white"}
+            >
+              {adminM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> :
+                member.is_admin ? <><ShieldOff className="mr-1 h-4 w-4" />{t("Remover admin")}</> :
+                <><Shield className="mr-1 h-4 w-4" />{t("Tornar admin")}</>}
+            </Button>
+          )}
+          {member.is_banned ? (
+            <Button size="sm" variant="outline" disabled={unbanM.isPending} onClick={() => unbanM.mutate()}>
+              {t("Desbanir")}
+            </Button>
+          ) : !member.is_owner && (
+            <AlertDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setConfirmText(""); }}>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="destructive"><Ban className="mr-1 h-4 w-4" />{t("Banir")}</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t("Banir usuário?")}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("Esta ação bloqueia o login do usuário por 100 anos. Você pode desbanir depois. Para confirmar, digite o email do usuário abaixo:")}
+                    <span className="mt-2 block font-mono text-foreground">{expectedConfirm}</span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <Input
+                  autoFocus
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  placeholder={t("Digite para confirmar")}
+                />
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t("Cancelar")}</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={!canBan || banM.isPending}
+                    onClick={(e) => { e.preventDefault(); if (canBan) banM.mutate(); }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {banM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Banir definitivamente")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-border/40 pt-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">{t("Limite de bibliotecas")}</Label>
+          <Select value={limitMode} onValueChange={(v) => setLimitMode(v as "unlimited" | "fixed")}>
+            <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fixed">{t("Quantidade exata")}</SelectItem>
+              <SelectItem value="unlimited">{t("Ilimitado / infinito")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {limitMode === "fixed" && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t("Número")}</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100000}
+              value={limitValue}
+              onChange={(e) => setLimitValue(e.target.value)}
+              className="h-9 w-[120px]"
+            />
+          </div>
+        )}
+        <Button size="sm" disabled={limitM.isPending} onClick={saveLimit} className="h-9">
+          {limitM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Salvar limite")}
+        </Button>
+      </div>
+    </div>
+  );
+}
