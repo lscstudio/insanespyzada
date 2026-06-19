@@ -387,9 +387,9 @@ function LibraryDetailPage() {
 
         <Card className="border-border/60 bg-card p-6">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold">Páginas ativas</h2>
+            <h2 className="text-lg font-semibold">{t("Páginas ativas")}</h2>
             <p className="text-sm text-muted-foreground">
-              Ranking por anúncios ativos nesta biblioteca.
+              {t("Ranking por anúncios ativos nesta biblioteca.")}
             </p>
           </div>
           {(() => {
@@ -397,7 +397,7 @@ function LibraryDetailPage() {
             if (pages.length === 0) {
               return (
                 <p className="py-8 text-center text-sm text-muted-foreground">
-                  Sem detecção de páginas no último snapshot.
+                  {t("Sem detecção de páginas no último snapshot.")}
                 </p>
               );
             }
