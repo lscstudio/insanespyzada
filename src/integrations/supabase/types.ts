@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          key: string
+          label: string
+          provider: Database["public"]["Enums"]["api_provider"]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key: string
+          label: string
+          provider: Database["public"]["Enums"]["api_provider"]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key?: string
+          label?: string
+          provider?: Database["public"]["Enums"]["api_provider"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       creatives: {
         Row: {
           ad_archive_id: string | null
@@ -364,6 +397,7 @@ export type Database = {
       purge_old_snapshots: { Args: { days?: number }; Returns: number }
     }
     Enums: {
+      api_provider: "firecrawl" | "scraperapi"
       app_role: "admin" | "user"
     }
     CompositeTypes: {
@@ -492,6 +526,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      api_provider: ["firecrawl", "scraperapi"],
       app_role: ["admin", "user"],
     },
   },
