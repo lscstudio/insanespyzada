@@ -51,9 +51,6 @@ function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItem
   const isAdmin = !!adminData?.isAdmin;
   const items = NAV_ITEMS.filter((i) => !i.admin || isAdmin);
 
-function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItemClick?: () => void }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const t = useT();
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className={cn("flex h-16 items-center gap-2 px-5", collapsed && "justify-center px-2")}>
@@ -68,7 +65,7 @@ function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItem
         )}
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
           const Icon = item.icon;
           return (
