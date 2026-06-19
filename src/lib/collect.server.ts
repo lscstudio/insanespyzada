@@ -162,60 +162,62 @@ const EXTRACTION_SCHEMA = {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function firecrawlScrapeOnce(url: string, apiKey: string): Promise<FirecrawlPayload> {
-  const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      url,
-      formats: [
-        "html",
-        "markdown",
-        {
-          type: "json",
-          prompt: EXTRACTION_PROMPT,
-          schema: EXTRACTION_SCHEMA,
-        },
-      ],
-      onlyMainContent: false,
-      waitFor: 8000,
-      timeout: 120000,
-      maxAge: 0,
-      location: { country: "BR", languages: ["pt-BR", "pt"] },
-    }),
-  });
+// =====================================================================
+// Key Pool com failover automático + cache de chaves esgotadas
+// =====================================================================
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    const err = new Error(`Firecrawl ${res.status}: ${text.slice(0, 300)}`) as Error & {
-      status?: number;
-      transient?: boolean;
-    };
-    err.status = res.status;
-    err.transient = res.status === 408 || res.status === 429 || res.status >= 500;
-    throw err;
+type Provider = "firecrawl" | "scraperapi";
+interface PoolKey {
+  provider: Provider;
+  name: string; // ex: FIRECRAWL_API_KEY_2
+  value: string;
+}
+
+// Chaves marcadas como sem créditos (TTL 1h). Map<name, expiresAt(ms)>
+const EXHAUSTED = new Map<string, number>();
+const EXHAUSTED_TTL_MS = 60 * 60 * 1000;
+let RR_OFFSET = 0;
+
+function isExhausted(name: string): boolean {
+  const exp = EXHAUSTED.get(name);
+  if (!exp) return false;
+  if (Date.now() > exp) {
+    EXHAUSTED.delete(name);
+    return false;
   }
+  return true;
+}
 
-  const json = (await res.json()) as {
-    success?: boolean;
-    error?: string;
-    data?: { html?: string; markdown?: string; json?: ExtractedShape };
-    html?: string;
-    markdown?: string;
-    json?: ExtractedShape;
-  };
-  if (json.success === false) throw new Error(json.error || "Firecrawl falhou");
-  const html = json.data?.html ?? json.html ?? "";
-  const markdown = json.data?.markdown ?? json.markdown ?? "";
-  const extracted = json.data?.json ?? json.json ?? null;
-  if (!html && !markdown && !extracted) {
-    const err = new Error("Firecrawl não retornou conteúdo renderizado") as Error & {
-      transient?: boolean;
-    };
-    err.transient = true;
+function markExhausted(name: string) {
+  EXHAUSTED.set(name, Date.now() + EXHAUSTED_TTL_MS);
+  console.warn(`[collect] chave ${name} marcada como esgotada por 1h.`);
+}
+
+function buildPool(): PoolKey[] {
+  const pool: PoolKey[] = [];
+  const fcNames = ["FIRECRAWL_API_KEY", "FIRECRAWL_API_KEY_2", "FIRECRAWL_API_KEY_3", "FIRECRAWL_API_KEY_4"];
+  const saNames = ["SCRAPERAPI_KEY", "SCRAPERAPI_KEY_2", "SCRAPERAPI_KEY_3"];
+  for (const n of fcNames) {
+    const v = process.env[n];
+    if (v && !isExhausted(n)) pool.push({ provider: "firecrawl", name: n, value: v });
+  }
+  for (const n of saNames) {
+    const v = process.env[n];
+    if (v && !isExhausted(n)) pool.push({ provider: "scraperapi", name: n, value: v });
+  }
+  // Round-robin: rotaciona dentro de cada grupo de provider para distribuir carga,
+  // mas mantém Firecrawl antes de ScraperAPI (preferência por qualidade/JSON LLM).
+  const fc = pool.filter((p) => p.provider === "firecrawl");
+  const sa = pool.filter((p) => p.provider === "scraperapi");
+  const rotate = <T,>(arr: T[], off: number) =>
+    arr.length === 0 ? arr : [...arr.slice(off % arr.length), ...arr.slice(0, off % arr.length)];
+  const ordered = [...rotate(fc, RR_OFFSET), ...rotate(sa, RR_OFFSET)];
+  RR_OFFSET = (RR_OFFSET + 1) % Math.max(1, Math.max(fc.length, sa.length));
+  return ordered;
+}
+
+async function firecrawlScrapeOnce(url: string, apiKey: string): Promise<FirecrawlPayload> {
+...
     throw err;
   }
   return { html, markdown, extracted };
@@ -232,109 +234,107 @@ function isCreditsExhausted(err: unknown): boolean {
     msg.includes("out of credits") ||
     msg.includes("no credits") ||
     msg.includes("credit limit") ||
-    msg.includes("quota exceeded")
+    msg.includes("quota exceeded") ||
+    msg.includes("exceeded the maximum number of concurrent requests") === false &&
+      (msg.includes("scraperapi 403") || msg.includes("scraperapi 401"))
   );
 }
 
-async function firecrawlScrape(url: string): Promise<FirecrawlPayload> {
-  const apiKey = process.env.FIRECRAWL_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "FIRECRAWL_API_KEY não configurada. Conecte o Firecrawl em Configurações para ativar a coleta.",
-    );
-  }
-  const MAX_ATTEMPTS = 4;
-  let lastErr: unknown;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      return await firecrawlScrapeOnce(url, apiKey);
-    } catch (err) {
-      lastErr = err;
-      // Sem créditos → não retentar, lança imediato pro fallback.
-      if (isCreditsExhausted(err)) {
-        (err as { creditsExhausted?: boolean }).creditsExhausted = true;
-        throw err;
-      }
-      const transient = (err as { transient?: boolean }).transient ?? true;
-      if (!transient || attempt === MAX_ATTEMPTS) break;
-      // Backoff: 3s, 8s, 20s
-      const wait = attempt === 1 ? 3000 : attempt === 2 ? 8000 : 20000;
-      await sleep(wait);
-    }
-  }
-  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+function isDefinitive(err: unknown): boolean {
+  const e = err as { status?: number; message?: string } | null;
+  if (!e) return false;
+  const s = e.status;
+  if (s === 404 || s === 400) return true;
+  const msg = (e.message ?? "").toLowerCase();
+  return msg.includes("invalid url") || msg.includes("url is invalid");
 }
 
-// =====================================================================
-// ScraperAPI fallback (quando o Firecrawl ficar sem créditos)
-// =====================================================================
-
-async function scraperApiScrape(url: string): Promise<FirecrawlPayload> {
-  const apiKey = process.env.SCRAPERAPI_KEY;
-  if (!apiKey) {
-    throw new Error("SCRAPERAPI_KEY não configurada (fallback indisponível).");
-  }
+async function scraperApiScrapeOnce(url: string, apiKey: string): Promise<FirecrawlPayload> {
   const endpoint = new URL("https://api.scraperapi.com/");
   endpoint.searchParams.set("api_key", apiKey);
   endpoint.searchParams.set("url", url);
   endpoint.searchParams.set("render", "true");
   endpoint.searchParams.set("country_code", "br");
   endpoint.searchParams.set("device_type", "desktop");
+  const res = await fetch(endpoint.toString(), {
+    method: "GET",
+    signal: AbortSignal.timeout(120000),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    const err = new Error(`ScraperAPI ${res.status}: ${text.slice(0, 300)}`) as Error & {
+      status?: number;
+      transient?: boolean;
+    };
+    err.status = res.status;
+    err.transient = res.status === 408 || res.status === 429 || res.status >= 500;
+    throw err;
+  }
+  const html = await res.text();
+  if (!html || html.length < 500) {
+    const err = new Error("ScraperAPI retornou HTML vazio/curto demais") as Error & { transient?: boolean };
+    err.transient = true;
+    throw err;
+  }
+  return { html, markdown: "", extracted: null };
+}
 
-  const MAX_ATTEMPTS = 3;
+async function tryKeyWithRetry(key: PoolKey, url: string): Promise<FirecrawlPayload> {
+  const MAX_RETRY = 2; // até 3 tentativas na mesma chave para erros transitórios
   let lastErr: unknown;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+  for (let attempt = 0; attempt <= MAX_RETRY; attempt++) {
     try {
-      const res = await fetch(endpoint.toString(), {
-        method: "GET",
-        signal: AbortSignal.timeout(120000),
-      });
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(`ScraperAPI ${res.status}: ${text.slice(0, 300)}`);
-      }
-      const html = await res.text();
-      if (!html || html.length < 500) {
-        throw new Error("ScraperAPI retornou HTML vazio/curto demais");
-      }
-      return { html, markdown: "", extracted: null };
+      if (key.provider === "firecrawl") return await firecrawlScrapeOnce(url, key.value);
+      return await scraperApiScrapeOnce(url, key.value);
     } catch (err) {
       lastErr = err;
-      if (attempt === MAX_ATTEMPTS) break;
-      await sleep(attempt === 1 ? 4000 : 12000);
+      if (isCreditsExhausted(err) || isDefinitive(err)) throw err;
+      const transient = (err as { transient?: boolean }).transient ?? true;
+      if (!transient || attempt === MAX_RETRY) throw err;
+      await sleep(attempt === 0 ? 2000 : 6000);
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
 /**
- * Tenta Firecrawl primeiro; se ficar sem créditos (ou falhar de vez), cai
- * pro ScraperAPI automaticamente. Retorna sempre o shape FirecrawlPayload.
+ * Pool de chaves com failover automático.
+ * Ordem: FC1→FC2→FC3→FC4→SA1→SA2→SA3 (com round-robin).
+ * - Sem créditos (402/quota): marca chave como esgotada por 1h e pula pra próxima imediatamente.
+ * - Erro transitório (5xx/429/timeout): retenta na mesma chave 2x antes de pular.
+ * - Erro definitivo (404/URL inválida): falha imediato.
  */
 async function scrapePage(url: string): Promise<FirecrawlPayload> {
-  try {
-    return await firecrawlScrape(url);
-  } catch (err) {
-    const noCredits = isCreditsExhausted(err) || (err as { creditsExhausted?: boolean }).creditsExhausted;
-    if (noCredits) {
-      console.warn("[collect] Firecrawl sem créditos — usando ScraperAPI como fallback.");
-      return await scraperApiScrape(url);
-    }
-    // Demais falhas do Firecrawl: ainda tenta o ScraperAPI se disponível.
-    if (process.env.SCRAPERAPI_KEY) {
-      console.warn(
-        `[collect] Firecrawl falhou (${err instanceof Error ? err.message : String(err)}). Tentando ScraperAPI.`,
-      );
-      try {
-        return await scraperApiScrape(url);
-      } catch (fallbackErr) {
-        const orig = err instanceof Error ? err.message : String(err);
-        const fb = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
-        throw new Error(`Firecrawl: ${orig} | ScraperAPI: ${fb}`);
-      }
-    }
-    throw err;
+  const pool = buildPool();
+  if (pool.length === 0) {
+    throw new Error(
+      "Nenhuma chave de scraping disponível (todas esgotadas ou não configuradas). Aguarde 1h ou adicione novas chaves.",
+    );
   }
+  const errors: string[] = [];
+  for (const key of pool) {
+    try {
+      const result = await tryKeyWithRetry(key, url);
+      if (errors.length > 0) {
+        console.log(`[collect] ✓ sucesso com ${key.name} após falhar em: ${errors.join(", ")}`);
+      }
+      return result;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (isCreditsExhausted(err)) {
+        markExhausted(key.name);
+        errors.push(`${key.name}(sem créditos)`);
+        continue;
+      }
+      if (isDefinitive(err)) {
+        // Erro fatal da URL — não adianta tentar outras chaves.
+        throw err;
+      }
+      errors.push(`${key.name}(${msg.slice(0, 80)})`);
+      continue;
+    }
+  }
+  throw new Error(`Todas as ${pool.length} chave(s) falharam para ${url}: ${errors.join(" | ")}`);
 }
 
 function hash(...parts: Array<string | null | undefined>): string {
