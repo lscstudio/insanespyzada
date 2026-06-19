@@ -268,6 +268,9 @@ function KeyRow({ k }: { k: ApiKeyStatus }) {
 // ============ Contas ============
 
 function UsagePanel({ query }: { query: ReturnType<typeof useQuery<any>> }) {
+  const t = useT();
+  const { lang } = useLang();
+  const locale = lang === "en" ? "en-US" : "pt-BR";
   const [selected, setSelected] = useState<{ id: string; email: string } | null>(null);
   const [filter, setFilter] = useState("");
 
@@ -288,15 +291,15 @@ function UsagePanel({ query }: { query: ReturnType<typeof useQuery<any>> }) {
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard icon={Users} label="Contas" value={totals.total_accounts} />
-        <MetricCard icon={Activity} label="Bibliotecas" value={totals.total_libraries} accent="bg-cyan-500/10 text-cyan-500" />
-        <MetricCard icon={TrendingUp} label="Coletas (30d)" value={totals.total_scrapes_30d.toLocaleString("pt-BR")} accent="bg-emerald-500/10 text-emerald-500" />
-        <MetricCard icon={Coins} label="Créditos consumidos (30d)" value={totals.total_credits_used_30d.toLocaleString("pt-BR")} accent="bg-violet-500/10 text-violet-500" />
+        <MetricCard icon={Users} label={t("Contas")} value={totals.total_accounts} />
+        <MetricCard icon={Activity} label={t("Bibliotecas")} value={totals.total_libraries} accent="bg-cyan-500/10 text-cyan-500" />
+        <MetricCard icon={TrendingUp} label={t("Coletas (30d)")} value={totals.total_scrapes_30d.toLocaleString(locale)} accent="bg-emerald-500/10 text-emerald-500" />
+        <MetricCard icon={Coins} label={t("Créditos consumidos (30d)")} value={totals.total_credits_used_30d.toLocaleString(locale)} accent="bg-violet-500/10 text-violet-500" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="text-base">Coletas por dia (últimos 30 dias)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t("Coletas por dia (últimos 30 dias)")}</CardTitle></CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={series} margin={{ top: 5, right: 12, left: 0, bottom: 0 }}>
@@ -317,7 +320,7 @@ function UsagePanel({ query }: { query: ReturnType<typeof useQuery<any>> }) {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Trophy className="h-4 w-4 text-amber-500" />Top consumidores (30d)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Trophy className="h-4 w-4 text-amber-500" />{t("Top consumidores (30d)")}</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {top5.map((a: any, i: number) => (
               <div key={a.id} className="flex items-center justify-between gap-2 rounded-md border border-border/40 bg-card/30 p-2">
@@ -329,21 +332,21 @@ function UsagePanel({ query }: { query: ReturnType<typeof useQuery<any>> }) {
                     i === 2 ? "bg-orange-600/20 text-orange-500" :
                     "bg-muted text-muted-foreground"
                   )}>{i + 1}</span>
-                  <span className="truncate text-sm">{a.email || "(sem email)"}</span>
+                  <span className="truncate text-sm">{a.email || t("(sem email)")}</span>
                 </div>
                 <span className="text-sm font-semibold tabular-nums">{a.credits_used_30d}</span>
               </div>
             ))}
-            {top5.length === 0 && <div className="text-center text-xs text-muted-foreground py-4">Sem dados ainda.</div>}
+            {top5.length === 0 && <div className="text-center text-xs text-muted-foreground py-4">{t("Sem dados ainda.")}</div>}
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-          <CardTitle className="text-base">Todas as contas</CardTitle>
+          <CardTitle className="text-base">{t("Todas as contas")}</CardTitle>
           <Input
-            placeholder="Filtrar por email..."
+            placeholder={t("Filtrar por email...")}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="h-8 max-w-xs"
@@ -357,23 +360,23 @@ function UsagePanel({ query }: { query: ReturnType<typeof useQuery<any>> }) {
               className="group flex w-full items-center justify-between rounded-lg border border-border/60 bg-card/40 p-3 text-left transition hover:border-primary/50 hover:bg-card"
             >
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{a.email || "(sem email)"}</div>
+                <div className="truncate text-sm font-medium">{a.email || t("(sem email)")}</div>
                 <div className="text-[11px] text-muted-foreground">
-                  {a.libraries_count} bibliotecas · {a.scrapes_30d} coletas/30d
-                  {a.last_sign_in_at && <> · último login {new Date(a.last_sign_in_at).toLocaleDateString("pt-BR")}</>}
+                  {a.libraries_count} {t("bibliotecas")} · {a.scrapes_30d} {t("coletas/30d")}
+                  {a.last_sign_in_at && <> · {t("último login")} {new Date(a.last_sign_in_at).toLocaleDateString(locale)}</>}
                 </div>
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right">
                   <div className="text-base font-semibold tabular-nums">{a.credits_used_30d}</div>
-                  <div className="text-[10px] uppercase text-muted-foreground">créditos 30d</div>
+                  <div className="text-[10px] uppercase text-muted-foreground">{t("créditos 30d")}</div>
                 </div>
-                <span className="text-xs text-muted-foreground opacity-0 transition group-hover:opacity-100">Ver →</span>
+                <span className="text-xs text-muted-foreground opacity-0 transition group-hover:opacity-100">{t("Ver →")}</span>
               </div>
             </button>
           ))}
           {filtered.length === 0 && (
-            <div className="py-6 text-center text-sm text-muted-foreground">Nenhuma conta encontrada.</div>
+            <div className="py-6 text-center text-sm text-muted-foreground">{t("Nenhuma conta encontrada.")}</div>
           )}
         </CardContent>
       </Card>
