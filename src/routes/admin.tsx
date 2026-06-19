@@ -35,6 +35,7 @@ function NotFoundView() {
 }
 
 export const Route = createFileRoute("/admin")({
+  ssr: false,
   component: AdminPanel,
   notFoundComponent: NotFoundView,
 });
