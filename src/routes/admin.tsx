@@ -1,9 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Loader2, ShieldAlert, Users, Library as LibIcon, ArrowLeft, ExternalLink } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Users, Library as LibIcon, ArrowLeft, ExternalLink } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,8 +12,32 @@ import {
   listLibrariesForAccount,
 } from "@/lib/admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin")({
+function NotFoundView() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <h1 className="text-7xl font-bold text-foreground">404</h1>
+        <h2 className="mt-4 text-xl font-semibold">Página não encontrada</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          A página que você procura não existe ou foi movida.
+        </p>
+        <div className="mt-6">
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-md gradient-violet-cyan px-4 py-2 text-sm font-medium text-white"
+          >
+            Voltar ao início
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export const Route = createFileRoute("/admin")({
+  ssr: false,
   component: AdminPanel,
+  notFoundComponent: NotFoundView,
 });
 
 function AdminPanel() {
@@ -25,32 +49,19 @@ function AdminPanel() {
     queryKey: ["admin", "isAdmin"],
     queryFn: () => checkFn({}),
     staleTime: 60_000,
+    retry: false,
   });
 
   if (adminQuery.isLoading) {
     return (
-      <div className="grid min-h-[60vh] place-items-center">
+      <div className="grid min-h-screen place-items-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!adminQuery.data?.isAdmin) {
-    return (
-      <div className="grid min-h-[60vh] place-items-center px-6">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-destructive" />
-              Acesso negado
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Esta área é restrita ao administrador.
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (!adminQuery.data?.isAdmin || adminQuery.isError) {
+    return <NotFoundView />;
   }
 
   if (selectedUser) {

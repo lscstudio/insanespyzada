@@ -11,14 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedBibliotecasRouteImport } from './routes/_authenticated/bibliotecas'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedBibliotecaIdRouteImport } from './routes/_authenticated/biblioteca.$id'
-import { Route as ApiPublicHooksCollectRouteImport } from './routes/api/public/hooks/collect'
+import { Route as ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRouteImport } from './routes/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -28,6 +28,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -56,100 +61,97 @@ const AuthenticatedBibliotecasRoute =
     path: '/bibliotecas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedBibliotecaIdRoute =
   AuthenticatedBibliotecaIdRouteImport.update({
     id: '/biblioteca/$id',
     path: '/biblioteca/$id',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicHooksCollectRoute = ApiPublicHooksCollectRouteImport.update({
-  id: '/api/public/hooks/collect',
-  path: '/api/public/hooks/collect',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute =
+  ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRouteImport.update({
+    id: '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b',
+    path: '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/admin': typeof AuthenticatedAdminRoute
   '/bibliotecas': typeof AuthenticatedBibliotecasRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
-  '/api/public/hooks/collect': typeof ApiPublicHooksCollectRoute
+  '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
 export interface FileRoutesByTo {
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/admin': typeof AuthenticatedAdminRoute
   '/bibliotecas': typeof AuthenticatedBibliotecasRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/': typeof AuthenticatedIndexRoute
   '/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
-  '/api/public/hooks/collect': typeof ApiPublicHooksCollectRoute
+  '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/bibliotecas': typeof AuthenticatedBibliotecasRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
-  '/api/public/hooks/collect': typeof ApiPublicHooksCollectRoute
+  '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/auth'
     | '/reset-password'
-    | '/admin'
     | '/bibliotecas'
     | '/configuracoes'
     | '/perfil'
     | '/biblioteca/$id'
-    | '/api/public/hooks/collect'
+    | '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/admin'
     | '/auth'
     | '/reset-password'
-    | '/admin'
     | '/bibliotecas'
     | '/configuracoes'
     | '/perfil'
     | '/'
     | '/biblioteca/$id'
-    | '/api/public/hooks/collect'
+    | '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
   id:
     | '__root__'
     | '/_authenticated'
+    | '/admin'
     | '/auth'
     | '/reset-password'
-    | '/_authenticated/admin'
     | '/_authenticated/bibliotecas'
     | '/_authenticated/configuracoes'
     | '/_authenticated/perfil'
     | '/_authenticated/'
     | '/_authenticated/biblioteca/$id'
-    | '/api/public/hooks/collect'
+    | '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  ApiPublicHooksCollectRoute: typeof ApiPublicHooksCollectRoute
+  ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute: typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -166,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -203,13 +212,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBibliotecasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/biblioteca/$id': {
       id: '/_authenticated/biblioteca/$id'
       path: '/biblioteca/$id'
@@ -217,18 +219,17 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBibliotecaIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/hooks/collect': {
-      id: '/api/public/hooks/collect'
-      path: '/api/public/hooks/collect'
-      fullPath: '/api/public/hooks/collect'
-      preLoaderRoute: typeof ApiPublicHooksCollectRouteImport
+    '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': {
+      id: '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
+      path: '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
+      fullPath: '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
+      preLoaderRoute: typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBibliotecasRoute: typeof AuthenticatedBibliotecasRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
@@ -237,7 +238,6 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedBibliotecasRoute: AuthenticatedBibliotecasRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
@@ -250,9 +250,11 @@ const AuthenticatedRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  ApiPublicHooksCollectRoute: ApiPublicHooksCollectRoute,
+  ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute:
+    ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
