@@ -7,11 +7,15 @@ import {
   Moon,
   Plus,
   Settings,
+  Shield,
   Sun,
   LogOut,
   Sparkles,
   User as UserIcon,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { checkIsAdmin } from "@/lib/admin.functions";
 
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -27,15 +31,26 @@ import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { to: "/", labelKey: "Visão Geral", icon: LayoutDashboard, exact: true },
-  { to: "/bibliotecas", labelKey: "Bibliotecas", icon: Library, exact: false },
-  { to: "/perfil", labelKey: "Perfil", icon: UserIcon, exact: false },
-  { to: "/configuracoes", labelKey: "Configurações", icon: Settings, exact: false },
+  { to: "/", labelKey: "Visão Geral", icon: LayoutDashboard, exact: true, admin: false },
+  { to: "/bibliotecas", labelKey: "Bibliotecas", icon: Library, exact: false, admin: false },
+  { to: "/perfil", labelKey: "Perfil", icon: UserIcon, exact: false, admin: false },
+  { to: "/painel", labelKey: "Painel", icon: Shield, exact: false, admin: true },
+  { to: "/configuracoes", labelKey: "Configurações", icon: Settings, exact: false, admin: false },
 ] as const;
 
 function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItemClick?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const t = useT();
+  const checkFn = useServerFn(checkIsAdmin);
+  const { data: adminData } = useQuery({
+    queryKey: ["admin", "isAdmin"],
+    queryFn: () => checkFn({}),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const isAdmin = !!adminData?.isAdmin;
+  const items = NAV_ITEMS.filter((i) => !i.admin || isAdmin);
+
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className={cn("flex h-16 items-center gap-2 px-5", collapsed && "justify-center px-2")}>
@@ -50,7 +65,7 @@ function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItem
         )}
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
           const Icon = item.icon;
           return (
