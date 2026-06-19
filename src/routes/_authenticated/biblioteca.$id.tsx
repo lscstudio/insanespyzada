@@ -319,9 +319,9 @@ function LibraryDetailPage() {
         <Card className="border-border/60 bg-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Criativo mais escalado</h2>
+              <h2 className="text-lg font-semibold">{t("Criativo mais escalado")}</h2>
               <p className="text-sm text-muted-foreground">
-                Com mais duplicações conforme a própria Meta exibe.
+                {t("Com mais duplicações conforme a própria Meta exibe.")}
               </p>
             </div>
           </div>
@@ -329,7 +329,7 @@ function LibraryDetailPage() {
             <Skeleton className="aspect-square w-full max-w-sm mx-auto rounded-2xl shimmer" />
           ) : (topCreatives.data ?? []).length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Sem criativos no último snapshot.
+              {t("Sem criativos no último snapshot.")}
             </p>
           ) : (
             (() => {
