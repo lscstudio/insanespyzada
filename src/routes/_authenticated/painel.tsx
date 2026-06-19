@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   Loader2, Activity, KeyRound, Coins, Zap, CheckCircle2, XCircle, AlertTriangle,
   Users, ArrowLeft, ExternalLink, TrendingUp, Trophy, RefreshCw, Plus, Trash2, Power,
+  Shield, ShieldOff, Ban, Infinity as InfinityIcon, UserCog,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -20,11 +21,20 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { checkIsAdmin, listLibrariesForAccount } from "@/lib/admin.functions";
 import {
   getApiPoolStatus, getUsageRanking, addApiKey, deleteApiKey, toggleApiKey,
   type ApiKeyStatus,
 } from "@/lib/admin-keys.functions";
+import {
+  listMembers, setAdminRole, setLibraryLimit, banMember, unbanMember,
+  getUsageRangeStats, type MemberRow,
+} from "@/lib/admin-members.functions";
 import { cn } from "@/lib/utils";
 import { useLang, useT } from "@/lib/i18n";
 
@@ -111,6 +121,7 @@ function PainelContent() {
         <TabsList>
           <TabsTrigger value="apis"><Zap className="mr-1.5 h-4 w-4" />{t("APIs")}</TabsTrigger>
           <TabsTrigger value="contas"><Users className="mr-1.5 h-4 w-4" />{t("Contas")}</TabsTrigger>
+          <TabsTrigger value="membros"><UserCog className="mr-1.5 h-4 w-4" />{t("Membros")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="apis" className="space-y-6">
@@ -118,7 +129,11 @@ function PainelContent() {
         </TabsContent>
 
         <TabsContent value="contas" className="space-y-6">
-          <UsagePanel query={usageQ} />
+          <UsagePanel fallbackQuery={usageQ} />
+        </TabsContent>
+
+        <TabsContent value="membros" className="space-y-6">
+          <MembersPanel />
         </TabsContent>
       </Tabs>
     </div>
@@ -399,119 +414,199 @@ function KeyRow({ k }: { k: ApiKeyStatus }) {
 
 // ============ Contas ============
 
-function UsagePanel({ query }: { query: ReturnType<typeof useQuery<any>> }) {
+type RangePreset = "7d" | "30d" | "90d" | "ytd" | "all" | "custom";
+
+function rangeBounds(preset: RangePreset, customFrom?: string, customTo?: string): { from: Date; to: Date } {
+  const to = new Date();
+  if (preset === "custom" && customFrom && customTo) {
+    return { from: new Date(customFrom), to: new Date(customTo + "T23:59:59") };
+  }
+  const from = new Date();
+  if (preset === "7d") from.setDate(to.getDate() - 7);
+  else if (preset === "30d") from.setDate(to.getDate() - 30);
+  else if (preset === "90d") from.setDate(to.getDate() - 90);
+  else if (preset === "ytd") { from.setMonth(0); from.setDate(1); from.setHours(0, 0, 0, 0); }
+  else if (preset === "all") from.setFullYear(2000);
+  else from.setDate(to.getDate() - 30);
+  return { from, to };
+}
+
+function UsagePanel({ fallbackQuery: _fallbackQuery }: { fallbackQuery: ReturnType<typeof useQuery<any>> }) {
   const t = useT();
   const { lang } = useLang();
   const locale = lang === "en" ? "en-US" : "pt-BR";
   const [selected, setSelected] = useState<{ id: string; email: string } | null>(null);
   const [filter, setFilter] = useState("");
+  const [preset, setPreset] = useState<RangePreset>("30d");
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAgo = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
+  const [customFrom, setCustomFrom] = useState(monthAgo);
+  const [customTo, setCustomTo] = useState(today);
 
-  if (query.isLoading) {
-    return <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
-  }
-  if (query.error) {
-    return <Card><CardContent className="p-4 text-sm text-destructive">{(query.error as Error).message}</CardContent></Card>;
-  }
+  const { from, to } = useMemo(
+    () => rangeBounds(preset, customFrom, customTo),
+    [preset, customFrom, customTo],
+  );
 
-  const { accounts, series, totals } = query.data as any;
+  const fn = useServerFn(getUsageRangeStats);
+  const query = useQuery({
+    queryKey: ["admin", "usage-range", preset, from.toISOString(), to.toISOString()],
+    queryFn: () => fn({ data: { from: from.toISOString(), to: to.toISOString() } }),
+    refetchInterval: 60_000,
+  });
 
   if (selected) return <AccountDetail user={selected} onBack={() => setSelected(null)} />;
 
-  const filtered = accounts.filter((a: any) => a.email.toLowerCase().includes(filter.toLowerCase()));
-  const top5 = accounts.slice(0, 5);
+  const labelFor: Record<RangePreset, string> = {
+    "7d": t("7 dias"),
+    "30d": t("30 dias"),
+    "90d": t("90 dias"),
+    ytd: t("Este ano"),
+    all: t("Todo período"),
+    custom: t("Personalizado"),
+  };
+  const periodLabel = labelFor[preset];
 
   return (
     <>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard icon={Users} label={t("Contas")} value={totals.total_accounts} />
-        <MetricCard icon={Activity} label={t("Bibliotecas")} value={totals.total_libraries} accent="bg-cyan-500/10 text-cyan-500" />
-        <MetricCard icon={TrendingUp} label={t("Coletas (30d)")} value={totals.total_scrapes_30d.toLocaleString(locale)} accent="bg-emerald-500/10 text-emerald-500" />
-        <MetricCard icon={Coins} label={t("Créditos consumidos (30d)")} value={totals.total_credits_used_30d.toLocaleString(locale)} accent="bg-violet-500/10 text-violet-500" />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="text-base">{t("Coletas por dia (últimos 30 dias)")}</CardTitle></CardHeader>
-          <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={series} margin={{ top: 5, right: 12, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="g-scrapes" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(280 80% 60%)" stopOpacity={0.6} />
-                    <stop offset="100%" stopColor="hsl(280 80% 60%)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
-                <XAxis dataKey="day" tick={{ fontSize: 10 }} tickFormatter={(d) => d.slice(5)} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                <Area type="monotone" dataKey="count" stroke="hsl(280 80% 60%)" fill="url(#g-scrapes)" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Trophy className="h-4 w-4 text-amber-500" />{t("Top consumidores (30d)")}</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {top5.map((a: any, i: number) => (
-              <div key={a.id} className="flex items-center justify-between gap-2 rounded-md border border-border/40 bg-card/30 p-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className={cn(
-                    "grid h-6 w-6 place-items-center rounded-full text-[11px] font-bold",
-                    i === 0 ? "bg-amber-500/20 text-amber-500" :
-                    i === 1 ? "bg-zinc-400/20 text-zinc-400" :
-                    i === 2 ? "bg-orange-600/20 text-orange-500" :
-                    "bg-muted text-muted-foreground"
-                  )}>{i + 1}</span>
-                  <span className="truncate text-sm">{a.email || t("(sem email)")}</span>
-                </div>
-                <span className="text-sm font-semibold tabular-nums">{a.credits_used_30d}</span>
-              </div>
-            ))}
-            {top5.length === 0 && <div className="text-center text-xs text-muted-foreground py-4">{t("Sem dados ainda.")}</div>}
-          </CardContent>
-        </Card>
-      </div>
-
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-          <CardTitle className="text-base">{t("Todas as contas")}</CardTitle>
-          <Input
-            placeholder={t("Filtrar por email...")}
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="h-8 max-w-xs"
-          />
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {filtered.map((a: any) => (
-            <button
-              key={a.id}
-              onClick={() => setSelected({ id: a.id, email: a.email })}
-              className="group flex w-full items-center justify-between rounded-lg border border-border/60 bg-card/40 p-3 text-left transition hover:border-primary/50 hover:bg-card"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{a.email || t("(sem email)")}</div>
-                <div className="text-[11px] text-muted-foreground">
-                  {a.libraries_count} {t("bibliotecas")} · {a.scrapes_30d} {t("coletas/30d")}
-                  {a.last_sign_in_at && <> · {t("último login")} {new Date(a.last_sign_in_at).toLocaleDateString(locale)}</>}
-                </div>
+        <CardContent className="flex flex-wrap items-end gap-3 p-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t("Período")}</Label>
+            <Select value={preset} onValueChange={(v) => setPreset(v as RangePreset)}>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">{t("Últimos 7 dias")}</SelectItem>
+                <SelectItem value="30d">{t("Últimos 30 dias")}</SelectItem>
+                <SelectItem value="90d">{t("Últimos 90 dias")}</SelectItem>
+                <SelectItem value="ytd">{t("Este ano")}</SelectItem>
+                <SelectItem value="all">{t("Todo período")}</SelectItem>
+                <SelectItem value="custom">{t("Personalizado")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {preset === "custom" && (
+            <>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t("De")}</Label>
+                <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="w-[160px]" />
               </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="text-base font-semibold tabular-nums">{a.credits_used_30d}</div>
-                  <div className="text-[10px] uppercase text-muted-foreground">{t("créditos 30d")}</div>
-                </div>
-                <span className="text-xs text-muted-foreground opacity-0 transition group-hover:opacity-100">{t("Ver →")}</span>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t("Até")}</Label>
+                <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="w-[160px]" />
               </div>
-            </button>
-          ))}
-          {filtered.length === 0 && (
-            <div className="py-6 text-center text-sm text-muted-foreground">{t("Nenhuma conta encontrada.")}</div>
+            </>
           )}
+          <div className="ml-auto text-xs text-muted-foreground">
+            {from.toLocaleDateString(locale)} → {to.toLocaleDateString(locale)}
+          </div>
         </CardContent>
       </Card>
+
+      {query.isLoading ? (
+        <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+      ) : query.error ? (
+        <Card><CardContent className="p-4 text-sm text-destructive">{(query.error as Error).message}</CardContent></Card>
+      ) : (() => {
+        const { accounts, series, totals } = query.data as any;
+        const filtered = accounts.filter((a: any) => a.email.toLowerCase().includes(filter.toLowerCase()));
+        const top5 = accounts.slice(0, 5);
+
+        return (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <MetricCard icon={Users} label={t("Contas")} value={totals.total_accounts} />
+              <MetricCard icon={Activity} label={t("Bibliotecas")} value={totals.total_libraries} accent="bg-cyan-500/10 text-cyan-500" />
+              <MetricCard icon={TrendingUp} label={`${t("Coletas")} (${periodLabel})`} value={totals.total_scrapes.toLocaleString(locale)} accent="bg-emerald-500/10 text-emerald-500" />
+              <MetricCard icon={Coins} label={`${t("Créditos consumidos")} (${periodLabel})`} value={totals.total_credits_used.toLocaleString(locale)} accent="bg-violet-500/10 text-violet-500" />
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Card className="lg:col-span-2">
+                <CardHeader><CardTitle className="text-base">{t("Coletas por dia")} — {periodLabel}</CardTitle></CardHeader>
+                <CardContent className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={series} margin={{ top: 5, right: 12, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="g-scrapes" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(280 80% 60%)" stopOpacity={0.6} />
+                          <stop offset="100%" stopColor="hsl(280 80% 60%)" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                      <XAxis dataKey="day" tick={{ fontSize: 10 }} tickFormatter={(d) => d.slice(5)} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                      <Area type="monotone" dataKey="count" stroke="hsl(280 80% 60%)" fill="url(#g-scrapes)" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Trophy className="h-4 w-4 text-amber-500" />{t("Top consumidores")} — {periodLabel}</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  {top5.map((a: any, i: number) => (
+                    <div key={a.id} className="flex items-center justify-between gap-2 rounded-md border border-border/40 bg-card/30 p-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className={cn(
+                          "grid h-6 w-6 place-items-center rounded-full text-[11px] font-bold",
+                          i === 0 ? "bg-amber-500/20 text-amber-500" :
+                          i === 1 ? "bg-zinc-400/20 text-zinc-400" :
+                          i === 2 ? "bg-orange-600/20 text-orange-500" :
+                          "bg-muted text-muted-foreground"
+                        )}>{i + 1}</span>
+                        <span className="truncate text-sm">{a.email || t("(sem email)")}</span>
+                      </div>
+                      <span className="text-sm font-semibold tabular-nums">{a.credits_used}</span>
+                    </div>
+                  ))}
+                  {top5.length === 0 && <div className="text-center text-xs text-muted-foreground py-4">{t("Sem dados ainda.")}</div>}
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+                <CardTitle className="text-base">{t("Todas as contas")} — {periodLabel}</CardTitle>
+                <Input
+                  placeholder={t("Filtrar por email...")}
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  className="h-8 max-w-xs"
+                />
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {filtered.map((a: any) => (
+                  <button
+                    key={a.id}
+                    onClick={() => setSelected({ id: a.id, email: a.email })}
+                    className="group flex w-full items-center justify-between rounded-lg border border-border/60 bg-card/40 p-3 text-left transition hover:border-primary/50 hover:bg-card"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">{a.email || t("(sem email)")}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {a.libraries_count} {t("bibliotecas")} · {a.scrapes} {t("coletas")}
+                        {a.last_sign_in_at && <> · {t("último login")} {new Date(a.last_sign_in_at).toLocaleDateString(locale)}</>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-base font-semibold tabular-nums">{a.credits_used}</div>
+                        <div className="text-[10px] uppercase text-muted-foreground">{t("créditos")}</div>
+                      </div>
+                      <span className="text-xs text-muted-foreground opacity-0 transition group-hover:opacity-100">{t("Ver →")}</span>
+                    </div>
+                  </button>
+                ))}
+                {filtered.length === 0 && (
+                  <div className="py-6 text-center text-sm text-muted-foreground">{t("Nenhuma conta encontrada.")}</div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        );
+      })()}
     </>
   );
 }
@@ -561,6 +656,236 @@ function AccountDetail({ user, onBack }: { user: { id: string; email: string }; 
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ============ Membros ============
+
+function MembersPanel() {
+  const t = useT();
+  const { lang } = useLang();
+  const locale = lang === "en" ? "en-US" : "pt-BR";
+  const qc = useQueryClient();
+  const listFn = useServerFn(listMembers);
+  const [filter, setFilter] = useState("");
+
+  const query = useQuery({
+    queryKey: ["admin", "members"],
+    queryFn: () => listFn({}),
+    refetchInterval: 60_000,
+  });
+
+  if (query.isLoading) {
+    return <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  }
+  if (query.error) {
+    return <Card><CardContent className="p-4 text-sm text-destructive">{(query.error as Error).message}</CardContent></Card>;
+  }
+
+  const members = (query.data ?? []) as MemberRow[];
+  const filtered = members.filter((m) => m.email.toLowerCase().includes(filter.toLowerCase()));
+  const adminCount = members.filter((m) => m.is_admin).length;
+  const bannedCount = members.filter((m) => m.is_banned).length;
+  const limitedCount = members.filter((m) => m.library_limit !== null).length;
+
+  const onChanged = () => qc.invalidateQueries({ queryKey: ["admin", "members"] });
+
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard icon={Users} label={t("Membros")} value={members.length} />
+        <MetricCard icon={Shield} label={t("Administradores")} value={adminCount} accent="bg-violet-500/10 text-violet-500" />
+        <MetricCard icon={InfinityIcon} label={t("Com limite")} value={`${limitedCount}/${members.length}`} accent="bg-cyan-500/10 text-cyan-500" />
+        <MetricCard icon={Ban} label={t("Banidos")} value={bannedCount} accent="bg-rose-500/10 text-rose-500" />
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle className="text-base">{t("Gerenciar membros")}</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("Promova a admin, defina limites de bibliotecas ou bana usuários. Mudanças são aplicadas em tempo real.")}
+            </p>
+          </div>
+          <Input
+            placeholder={t("Filtrar por email...")}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="h-8 max-w-xs"
+          />
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {filtered.map((m) => (
+            <MemberRowItem key={m.id} member={m} onChanged={onChanged} locale={locale} />
+          ))}
+          {filtered.length === 0 && (
+            <div className="py-6 text-center text-sm text-muted-foreground">{t("Nenhum membro encontrado.")}</div>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function MemberRowItem({
+  member, onChanged, locale,
+}: { member: MemberRow; onChanged: () => void; locale: string }) {
+  const t = useT();
+  const adminFn = useServerFn(setAdminRole);
+  const limitFn = useServerFn(setLibraryLimit);
+  const banFn = useServerFn(banMember);
+  const unbanFn = useServerFn(unbanMember);
+
+  const [limitMode, setLimitMode] = useState<"unlimited" | "fixed">(
+    member.library_limit === null ? "unlimited" : "fixed",
+  );
+  const [limitValue, setLimitValue] = useState<string>(
+    member.library_limit === null ? "10" : String(member.library_limit),
+  );
+  const [confirmText, setConfirmText] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const adminM = useMutation({
+    mutationFn: (makeAdmin: boolean) => adminFn({ data: { userId: member.id, makeAdmin } }),
+    onSuccess: () => { toast.success(t("Permissão atualizada")); onChanged(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const limitM = useMutation({
+    mutationFn: (limit: number | null) => limitFn({ data: { userId: member.id, limit } }),
+    onSuccess: () => { toast.success(t("Limite atualizado")); onChanged(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const banM = useMutation({
+    mutationFn: () => banFn({ data: { userId: member.id, confirm: true } }),
+    onSuccess: () => { toast.success(t("Usuário banido")); setOpen(false); setConfirmText(""); onChanged(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const unbanM = useMutation({
+    mutationFn: () => unbanFn({ data: { userId: member.id } }),
+    onSuccess: () => { toast.success(t("Banimento removido")); onChanged(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const saveLimit = () => {
+    if (limitMode === "unlimited") return limitM.mutate(null);
+    const n = parseInt(limitValue, 10);
+    if (!Number.isFinite(n) || n < 0) return toast.error(t("Número inválido"));
+    limitM.mutate(n);
+  };
+
+  const expectedConfirm = (member.email || member.id.slice(0, 8)).trim();
+  const canBan = confirmText.trim().toLowerCase() === expectedConfirm.toLowerCase();
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-card/40 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className={cn(
+            "grid h-9 w-9 place-items-center rounded-full text-sm font-semibold",
+            member.is_owner ? "bg-amber-500/20 text-amber-500" :
+            member.is_admin ? "bg-violet-500/20 text-violet-500" :
+            "bg-muted text-muted-foreground"
+          )}>
+            {(member.email || "?").slice(0, 1).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="truncate font-medium">{member.email || t("(sem email)")}</span>
+              {member.is_owner && <Badge className="bg-amber-500/15 text-amber-500 hover:bg-amber-500/20">{t("Dono")}</Badge>}
+              {member.is_admin && !member.is_owner && <Badge className="bg-violet-500/15 text-violet-500 hover:bg-violet-500/20"><Shield className="mr-1 h-3 w-3" />{t("Admin")}</Badge>}
+              {member.is_banned && <Badge variant="destructive"><Ban className="mr-1 h-3 w-3" />{t("Banido")}</Badge>}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {member.libraries_count} {t("bibliotecas")}
+              {" · "}
+              {member.library_limit === null ? t("ilimitado") : `${t("limite")} ${member.library_limit}`}
+              {member.last_sign_in_at && <> · {t("último login")} {new Date(member.last_sign_in_at).toLocaleDateString(locale)}</>}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {!member.is_owner && (
+            <Button
+              size="sm"
+              variant={member.is_admin ? "outline" : "default"}
+              disabled={adminM.isPending}
+              onClick={() => adminM.mutate(!member.is_admin)}
+              className={member.is_admin ? "" : "bg-violet-500 hover:bg-violet-600 text-white"}
+            >
+              {adminM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> :
+                member.is_admin ? <><ShieldOff className="mr-1 h-4 w-4" />{t("Remover admin")}</> :
+                <><Shield className="mr-1 h-4 w-4" />{t("Tornar admin")}</>}
+            </Button>
+          )}
+          {member.is_banned ? (
+            <Button size="sm" variant="outline" disabled={unbanM.isPending} onClick={() => unbanM.mutate()}>
+              {t("Desbanir")}
+            </Button>
+          ) : !member.is_owner && (
+            <AlertDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setConfirmText(""); }}>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="destructive"><Ban className="mr-1 h-4 w-4" />{t("Banir")}</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t("Banir usuário?")}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("Esta ação bloqueia o login do usuário por 100 anos. Você pode desbanir depois. Para confirmar, digite o email do usuário abaixo:")}
+                    <span className="mt-2 block font-mono text-foreground">{expectedConfirm}</span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <Input
+                  autoFocus
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  placeholder={t("Digite para confirmar")}
+                />
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t("Cancelar")}</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={!canBan || banM.isPending}
+                    onClick={(e) => { e.preventDefault(); if (canBan) banM.mutate(); }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {banM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Banir definitivamente")}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-border/40 pt-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">{t("Limite de bibliotecas")}</Label>
+          <Select value={limitMode} onValueChange={(v) => setLimitMode(v as "unlimited" | "fixed")}>
+            <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fixed">{t("Quantidade exata")}</SelectItem>
+              <SelectItem value="unlimited">{t("Ilimitado / infinito")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {limitMode === "fixed" && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t("Número")}</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100000}
+              value={limitValue}
+              onChange={(e) => setLimitValue(e.target.value)}
+              className="h-9 w-[120px]"
+            />
+          </div>
+        )}
+        <Button size="sm" disabled={limitM.isPending} onClick={saveLimit} className="h-9">
+          {limitM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("Salvar limite")}
+        </Button>
       </div>
     </div>
   );
