@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   Loader2, Activity, KeyRound, Coins, Zap, CheckCircle2, XCircle, AlertTriangle,
-  Users, ArrowLeft, ExternalLink, TrendingUp, Trophy, RefreshCw,
+  Users, ArrowLeft, ExternalLink, TrendingUp, Trophy, RefreshCw, Plus, Trash2, Power,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -17,8 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { checkIsAdmin, listLibrariesForAccount } from "@/lib/admin.functions";
-import { getApiPoolStatus, getUsageRanking, type ApiKeyStatus } from "@/lib/admin-keys.functions";
+import {
+  getApiPoolStatus, getUsageRanking, addApiKey, deleteApiKey, toggleApiKey,
+  type ApiKeyStatus,
+} from "@/lib/admin-keys.functions";
 import { cn } from "@/lib/utils";
 import { useLang, useT } from "@/lib/i18n";
 
