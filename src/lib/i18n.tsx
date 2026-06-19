@@ -270,7 +270,6 @@ const DICT: Record<string, string> = {
   "Biblioteca não encontrada.": "Library not found.",
   "falha na última coleta": "failure on last collection",
   "Variação vs coleta anterior": "Change vs previous collection",
-  "Última coleta": "Last collection",
   "Última coleta falhou": "Last collection failed",
   "Mineração saudável": "Mining healthy",
   "Evolução": "Evolution",
