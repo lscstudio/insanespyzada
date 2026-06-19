@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useT } from "@/lib/i18n";
 
 
 export const Route = createFileRoute("/auth")({
@@ -25,6 +27,7 @@ const schema = z.object({
 });
 
 function AuthPage() {
+  const t = useT();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -57,7 +60,7 @@ function AuthPage() {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast.success("Bem-vindo de volta!");
+        toast.success(t("Bem-vindo de volta!"));
         navigate({ to: "/" });
       } else {
         const { error } = await supabase.auth.signUp({
@@ -66,12 +69,12 @@ function AuthPage() {
           options: { emailRedirectTo: `${window.location.origin}/` },
         });
         if (error) throw error;
-        toast.success("Conta criada", { description: "Você já pode entrar." });
+        toast.success(t("Conta criada"), { description: t("Você já pode entrar.") });
         setMode("signin");
       }
     } catch (err) {
-      toast.error("Não foi possível autenticar", {
-        description: err instanceof Error ? err.message : "Erro desconhecido",
+      toast.error(t("Não foi possível autenticar"), {
+        description: err instanceof Error ? err.message : t("Erro desconhecido"),
       });
     } finally {
       setLoading(false);
@@ -85,7 +88,7 @@ function AuthPage() {
         redirect_uri: window.location.origin,
       });
       if (result.error) {
-        toast.error("Não foi possível entrar com Google", {
+        toast.error(t("Não foi possível entrar com Google"), {
           description: result.error.message,
         });
         return;
@@ -93,8 +96,8 @@ function AuthPage() {
       if (result.redirected) return;
       navigate({ to: "/" });
     } catch (err) {
-      toast.error("Erro inesperado", {
-        description: err instanceof Error ? err.message : "Erro desconhecido",
+      toast.error(t("Erro inesperado"), {
+        description: err instanceof Error ? err.message : t("Erro desconhecido"),
       });
     } finally {
       setGoogleLoading(false);
@@ -103,7 +106,7 @@ function AuthPage() {
 
   async function onForgot() {
     if (!email || !z.string().email().safeParse(email).success) {
-      toast.error("Informe seu email acima primeiro");
+      toast.error(t("Informe seu email acima primeiro"));
       return;
     }
     setForgotLoading(true);
@@ -112,12 +115,12 @@ function AuthPage() {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
-      toast.success("Email enviado", {
-        description: "Verifique sua caixa de entrada para redefinir a senha.",
+      toast.success(t("Email enviado"), {
+        description: t("Verifique sua caixa de entrada para redefinir a senha."),
       });
     } catch (err) {
-      toast.error("Não foi possível enviar o email", {
-        description: err instanceof Error ? err.message : "Erro desconhecido",
+      toast.error(t("Não foi possível enviar o email"), {
+        description: err instanceof Error ? err.message : t("Erro desconhecido"),
       });
     } finally {
       setForgotLoading(false);
@@ -129,6 +132,10 @@ function AuthPage() {
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-32 left-1/4 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-accent/20 blur-3xl" />
+      </div>
+
+      <div className="absolute right-4 top-4 z-10">
+        <LanguageSwitcher variant="compact" />
       </div>
 
       <motion.div
@@ -143,15 +150,15 @@ function AuthPage() {
           </div>
           <div>
             <h1 className="text-lg font-semibold leading-none">InsaneSpy</h1>
-            <p className="text-xs text-muted-foreground">Você está sendo observado</p>
+            <p className="text-xs text-muted-foreground">{t("Você está sendo observado")}</p>
           </div>
         </div>
 
         <Card className="glass-card border-border/60 p-6">
           <Tabs value={mode} onValueChange={(v) => setMode(v as "signin" | "signup")}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Criar conta</TabsTrigger>
+              <TabsTrigger value="signin">{t("Entrar")}</TabsTrigger>
+              <TabsTrigger value="signup">{t("Criar conta")}</TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -172,18 +179,18 @@ function AuthPage() {
                 />
               </svg>
             )}
-            Continuar com Google
+            {t("Continuar com Google")}
           </Button>
 
           <div className="my-4 flex items-center gap-2 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border/60" />
-            ou com email
+            {t("ou com email")}
             <span className="h-px flex-1 bg-border/60" />
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("Email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -196,7 +203,7 @@ function AuthPage() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password">{t("Senha")}</Label>
                 {mode === "signin" && (
                   <button
                     type="button"
@@ -204,7 +211,7 @@ function AuthPage() {
                     disabled={forgotLoading}
                     className="text-xs text-primary hover:underline disabled:opacity-50"
                   >
-                    {forgotLoading ? "Enviando..." : "Esqueci a senha"}
+                    {forgotLoading ? t("Enviando...") : t("Esqueci a senha")}
                   </button>
                 )}
               </div>
@@ -214,7 +221,7 @@ function AuthPage() {
                 autoComplete={mode === "signin" ? "current-password" : "new-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 8 caracteres"
+                placeholder={t("Mínimo 8 caracteres")}
               />
               {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
             </div>
@@ -224,13 +231,13 @@ function AuthPage() {
               className="w-full gradient-violet-cyan text-white shadow-lg shadow-primary/20"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {mode === "signin" ? "Entrar" : "Criar conta"}
+              {mode === "signin" ? t("Entrar") : t("Criar conta")}
             </Button>
           </form>
         </Card>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          O painel é privado. Apenas usuários autenticados acessam os dados.
+          {t("O painel é privado. Apenas usuários autenticados acessam os dados.")}
         </p>
       </motion.div>
     </div>
