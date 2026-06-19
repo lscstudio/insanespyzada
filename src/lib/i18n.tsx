@@ -315,9 +315,7 @@ const DICT: Record<string, string> = {
   "Salvar nova senha": "Save new password",
 
   // Painel admin — APIs (add/manage keys)
-  "Atualizar": "Refresh",
   "personalizada": "custom",
-  "de": "of",
   "Adicionar nova chave de API": "Add new API key",
   "Novas chaves entram automaticamente no pool com failover, em até 30 segundos.":
     "New keys are automatically added to the failover pool within 30 seconds.",
@@ -325,7 +323,6 @@ const DICT: Record<string, string> = {
   "Rótulo": "Label",
   "ex: Conta 5": "ex: Account 5",
   "Chave de API": "API key",
-  "Adicionar": "Add",
   "Ativar": "Enable",
   "Desativar": "Disable",
   "Remover": "Remove",
@@ -337,9 +334,6 @@ const DICT: Record<string, string> = {
 
   // Painel admin — Contas (date range)
   "Período": "Period",
-  "7 dias": "7 days",
-  "30 dias": "30 days",
-  "90 dias": "90 days",
   "Este ano": "This year",
   "Todo período": "All time",
   "Personalizado": "Custom",
@@ -353,7 +347,6 @@ const DICT: Record<string, string> = {
   "Coletas por dia": "Collections per day",
   "Top consumidores": "Top consumers",
   "coletas": "collections",
-  "Sem dados ainda.": "No data yet.",
 
   // Painel admin — Membros
   "Membros": "Members",
@@ -367,7 +360,6 @@ const DICT: Record<string, string> = {
   "Dono": "Owner",
   "Admin": "Admin",
   "Banido": "Banned",
-  "bibliotecas": "libraries",
   "ilimitado": "unlimited",
   "limite": "limit",
   "Tornar admin": "Make admin",
