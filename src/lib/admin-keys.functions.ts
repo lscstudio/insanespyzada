@@ -13,6 +13,15 @@ async function assertAdmin(supabase: any, userId: string) {
 const FC_NAMES = ["FIRECRAWL_API_KEY", "FIRECRAWL_API_KEY_2", "FIRECRAWL_API_KEY_3", "FIRECRAWL_API_KEY_4"];
 const SA_NAMES = ["SCRAPERAPI_KEY", "SCRAPERAPI_KEY_2", "SCRAPERAPI_KEY_3"];
 
+interface DbKeyRow {
+  id: string;
+  provider: "firecrawl" | "scraperapi";
+  label: string;
+  key: string;
+  active: boolean;
+  created_at: string;
+}
+
 export type ApiProvider = "firecrawl" | "scraperapi";
 export interface ApiKeyStatus {
   provider: ApiProvider;
@@ -25,13 +34,17 @@ export interface ApiKeyStatus {
   used: number | null;
   error: string | null;
   latency_ms: number | null;
+  source: "env" | "db";
+  id?: string | null;
 }
 
-async function checkFirecrawl(name: string, key: string): Promise<ApiKeyStatus> {
+async function checkFirecrawl(name: string, key: string, opts: { label?: string; source?: "env" | "db"; id?: string | null } = {}): Promise<ApiKeyStatus> {
   const t0 = Date.now();
   const base: ApiKeyStatus = {
-    provider: "firecrawl", name, label: name.replace("FIRECRAWL_API_KEY", "Firecrawl"),
+    provider: "firecrawl", name,
+    label: opts.label ?? name.replace("FIRECRAWL_API_KEY", "Firecrawl"),
     configured: true, working: false, credits: null, limit: null, used: null, error: null, latency_ms: null,
+    source: opts.source ?? "env", id: opts.id ?? null,
   };
   try {
     const ctrl = new AbortController();
@@ -58,11 +71,13 @@ async function checkFirecrawl(name: string, key: string): Promise<ApiKeyStatus> 
   }
 }
 
-async function checkScraperApi(name: string, key: string): Promise<ApiKeyStatus> {
+async function checkScraperApi(name: string, key: string, opts: { label?: string; source?: "env" | "db"; id?: string | null } = {}): Promise<ApiKeyStatus> {
   const t0 = Date.now();
   const base: ApiKeyStatus = {
-    provider: "scraperapi", name, label: name.replace("SCRAPERAPI_KEY", "ScraperAPI"),
+    provider: "scraperapi", name,
+    label: opts.label ?? name.replace("SCRAPERAPI_KEY", "ScraperAPI"),
     configured: true, working: false, credits: null, limit: null, used: null, error: null, latency_ms: null,
+    source: opts.source ?? "env", id: opts.id ?? null,
   };
   try {
     const ctrl = new AbortController();
@@ -91,10 +106,22 @@ async function checkScraperApi(name: string, key: string): Promise<ApiKeyStatus>
   }
 }
 
+async function loadDbKeys(): Promise<DbKeyRow[]> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("api_keys")
+    .select("id, provider, label, key, active, created_at")
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as unknown as DbKeyRow[];
+}
+
 export const getApiPoolStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
+
+    const dbKeys = await loadDbKeys();
 
     const fcChecks = FC_NAMES
       .map((n) => ({ n, v: process.env[n] }))
@@ -105,15 +132,34 @@ export const getApiPoolStatus = createServerFn({ method: "GET" })
       .filter((x) => !!x.v)
       .map((x) => checkScraperApi(x.n, x.v as string));
 
-    const results = await Promise.all([...fcChecks, ...saChecks]);
+    const dbChecks = dbKeys
+      .filter((r) => r.active)
+      .map((r) => {
+        const opts = { label: r.label || `${r.provider}-${r.id.slice(0, 6)}`, source: "db" as const, id: r.id };
+        const name = `db:${r.id.slice(0, 8)}`;
+        return r.provider === "firecrawl"
+          ? checkFirecrawl(name, r.key, opts)
+          : checkScraperApi(name, r.key, opts);
+      });
 
-    // also include unconfigured slots so admin sees missing keys
+    const results = await Promise.all([...fcChecks, ...saChecks, ...dbChecks]);
+
+    // inactive DB keys também aparecem como "desligadas"
+    for (const r of dbKeys.filter((r) => !r.active)) {
+      results.push({
+        provider: r.provider, name: `db:${r.id.slice(0, 8)}`, label: r.label || `${r.provider}-${r.id.slice(0, 6)}`,
+        configured: true, working: false, credits: null, limit: null, used: null,
+        error: "desativada", latency_ms: null, source: "db", id: r.id,
+      });
+    }
+
+    // also include unconfigured env slots so admin sees missing keys
     for (const n of FC_NAMES) {
       if (!process.env[n]) {
         results.push({
           provider: "firecrawl", name: n, label: n.replace("FIRECRAWL_API_KEY", "Firecrawl"),
           configured: false, working: false, credits: null, limit: null, used: null,
-          error: "não configurada", latency_ms: null,
+          error: "não configurada", latency_ms: null, source: "env", id: null,
         });
       }
     }
@@ -122,7 +168,7 @@ export const getApiPoolStatus = createServerFn({ method: "GET" })
         results.push({
           provider: "scraperapi", name: n, label: n.replace("SCRAPERAPI_KEY", "ScraperAPI"),
           configured: false, working: false, credits: null, limit: null, used: null,
-          error: "não configurada", latency_ms: null,
+          error: "não configurada", latency_ms: null, source: "env", id: null,
         });
       }
     }
@@ -143,6 +189,63 @@ export const getApiPoolStatus = createServerFn({ method: "GET" })
         scraperapi_credits: results.filter((r) => r.provider === "scraperapi").reduce((s, r) => s + (r.credits ?? 0), 0),
       },
     };
+  });
+
+export const addApiKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { provider: "firecrawl" | "scraperapi"; label: string; key: string }) => {
+    const provider = d?.provider;
+    const label = (d?.label ?? "").trim();
+    const key = (d?.key ?? "").trim();
+    if (provider !== "firecrawl" && provider !== "scraperapi") throw new Error("Provider inválido");
+    if (!label || label.length > 60) throw new Error("Rótulo obrigatório (até 60 caracteres)");
+    if (!key || key.length < 10 || key.length > 500) throw new Error("Chave de API inválida");
+    return { provider, label, key };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("api_keys")
+      .insert({ provider: data.provider, label: data.label, key: data.key, created_by: context.userId })
+      .select("id, provider, label, active, created_at")
+      .single();
+    if (error) throw new Error(error.message);
+    const { invalidateDynamicKeysCache } = await import("@/lib/collect.server");
+    invalidateDynamicKeysCache();
+    return row;
+  });
+
+export const deleteApiKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => {
+    if (!d?.id) throw new Error("id obrigatório");
+    return { id: d.id };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("api_keys").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    const { invalidateDynamicKeysCache } = await import("@/lib/collect.server");
+    invalidateDynamicKeysCache();
+    return { ok: true };
+  });
+
+export const toggleApiKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; active: boolean }) => {
+    if (!d?.id) throw new Error("id obrigatório");
+    return { id: d.id, active: !!d.active };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("api_keys").update({ active: data.active }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    const { invalidateDynamicKeysCache } = await import("@/lib/collect.server");
+    invalidateDynamicKeysCache();
+    return { ok: true };
   });
 
 export const getUsageRanking = createServerFn({ method: "GET" })

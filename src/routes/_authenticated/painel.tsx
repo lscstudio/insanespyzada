@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   Loader2, Activity, KeyRound, Coins, Zap, CheckCircle2, XCircle, AlertTriangle,
-  Users, ArrowLeft, ExternalLink, TrendingUp, Trophy, RefreshCw,
+  Users, ArrowLeft, ExternalLink, TrendingUp, Trophy, RefreshCw, Plus, Trash2, Power,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -17,8 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { checkIsAdmin, listLibrariesForAccount } from "@/lib/admin.functions";
-import { getApiPoolStatus, getUsageRanking, type ApiKeyStatus } from "@/lib/admin-keys.functions";
+import {
+  getApiPoolStatus, getUsageRanking, addApiKey, deleteApiKey, toggleApiKey,
+  type ApiKeyStatus,
+} from "@/lib/admin-keys.functions";
 import { cn } from "@/lib/utils";
 import { useLang, useT } from "@/lib/i18n";
 
@@ -203,13 +209,96 @@ function ApiOverview({ query }: { query: ReturnType<typeof useQuery<any>> }) {
         </Card>
       </div>
 
+      <AddKeyCard />
+
       <Card>
         <CardHeader><CardTitle className="text-base">{t("Status detalhado das chaves")}</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {keys.map((k) => <KeyRow key={k.name} k={k} />)}
+          {keys.map((k) => <KeyRow key={`${k.source}:${k.name}`} k={k} />)}
         </CardContent>
       </Card>
     </>
+  );
+}
+
+function AddKeyCard() {
+  const t = useT();
+  const qc = useQueryClient();
+  const addFn = useServerFn(addApiKey);
+  const [provider, setProvider] = useState<"firecrawl" | "scraperapi">("firecrawl");
+  const [label, setLabel] = useState("");
+  const [key, setKey] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: (vars: { provider: "firecrawl" | "scraperapi"; label: string; key: string }) =>
+      addFn({ data: vars }),
+    onSuccess: () => {
+      toast.success(t("Chave adicionada ao pool"));
+      setLabel(""); setKey("");
+      qc.invalidateQueries({ queryKey: ["admin", "api-pool"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutation.mutate({ provider, label: label.trim(), key: key.trim() });
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Plus className="h-4 w-4 text-primary" />
+          {t("Adicionar nova chave de API")}
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          {t("Novas chaves entram automaticamente no pool com failover, em até 30 segundos.")}
+        </p>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-[180px_1fr_2fr_auto]">
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t("Provedor")}</Label>
+            <Select value={provider} onValueChange={(v) => setProvider(v as "firecrawl" | "scraperapi")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="firecrawl">Firecrawl</SelectItem>
+                <SelectItem value="scraperapi">ScraperAPI</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t("Rótulo")}</Label>
+            <Input
+              placeholder={t("ex: Conta 5")}
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              maxLength={60}
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">{t("Chave de API")}</Label>
+            <Input
+              type="password"
+              placeholder={provider === "firecrawl" ? "fc-..." : "scraperapi key"}
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              autoComplete="off"
+              required
+            />
+          </div>
+          <div className="flex items-end">
+            <Button type="submit" disabled={mutation.isPending} className="w-full sm:w-auto">
+              {mutation.isPending
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <><Plus className="mr-1 h-4 w-4" />{t("Adicionar")}</>}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -217,6 +306,21 @@ function KeyRow({ k }: { k: ApiKeyStatus }) {
   const t = useT();
   const { lang } = useLang();
   const locale = lang === "en" ? "en-US" : "pt-BR";
+  const qc = useQueryClient();
+  const delFn = useServerFn(deleteApiKey);
+  const togFn = useServerFn(toggleApiKey);
+
+  const delM = useMutation({
+    mutationFn: (id: string) => delFn({ data: { id } }),
+    onSuccess: () => { toast.success(t("Chave removida")); qc.invalidateQueries({ queryKey: ["admin", "api-pool"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const togM = useMutation({
+    mutationFn: (vars: { id: string; active: boolean }) => togFn({ data: vars }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "api-pool"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const statusBadge = !k.configured
     ? <Badge variant="outline" className="gap-1 text-muted-foreground"><AlertTriangle className="h-3 w-3" />{t("Vazia")}</Badge>
     : k.working
@@ -225,6 +329,7 @@ function KeyRow({ k }: { k: ApiKeyStatus }) {
 
   const pct = k.limit && k.limit > 0 ? Math.min(100, ((k.used ?? 0) / k.limit) * 100) : null;
   const providerDot = k.provider === "firecrawl" ? "bg-violet-500" : "bg-cyan-500";
+  const isDb = k.source === "db" && !!k.id;
 
   return (
     <div className="rounded-lg border border-border/60 bg-card/40 p-3">
@@ -235,6 +340,7 @@ function KeyRow({ k }: { k: ApiKeyStatus }) {
             <div className="flex items-center gap-2">
               <span className="font-medium truncate">{k.label}</span>
               {statusBadge}
+              {isDb && <Badge variant="outline" className="text-[10px]">{t("personalizada")}</Badge>}
             </div>
             <div className="text-xs text-muted-foreground font-mono truncate">{k.name}</div>
           </div>
@@ -249,6 +355,32 @@ function KeyRow({ k }: { k: ApiKeyStatus }) {
             </div>
             <div className="text-[10px] uppercase text-muted-foreground tracking-wide">{t("créditos")}</div>
           </div>
+          {isDb && (
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                title={k.error === "desativada" ? t("Ativar") : t("Desativar")}
+                disabled={togM.isPending}
+                onClick={() => togM.mutate({ id: k.id!, active: k.error === "desativada" })}
+              >
+                <Power className={cn("h-4 w-4", k.error === "desativada" ? "text-muted-foreground" : "text-emerald-500")} />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-destructive hover:text-destructive"
+                title={t("Remover")}
+                disabled={delM.isPending}
+                onClick={() => {
+                  if (confirm(t("Remover esta chave do pool?"))) delM.mutate(k.id!);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
       {pct !== null && (

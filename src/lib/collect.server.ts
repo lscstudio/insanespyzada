@@ -193,7 +193,33 @@ function markExhausted(name: string) {
   console.warn(`[collect] chave ${name} marcada como esgotada por 1h.`);
 }
 
-function buildPool(): PoolKey[] {
+// cache curto pra chaves dinâmicas do banco (evita hit no DB a cada scrape)
+let DYN_CACHE: { at: number; keys: PoolKey[] } | null = null;
+const DYN_TTL_MS = 30_000;
+
+async function loadDynamicKeys(): Promise<PoolKey[]> {
+  if (DYN_CACHE && Date.now() - DYN_CACHE.at < DYN_TTL_MS) return DYN_CACHE.keys;
+  try {
+    const admin = getAdmin();
+    const { data, error } = await admin
+      .from("api_keys")
+      .select("id, provider, label, key, active")
+      .eq("active", true);
+    if (error) throw error;
+    const keys: PoolKey[] = (data ?? []).map((r) => ({
+      provider: r.provider as Provider,
+      name: `DB:${r.provider}:${r.label || r.id.slice(0, 6)}`,
+      value: r.key,
+    }));
+    DYN_CACHE = { at: Date.now(), keys };
+    return keys;
+  } catch (e) {
+    console.warn("[collect] falha ao carregar api_keys do banco:", (e as Error).message);
+    return DYN_CACHE?.keys ?? [];
+  }
+}
+
+async function buildPool(): Promise<PoolKey[]> {
   const pool: PoolKey[] = [];
   const fcNames = ["FIRECRAWL_API_KEY", "FIRECRAWL_API_KEY_2", "FIRECRAWL_API_KEY_3", "FIRECRAWL_API_KEY_4"];
   const saNames = ["SCRAPERAPI_KEY", "SCRAPERAPI_KEY_2", "SCRAPERAPI_KEY_3"];
@@ -205,6 +231,9 @@ function buildPool(): PoolKey[] {
     const v = process.env[n];
     if (v && !isExhausted(n)) pool.push({ provider: "scraperapi", name: n, value: v });
   }
+  for (const k of await loadDynamicKeys()) {
+    if (!isExhausted(k.name)) pool.push(k);
+  }
   // Round-robin: rotaciona dentro de cada grupo de provider para distribuir carga,
   // mas mantém Firecrawl antes de ScraperAPI (preferência por qualidade/JSON LLM).
   const fc = pool.filter((p) => p.provider === "firecrawl");
@@ -214,6 +243,10 @@ function buildPool(): PoolKey[] {
   const ordered = [...rotate(fc, RR_OFFSET), ...rotate(sa, RR_OFFSET)];
   RR_OFFSET = (RR_OFFSET + 1) % Math.max(1, Math.max(fc.length, sa.length));
   return ordered;
+}
+
+export function invalidateDynamicKeysCache() {
+  DYN_CACHE = null;
 }
 
 async function firecrawlScrapeOnce(url: string, apiKey: string): Promise<FirecrawlPayload> {
@@ -357,7 +390,7 @@ async function tryKeyWithRetry(key: PoolKey, url: string): Promise<FirecrawlPayl
  * - Erro definitivo (404/URL inválida): falha imediato.
  */
 async function scrapePage(url: string): Promise<FirecrawlPayload> {
-  const pool = buildPool();
+  const pool = await buildPool();
   if (pool.length === 0) {
     throw new Error(
       "Nenhuma chave de scraping disponível (todas esgotadas ou não configuradas). Aguarde 1h ou adicione novas chaves.",
