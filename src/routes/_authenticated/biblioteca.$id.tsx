@@ -50,6 +50,10 @@ export const Route = createFileRoute("/_authenticated/biblioteca/$id")({
 });
 
 function LibraryDetailPage() {
+  const t = useT();
+  const { lang } = useLang();
+  const dLocale = lang === "en" ? enUS : ptBR;
+  const intlLocale = lang === "en" ? "en-US" : "pt-BR";
   const { id } = Route.useParams();
   const lib = useLibrary(id);
   const trends = useHourlyTrend();
