@@ -159,12 +159,12 @@ function LibraryDetailPage() {
             {data.language && <Badge variant="outline">{data.language}</Badge>}
             {data.status === "paused" && (
               <Badge variant="outline" className="border-warning/40 text-warning">
-                Pausada
+                {t("Pausada")}
               </Badge>
             )}
             {data.scrape_ok === false && (
               <Badge variant="outline" className="border-warning/40 bg-warning/10 text-warning">
-                <AlertTriangle className="h-3 w-3" /> falha na última coleta
+                <AlertTriangle className="h-3 w-3" /> {t("falha na última coleta")}
               </Badge>
             )}
           </div>
@@ -176,18 +176,18 @@ function LibraryDetailPage() {
         <div className="flex gap-2">
           <Button asChild variant="outline">
             <a href={data.url} target="_blank" rel="noreferrer">
-              <ExternalLink className="h-4 w-4" /> Abrir na Meta
+              <ExternalLink className="h-4 w-4" /> {t("Abrir na Meta")}
             </a>
           </Button>
           <Button onClick={() => setEditOpen(true)}>
-            <Pencil className="h-4 w-4" /> Editar
+            <Pencil className="h-4 w-4" /> {t("Editar")}
           </Button>
         </div>
       </motion.div>
 
       {/* Summary cards */}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <SummaryCard label="Anúncios ativos" icon={Layers}>
+        <SummaryCard label={t("Anúncios ativos")} icon={Layers}>
           <div className="flex items-end justify-between gap-3">
             <CountUp
               value={data.active_ads_count ?? 0}
@@ -196,30 +196,30 @@ function LibraryDetailPage() {
             <HourlyTrendBadge trend={trend} />
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Variação vs coleta anterior
+            {t("Variação vs coleta anterior")}
           </p>
         </SummaryCard>
 
-        <SummaryCard label="Última coleta" icon={Radio}>
+        <SummaryCard label={t("Última coleta")} icon={Radio}>
           <p className="text-base font-semibold" title={data.captured_at ?? ""}>
             {data.captured_at
               ? formatDistanceToNow(new Date(data.captured_at), {
                   addSuffix: true,
-                  locale: ptBR,
+                  locale: dLocale,
                 })
               : "—"}
           </p>
           {data.captured_at && (
             <p className="mt-1 text-xs text-muted-foreground">
-              {format(new Date(data.captured_at), "dd 'de' MMMM, HH:mm", { locale: ptBR })}
+              {format(new Date(data.captured_at), lang === "en" ? "MMMM dd, HH:mm" : "dd 'de' MMMM, HH:mm", { locale: dLocale })}
             </p>
           )}
         </SummaryCard>
 
-        <SummaryCard label="Status" icon={Layers}>
+        <SummaryCard label={t("Status")} icon={Layers}>
           <p className="text-base font-semibold capitalize">{data.status}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {data.scrape_ok === false ? "Última coleta falhou" : "Mineração saudável"}
+            {data.scrape_ok === false ? t("Última coleta falhou") : t("Mineração saudável")}
           </p>
         </SummaryCard>
       </div>
@@ -228,18 +228,18 @@ function LibraryDetailPage() {
       <Card className="border-border/60 bg-card p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold">Evolução</h2>
+            <h2 className="text-lg font-semibold">{t("Evolução")}</h2>
             <p className="text-sm text-muted-foreground">
               {mode === "day"
-                ? "Média diária de anúncios ativos."
-                : `Snapshots crus das últimas ${hourRange} horas.`}
+                ? t("Média diária de anúncios ativos.")
+                : tf(t("Snapshots crus das últimas {h} horas."), { h: hourRange })}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Tabs value={mode} onValueChange={(v) => setMode(v as "day" | "hour")}>
               <TabsList>
-                <TabsTrigger value="hour">Hora</TabsTrigger>
-                <TabsTrigger value="day">Dia</TabsTrigger>
+                <TabsTrigger value="hour">{t("Hora")}</TabsTrigger>
+                <TabsTrigger value="day">{t("Dia")}</TabsTrigger>
               </TabsList>
             </Tabs>
             {mode === "hour" ? (
