@@ -10,9 +10,11 @@ export interface ProfileRow {
 export function useProfile() {
   return useQuery({
     queryKey: ["profile"],
+    staleTime: 60_000,
     queryFn: async (): Promise<{ profile: ProfileRow | null; email: string | null; avatarUrl: string | null }> => {
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData.user;
+      // getSession() reads the cached session synchronously; getUser() makes a network round-trip.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user ?? null;
       if (!user) return { profile: null, email: null, avatarUrl: null };
       const { data, error } = await supabase
         .from("profiles")

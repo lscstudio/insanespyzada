@@ -84,12 +84,15 @@ export const listLibrariesForAccount = createServerFn({ method: "POST" })
     const ids = (libs ?? []).map((l) => l.id);
     if (ids.length === 0) return [];
 
-    // Latest snapshot per library
+    // Latest snapshot per library — cap at 2× lib count so we don't pull
+    // tens of thousands of historical rows just to find the most recent
+    // capture per library.
     const { data: snaps, error: snapErr } = await supabaseAdmin
       .from("snapshots")
       .select("library_id, active_ads_count, captured_at")
       .in("library_id", ids)
-      .order("captured_at", { ascending: false });
+      .order("captured_at", { ascending: false })
+      .limit(Math.max(ids.length * 2, 50));
     if (snapErr) throw new Error(snapErr.message);
 
     const latest = new Map<string, { active_ads_count: number; captured_at: string }>();
