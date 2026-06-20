@@ -632,6 +632,11 @@ async function collectOne(
         parsed = parseAdLibraryPage(html, markdown);
       }
     }
+    if (parsed.active_ads_count === 0 && parsed.creatives.length === 0 && !parsed.total_results_text) {
+      const err = new Error("Nenhum dado confiável foi extraído da biblioteca") as Error & { transient?: boolean };
+      err.transient = true;
+      throw err;
+    }
 
     const snapshotPayload: TablesInsert<"snapshots"> = {
       library_id: lib.id,
@@ -815,7 +820,7 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
       }
 
       const r = await collectOneRobust(sb, lib, {
-        structured: opts?.libraryId ? true : false,
+        structured: manualRun,
         maxAttempts: manualRun ? 1 : 2,
       });
       if (r.ok) {
