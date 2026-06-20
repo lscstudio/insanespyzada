@@ -619,15 +619,18 @@ async function collectOne(
   options?: { structured?: boolean },
 ): Promise<{ ok: boolean; parsed?: ParsedResult; error?: string }> {
   try {
-    const { html, markdown, extracted } = await scrapePage(lib.url, options);
+    let { html, markdown, extracted } = await scrapePage(lib.url, { structured: false });
 
-    // 1ª escolha: LLM extraction. Se vier vazio, cai pro regex.
-    let parsed: ParsedResult | null = null;
-    if (extracted && (extracted.creatives?.length || (extracted.active_ads_count ?? 0) > 0)) {
-      parsed = normalizeFromLLM(extracted);
-    }
-    if (!parsed || (parsed.active_ads_count === 0 && parsed.creatives.length === 0)) {
-      parsed = parseAdLibraryPage(html, markdown);
+    // Caminho rápido: renderiza a página e usa parser local. Só acionamos a
+    // extração estruturada mais lenta quando uma coleta individual não trouxe nada.
+    let parsed: ParsedResult | null = parseAdLibraryPage(html, markdown);
+    if ((parsed.active_ads_count === 0 && parsed.creatives.length === 0) && options?.structured) {
+      ({ html, markdown, extracted } = await scrapePage(lib.url, { structured: true }));
+      if (extracted && (extracted.creatives?.length || (extracted.active_ads_count ?? 0) > 0)) {
+        parsed = normalizeFromLLM(extracted);
+      } else {
+        parsed = parseAdLibraryPage(html, markdown);
+      }
     }
 
     const snapshotPayload: TablesInsert<"snapshots"> = {
