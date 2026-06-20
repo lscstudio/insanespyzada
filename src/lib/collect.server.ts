@@ -683,7 +683,9 @@ async function collectOne(
       writes.push(
         (async () => {
           const { error: crErr } = await sb.from("creatives").insert(creativesRows);
-          if (crErr) throw crErr;
+          if (crErr) {
+            console.warn(`[collect] creatives insert falhou para ${lib.id}: ${crErr.message}`);
+          }
         })(),
       );
     }
