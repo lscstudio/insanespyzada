@@ -719,7 +719,7 @@ async function collectOneRobust(
     if (attempt < maxAttempts) await sleep(2500);
   }
   // Grava snapshot de falha apenas após esgotar as tentativas.
-  await sb.from("snapshots").insert({
+  const { error: failSnapErr } = await sb.from("snapshots").insert({
     library_id: lib.id,
     captured_at: new Date().toISOString(),
     scrape_ok: false,
@@ -728,6 +728,7 @@ async function collectOneRobust(
     top_creative_count: 0,
     error_message: (lastError ?? "unknown").slice(0, 500),
   });
+  if (failSnapErr) console.warn(`[collect] falha ao gravar snapshot de erro ${lib.id}: ${failSnapErr.message}`);
   return { ok: false, error: lastError };
 }
 
