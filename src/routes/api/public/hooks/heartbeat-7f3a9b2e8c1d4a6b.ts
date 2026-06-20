@@ -34,7 +34,7 @@ export const Route = createFileRoute(
             });
           }
           await job;
-          return new Response(JSON.stringify(report), {
+          return new Response(JSON.stringify({ accepted: true }), {
             status: 200,
             headers: { "content-type": "application/json" },
           });
