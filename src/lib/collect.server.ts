@@ -616,9 +616,10 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
 async function collectOne(
   sb: SupabaseClient<Database>,
   lib: LibraryRow,
+  options?: { structured?: boolean },
 ): Promise<{ ok: boolean; parsed?: ParsedResult; error?: string }> {
   try {
-    const { html, markdown, extracted } = await scrapePage(lib.url);
+    const { html, markdown, extracted } = await scrapePage(lib.url, options);
 
     // 1ª escolha: LLM extraction. Se vier vazio, cai pro regex.
     let parsed: ParsedResult | null = null;
@@ -707,14 +708,15 @@ async function collectOne(
 async function collectOneRobust(
   sb: SupabaseClient<Database>,
   lib: LibraryRow,
+  options?: { structured?: boolean; maxAttempts?: number },
 ): Promise<{ ok: boolean; parsed?: ParsedResult; error?: string }> {
-  const LIBRARY_RETRIES = 2;
+  const maxAttempts = Math.max(1, options?.maxAttempts ?? 1);
   let lastError: string | undefined;
-  for (let attempt = 1; attempt <= LIBRARY_RETRIES; attempt++) {
-    const r = await collectOne(sb, lib);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const r = await collectOne(sb, lib, { structured: options?.structured });
     if (r.ok) return r;
     lastError = r.error;
-    if (attempt < LIBRARY_RETRIES) await sleep(15000);
+    if (attempt < maxAttempts) await sleep(2500);
   }
   // Grava snapshot de falha apenas após esgotar as tentativas.
   await sb.from("snapshots").insert({
