@@ -719,16 +719,35 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
   const started = Date.now();
   const sb = getAdmin();
 
-  // Idempotency guard for hourly cron retries: if a successful snapshot was
-  // captured in the last 45 minutes, skip. Manual / scoped runs bypass.
-  if (!opts?.libraryId && !opts?.userId && !opts?.force) {
+  let query = sb.from("libraries").select("*").eq("status", "active");
+  if (opts?.libraryId) query = query.eq("id", opts.libraryId);
+  if (opts?.userId) query = query.eq("created_by", opts.userId);
+  const { data: libraries, error } = await query;
+  if (error) throw error;
+
+  let list = libraries ?? [];
+
+  // Per-library idempotency: para o cron horário (sem opts), pulamos apenas
+  // bibliotecas que JÁ têm um snapshot bem-sucedido nos últimos 45 minutos.
+  // Isso permite que os retries (:03 e :08) completem libs que falharam na
+  // janela :00, garantindo que toda biblioteca seja atualizada a cada hora.
+  if (!opts?.libraryId && !opts?.userId && !opts?.force && list.length > 0) {
     const since = new Date(Date.now() - 45 * 60 * 1000).toISOString();
-    const { count } = await sb
+    const { data: recent } = await sb
       .from("snapshots")
-      .select("id", { count: "exact", head: true })
+      .select("library_id")
       .eq("scrape_ok", true)
-      .gte("captured_at", since);
-    if ((count ?? 0) > 0) {
+      .gte("captured_at", since)
+      .in("library_id", list.map((l) => l.id));
+    const done = new Set((recent ?? []).map((r) => r.library_id));
+    const before = list.length;
+    list = list.filter((l) => !done.has(l.id));
+    if (list.length < before) {
+      console.log(
+        `[collect] pulando ${before - list.length} libs já coletadas na última hora; processando ${list.length}.`,
+      );
+    }
+    if (list.length === 0) {
       return {
         libraries_total: 0,
         libraries_ok: 0,
@@ -740,13 +759,6 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
     }
   }
 
-  let query = sb.from("libraries").select("*").eq("status", "active");
-  if (opts?.libraryId) query = query.eq("id", opts.libraryId);
-  if (opts?.userId) query = query.eq("created_by", opts.userId);
-  const { data: libraries, error } = await query;
-  if (error) throw error;
-
-  const list = libraries ?? [];
   const details: CollectReport["details"] = [];
   let ok = 0;
   let failed = 0;
