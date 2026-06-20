@@ -20,9 +20,12 @@ export function LanguageSwitcher({
   className?: string;
 }) {
   const { lang, setLang, t } = useLang();
-  const current = lang === "pt"
-    ? { flag: "🇧🇷", label: "PT" }
-    : { flag: "🇺🇸", label: "EN" };
+  const current =
+    lang === "pt"
+      ? { flag: "🇧🇷", label: "PT" }
+      : lang === "es"
+        ? { flag: "🇪🇸", label: "ES" }
+        : { flag: "🇺🇸", label: "EN" };
 
   return (
     <DropdownMenu>
@@ -58,19 +61,22 @@ export function LanguageSwitcher({
           onClick={() => setLang("pt")}
           className={cn(lang === "pt" && "bg-accent")}
         >
-          <span className="text-base leading-none" aria-hidden>
-            🇧🇷
-          </span>
+          <span className="text-base leading-none" aria-hidden>🇧🇷</span>
           <span>{t("Português")}</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setLang("en")}
           className={cn(lang === "en" && "bg-accent")}
         >
-          <span className="text-base leading-none" aria-hidden>
-            🇺🇸
-          </span>
+          <span className="text-base leading-none" aria-hidden>🇺🇸</span>
           <span>{t("Inglês")}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setLang("es")}
+          className={cn(lang === "es" && "bg-accent")}
+        >
+          <span className="text-base leading-none" aria-hidden>🇪🇸</span>
+          <span>{t("Espanhol")}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
