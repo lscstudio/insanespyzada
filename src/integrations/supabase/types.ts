@@ -130,10 +130,13 @@ export type Database = {
       }
       libraries: {
         Row: {
+          collection_started_at: string | null
           created_at: string
           created_by: string | null
           id: string
           language: string | null
+          last_collection_error: string | null
+          last_collection_ok_at: string | null
           niche: string | null
           notes: string | null
           page_name: string | null
@@ -144,10 +147,13 @@ export type Database = {
           url: string
         }
         Insert: {
+          collection_started_at?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           language?: string | null
+          last_collection_error?: string | null
+          last_collection_ok_at?: string | null
           niche?: string | null
           notes?: string | null
           page_name?: string | null
@@ -158,10 +164,13 @@ export type Database = {
           url: string
         }
         Update: {
+          collection_started_at?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           language?: string | null
+          last_collection_error?: string | null
+          last_collection_ok_at?: string | null
           niche?: string | null
           notes?: string | null
           page_name?: string | null
