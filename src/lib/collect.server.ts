@@ -734,6 +734,8 @@ async function collectOneRobust(
 export async function runCollection(opts?: { libraryId?: string; userId?: string; force?: boolean }): Promise<CollectReport> {
   const started = Date.now();
   const sb = getAdmin();
+  const nowIso = new Date().toISOString();
+  const manualRun = Boolean(opts?.libraryId || opts?.userId || opts?.force);
 
   let query = sb.from("libraries").select("*").eq("status", "active");
   if (opts?.libraryId) query = query.eq("id", opts.libraryId);
@@ -742,12 +744,13 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
   if (error) throw error;
 
   let list = libraries ?? [];
+  const requestedTotal = list.length;
 
   // Per-library idempotency: para o cron horário (sem opts), pulamos apenas
   // bibliotecas que JÁ têm um snapshot bem-sucedido nos últimos 45 minutos.
   // Isso permite que os retries (:03 e :08) completem libs que falharam na
   // janela :00, garantindo que toda biblioteca seja atualizada a cada hora.
-  if (!opts?.libraryId && !opts?.userId && !opts?.force && list.length > 0) {
+  if (!manualRun && list.length > 0) {
     const since = new Date(Date.now() - 45 * 60 * 1000).toISOString();
     const { data: recent } = await sb
       .from("snapshots")
@@ -765,7 +768,7 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
     }
     if (list.length === 0) {
       return {
-        libraries_total: 0,
+        libraries_total: requestedTotal,
         libraries_ok: 0,
         libraries_failed: 0,
         duration_ms: Date.now() - started,
@@ -778,17 +781,49 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
   const details: CollectReport["details"] = [];
   let ok = 0;
   let failed = 0;
+  let skippedLocked = 0;
 
-  const CONCURRENCY = 5;
+  const CONCURRENCY = Math.max(1, Math.min(8, list.length));
   let cursor = 0;
   async function worker() {
     while (cursor < list.length) {
       const idx = cursor++;
       const lib = list[idx];
       const label = lib.title || lib.search_term || lib.page_name || lib.id;
-      const r = await collectOneRobust(sb, lib);
+      const lockExpiry = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { data: locked, error: lockErr } = await sb
+        .from("libraries")
+        .update({ collection_started_at: nowIso, last_collection_error: null })
+        .eq("id", lib.id)
+        .or(`collection_started_at.is.null,collection_started_at.lt.${lockExpiry}`)
+        .select("id")
+        .maybeSingle();
+      if (lockErr || !locked) {
+        skippedLocked += 1;
+        details.push({
+          library_id: lib.id,
+          label,
+          ok: false,
+          skipped: true,
+          error: lockErr?.message ?? "Coleta já em andamento",
+        });
+        continue;
+      }
+
+      const r = await collectOneRobust(sb, lib, {
+        structured: opts?.libraryId ? true : false,
+        maxAttempts: manualRun ? 1 : 2,
+      });
       if (r.ok) {
         ok += 1;
+        await sb
+          .from("libraries")
+          .update({
+            collection_started_at: null,
+            last_collection_ok_at: new Date().toISOString(),
+            last_collection_error: null,
+          })
+          .eq("id", lib.id);
         details.push({
           library_id: lib.id,
           label,
@@ -799,6 +834,13 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
         });
       } else {
         failed += 1;
+        await sb
+          .from("libraries")
+          .update({
+            collection_started_at: null,
+            last_collection_error: (r.error ?? "unknown").slice(0, 500),
+          })
+          .eq("id", lib.id);
         details.push({ library_id: lib.id, label, ok: false, error: r.error });
       }
     }
@@ -808,9 +850,9 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
   );
 
   return {
-    libraries_total: list.length,
+    libraries_total: requestedTotal,
     libraries_ok: ok,
-    libraries_failed: failed,
+    libraries_failed: failed + skippedLocked,
     duration_ms: Date.now() - started,
     details,
   };
