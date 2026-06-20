@@ -55,6 +55,7 @@ export interface CollectReport {
     library_id: string;
     label: string;
     ok: boolean;
+    skipped?: boolean;
     active_ads_count?: number;
     unique_creatives?: number;
     pages_count?: number;
@@ -250,7 +251,24 @@ export function invalidateDynamicKeysCache() {
   DYN_CACHE = null;
 }
 
-async function firecrawlScrapeOnce(url: string, apiKey: string): Promise<FirecrawlPayload> {
+async function firecrawlScrapeOnce(
+  url: string,
+  apiKey: string,
+  options?: { structured?: boolean },
+): Promise<FirecrawlPayload> {
+  const structured = options?.structured === true;
+  const formats: Array<string | { type: "json"; prompt: string; schema: typeof EXTRACTION_SCHEMA }> = [
+    "html",
+    "markdown",
+  ];
+  if (structured) {
+    formats.push({
+      type: "json",
+      prompt: EXTRACTION_PROMPT,
+      schema: EXTRACTION_SCHEMA,
+    });
+  }
+
   const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
     method: "POST",
     headers: {
@@ -259,18 +277,10 @@ async function firecrawlScrapeOnce(url: string, apiKey: string): Promise<Firecra
     },
     body: JSON.stringify({
       url,
-      formats: [
-        "html",
-        "markdown",
-        {
-          type: "json",
-          prompt: EXTRACTION_PROMPT,
-          schema: EXTRACTION_SCHEMA,
-        },
-      ],
+      formats,
       onlyMainContent: false,
-      waitFor: 8000,
-      timeout: 120000,
+      waitFor: structured ? 6000 : 2500,
+      timeout: structured ? 70000 : 45000,
       maxAge: 0,
       location: { country: "BR", languages: ["pt-BR", "pt"] },
     }),
@@ -344,7 +354,7 @@ async function scraperApiScrapeOnce(url: string, apiKey: string): Promise<Firecr
   endpoint.searchParams.set("device_type", "desktop");
   const res = await fetch(endpoint.toString(), {
     method: "GET",
-    signal: AbortSignal.timeout(120000),
+    signal: AbortSignal.timeout(60000),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -365,19 +375,23 @@ async function scraperApiScrapeOnce(url: string, apiKey: string): Promise<Firecr
   return { html, markdown: "", extracted: null };
 }
 
-async function tryKeyWithRetry(key: PoolKey, url: string): Promise<FirecrawlPayload> {
-  const MAX_RETRY = 2; // até 3 tentativas na mesma chave para erros transitórios
+async function tryKeyWithRetry(
+  key: PoolKey,
+  url: string,
+  options?: { structured?: boolean },
+): Promise<FirecrawlPayload> {
+  const MAX_RETRY = 1; // tenta rápido e faz failover para outra chave sem travar a fila
   let lastErr: unknown;
   for (let attempt = 0; attempt <= MAX_RETRY; attempt++) {
     try {
-      if (key.provider === "firecrawl") return await firecrawlScrapeOnce(url, key.value);
+      if (key.provider === "firecrawl") return await firecrawlScrapeOnce(url, key.value, options);
       return await scraperApiScrapeOnce(url, key.value);
     } catch (err) {
       lastErr = err;
       if (isCreditsExhausted(err) || isDefinitive(err)) throw err;
       const transient = (err as { transient?: boolean }).transient ?? true;
       if (!transient || attempt === MAX_RETRY) throw err;
-      await sleep(attempt === 0 ? 2000 : 6000);
+      await sleep(1200);
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
@@ -390,7 +404,7 @@ async function tryKeyWithRetry(key: PoolKey, url: string): Promise<FirecrawlPayl
  * - Erro transitório (5xx/429/timeout): retenta na mesma chave 2x antes de pular.
  * - Erro definitivo (404/URL inválida): falha imediato.
  */
-async function scrapePage(url: string): Promise<FirecrawlPayload> {
+async function scrapePage(url: string, options?: { structured?: boolean }): Promise<FirecrawlPayload> {
   const pool = await buildPool();
   if (pool.length === 0) {
     throw new Error(
@@ -400,7 +414,7 @@ async function scrapePage(url: string): Promise<FirecrawlPayload> {
   const errors: string[] = [];
   for (const key of pool) {
     try {
-      const result = await tryKeyWithRetry(key, url);
+      const result = await tryKeyWithRetry(key, url, options);
       if (errors.length > 0) {
         console.log(`[collect] ✓ sucesso com ${key.name} após falhar em: ${errors.join(", ")}`);
       }
