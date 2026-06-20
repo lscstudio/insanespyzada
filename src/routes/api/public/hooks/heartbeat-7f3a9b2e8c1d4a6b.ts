@@ -18,7 +18,22 @@ export const Route = createFileRoute(
         }
         try {
           const { runCollection } = await import("@/lib/collect.server");
-          const report = await runCollection();
+          const job = runCollection().catch((err) => {
+            console.error("[collect] scheduled background run failed:", err instanceof Error ? err.message : String(err));
+          });
+          const waitUntil = (
+            globalThis as typeof globalThis & {
+              EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void };
+            }
+          ).EdgeRuntime?.waitUntil;
+          if (waitUntil) {
+            waitUntil(job);
+            return new Response(JSON.stringify({ accepted: true }), {
+              status: 202,
+              headers: { "content-type": "application/json" },
+            });
+          }
+          await job;
           return new Response(JSON.stringify(report), {
             status: 200,
             headers: { "content-type": "application/json" },
