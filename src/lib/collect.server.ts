@@ -55,6 +55,7 @@ export interface CollectReport {
     library_id: string;
     label: string;
     ok: boolean;
+    skipped?: boolean;
     active_ads_count?: number;
     unique_creatives?: number;
     pages_count?: number;
@@ -250,7 +251,24 @@ export function invalidateDynamicKeysCache() {
   DYN_CACHE = null;
 }
 
-async function firecrawlScrapeOnce(url: string, apiKey: string): Promise<FirecrawlPayload> {
+async function firecrawlScrapeOnce(
+  url: string,
+  apiKey: string,
+  options?: { structured?: boolean },
+): Promise<FirecrawlPayload> {
+  const structured = options?.structured === true;
+  const formats: Array<string | { type: "json"; prompt: string; schema: typeof EXTRACTION_SCHEMA }> = [
+    "html",
+    "markdown",
+  ];
+  if (structured) {
+    formats.push({
+      type: "json",
+      prompt: EXTRACTION_PROMPT,
+      schema: EXTRACTION_SCHEMA,
+    });
+  }
+
   const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
     method: "POST",
     headers: {
@@ -259,18 +277,10 @@ async function firecrawlScrapeOnce(url: string, apiKey: string): Promise<Firecra
     },
     body: JSON.stringify({
       url,
-      formats: [
-        "html",
-        "markdown",
-        {
-          type: "json",
-          prompt: EXTRACTION_PROMPT,
-          schema: EXTRACTION_SCHEMA,
-        },
-      ],
+      formats,
       onlyMainContent: false,
-      waitFor: 8000,
-      timeout: 120000,
+      waitFor: structured ? 6000 : 2500,
+      timeout: structured ? 70000 : 45000,
       maxAge: 0,
       location: { country: "BR", languages: ["pt-BR", "pt"] },
     }),
@@ -344,7 +354,7 @@ async function scraperApiScrapeOnce(url: string, apiKey: string): Promise<Firecr
   endpoint.searchParams.set("device_type", "desktop");
   const res = await fetch(endpoint.toString(), {
     method: "GET",
-    signal: AbortSignal.timeout(120000),
+    signal: AbortSignal.timeout(60000),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -365,19 +375,23 @@ async function scraperApiScrapeOnce(url: string, apiKey: string): Promise<Firecr
   return { html, markdown: "", extracted: null };
 }
 
-async function tryKeyWithRetry(key: PoolKey, url: string): Promise<FirecrawlPayload> {
-  const MAX_RETRY = 2; // até 3 tentativas na mesma chave para erros transitórios
+async function tryKeyWithRetry(
+  key: PoolKey,
+  url: string,
+  options?: { structured?: boolean },
+): Promise<FirecrawlPayload> {
+  const MAX_RETRY = 1; // tenta rápido e faz failover para outra chave sem travar a fila
   let lastErr: unknown;
   for (let attempt = 0; attempt <= MAX_RETRY; attempt++) {
     try {
-      if (key.provider === "firecrawl") return await firecrawlScrapeOnce(url, key.value);
+      if (key.provider === "firecrawl") return await firecrawlScrapeOnce(url, key.value, options);
       return await scraperApiScrapeOnce(url, key.value);
     } catch (err) {
       lastErr = err;
       if (isCreditsExhausted(err) || isDefinitive(err)) throw err;
       const transient = (err as { transient?: boolean }).transient ?? true;
       if (!transient || attempt === MAX_RETRY) throw err;
-      await sleep(attempt === 0 ? 2000 : 6000);
+      await sleep(1200);
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
@@ -390,7 +404,7 @@ async function tryKeyWithRetry(key: PoolKey, url: string): Promise<FirecrawlPayl
  * - Erro transitório (5xx/429/timeout): retenta na mesma chave 2x antes de pular.
  * - Erro definitivo (404/URL inválida): falha imediato.
  */
-async function scrapePage(url: string): Promise<FirecrawlPayload> {
+async function scrapePage(url: string, options?: { structured?: boolean }): Promise<FirecrawlPayload> {
   const pool = await buildPool();
   if (pool.length === 0) {
     throw new Error(
@@ -400,7 +414,7 @@ async function scrapePage(url: string): Promise<FirecrawlPayload> {
   const errors: string[] = [];
   for (const key of pool) {
     try {
-      const result = await tryKeyWithRetry(key, url);
+      const result = await tryKeyWithRetry(key, url, options);
       if (errors.length > 0) {
         console.log(`[collect] ✓ sucesso com ${key.name} após falhar em: ${errors.join(", ")}`);
       }
@@ -602,17 +616,26 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
 async function collectOne(
   sb: SupabaseClient<Database>,
   lib: LibraryRow,
+  options?: { structured?: boolean },
 ): Promise<{ ok: boolean; parsed?: ParsedResult; error?: string }> {
   try {
-    const { html, markdown, extracted } = await scrapePage(lib.url);
+    let { html, markdown, extracted } = await scrapePage(lib.url, { structured: false });
 
-    // 1ª escolha: LLM extraction. Se vier vazio, cai pro regex.
-    let parsed: ParsedResult | null = null;
-    if (extracted && (extracted.creatives?.length || (extracted.active_ads_count ?? 0) > 0)) {
-      parsed = normalizeFromLLM(extracted);
+    // Caminho rápido: renderiza a página e usa parser local. Só acionamos a
+    // extração estruturada mais lenta quando uma coleta individual não trouxe nada.
+    let parsed: ParsedResult | null = parseAdLibraryPage(html, markdown);
+    if ((parsed.active_ads_count === 0 && parsed.creatives.length === 0) && options?.structured) {
+      ({ html, markdown, extracted } = await scrapePage(lib.url, { structured: true }));
+      if (extracted && (extracted.creatives?.length || (extracted.active_ads_count ?? 0) > 0)) {
+        parsed = normalizeFromLLM(extracted);
+      } else {
+        parsed = parseAdLibraryPage(html, markdown);
+      }
     }
-    if (!parsed || (parsed.active_ads_count === 0 && parsed.creatives.length === 0)) {
-      parsed = parseAdLibraryPage(html, markdown);
+    if (parsed.active_ads_count === 0 && parsed.creatives.length === 0 && !parsed.total_results_text) {
+      const err = new Error("Nenhum dado confiável foi extraído da biblioteca") as Error & { transient?: boolean };
+      err.transient = true;
+      throw err;
     }
 
     const snapshotPayload: TablesInsert<"snapshots"> = {
@@ -660,7 +683,9 @@ async function collectOne(
       writes.push(
         (async () => {
           const { error: crErr } = await sb.from("creatives").insert(creativesRows);
-          if (crErr) throw crErr;
+          if (crErr) {
+            console.warn(`[collect] creatives insert falhou para ${lib.id}: ${crErr.message}`);
+          }
         })(),
       );
     }
@@ -693,17 +718,18 @@ async function collectOne(
 async function collectOneRobust(
   sb: SupabaseClient<Database>,
   lib: LibraryRow,
+  options?: { structured?: boolean; maxAttempts?: number },
 ): Promise<{ ok: boolean; parsed?: ParsedResult; error?: string }> {
-  const LIBRARY_RETRIES = 2;
+  const maxAttempts = Math.max(1, options?.maxAttempts ?? 1);
   let lastError: string | undefined;
-  for (let attempt = 1; attempt <= LIBRARY_RETRIES; attempt++) {
-    const r = await collectOne(sb, lib);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const r = await collectOne(sb, lib, { structured: options?.structured });
     if (r.ok) return r;
     lastError = r.error;
-    if (attempt < LIBRARY_RETRIES) await sleep(15000);
+    if (attempt < maxAttempts) await sleep(2500);
   }
   // Grava snapshot de falha apenas após esgotar as tentativas.
-  await sb.from("snapshots").insert({
+  const { error: failSnapErr } = await sb.from("snapshots").insert({
     library_id: lib.id,
     captured_at: new Date().toISOString(),
     scrape_ok: false,
@@ -712,12 +738,15 @@ async function collectOneRobust(
     top_creative_count: 0,
     error_message: (lastError ?? "unknown").slice(0, 500),
   });
+  if (failSnapErr) console.warn(`[collect] falha ao gravar snapshot de erro ${lib.id}: ${failSnapErr.message}`);
   return { ok: false, error: lastError };
 }
 
 export async function runCollection(opts?: { libraryId?: string; userId?: string; force?: boolean }): Promise<CollectReport> {
   const started = Date.now();
   const sb = getAdmin();
+  const nowIso = new Date().toISOString();
+  const manualRun = Boolean(opts?.libraryId || opts?.userId || opts?.force);
 
   let query = sb.from("libraries").select("*").eq("status", "active");
   if (opts?.libraryId) query = query.eq("id", opts.libraryId);
@@ -726,12 +755,13 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
   if (error) throw error;
 
   let list = libraries ?? [];
+  const requestedTotal = list.length;
 
   // Per-library idempotency: para o cron horário (sem opts), pulamos apenas
   // bibliotecas que JÁ têm um snapshot bem-sucedido nos últimos 45 minutos.
   // Isso permite que os retries (:03 e :08) completem libs que falharam na
   // janela :00, garantindo que toda biblioteca seja atualizada a cada hora.
-  if (!opts?.libraryId && !opts?.userId && !opts?.force && list.length > 0) {
+  if (!manualRun && list.length > 0) {
     const since = new Date(Date.now() - 45 * 60 * 1000).toISOString();
     const { data: recent } = await sb
       .from("snapshots")
@@ -749,7 +779,7 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
     }
     if (list.length === 0) {
       return {
-        libraries_total: 0,
+        libraries_total: requestedTotal,
         libraries_ok: 0,
         libraries_failed: 0,
         duration_ms: Date.now() - started,
@@ -762,17 +792,49 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
   const details: CollectReport["details"] = [];
   let ok = 0;
   let failed = 0;
+  let skippedLocked = 0;
 
-  const CONCURRENCY = 5;
+  const CONCURRENCY = Math.max(1, Math.min(8, list.length));
   let cursor = 0;
   async function worker() {
     while (cursor < list.length) {
       const idx = cursor++;
       const lib = list[idx];
       const label = lib.title || lib.search_term || lib.page_name || lib.id;
-      const r = await collectOneRobust(sb, lib);
+      const lockExpiry = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { data: locked, error: lockErr } = await sb
+        .from("libraries")
+        .update({ collection_started_at: nowIso, last_collection_error: null })
+        .eq("id", lib.id)
+        .or(`collection_started_at.is.null,collection_started_at.lt.${lockExpiry}`)
+        .select("id")
+        .maybeSingle();
+      if (lockErr || !locked) {
+        skippedLocked += 1;
+        details.push({
+          library_id: lib.id,
+          label,
+          ok: false,
+          skipped: true,
+          error: lockErr?.message ?? "Coleta já em andamento",
+        });
+        continue;
+      }
+
+      const r = await collectOneRobust(sb, lib, {
+        structured: manualRun,
+        maxAttempts: manualRun ? 1 : 2,
+      });
       if (r.ok) {
         ok += 1;
+        await sb
+          .from("libraries")
+          .update({
+            collection_started_at: null,
+            last_collection_ok_at: new Date().toISOString(),
+            last_collection_error: null,
+          })
+          .eq("id", lib.id);
         details.push({
           library_id: lib.id,
           label,
@@ -783,6 +845,13 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
         });
       } else {
         failed += 1;
+        await sb
+          .from("libraries")
+          .update({
+            collection_started_at: null,
+            last_collection_error: (r.error ?? "unknown").slice(0, 500),
+          })
+          .eq("id", lib.id);
         details.push({ library_id: lib.id, label, ok: false, error: r.error });
       }
     }
@@ -792,9 +861,9 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
   );
 
   return {
-    libraries_total: list.length,
+    libraries_total: requestedTotal,
     libraries_ok: ok,
-    libraries_failed: failed,
+    libraries_failed: failed + skippedLocked,
     duration_ms: Date.now() - started,
     details,
   };
