@@ -1,12 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type Lang = "pt" | "en";
+export type Lang = "pt" | "en" | "es";
 
 const STORAGE_KEY = "insanespy:lang";
 
-// PT (key) -> EN (translation). Missing keys fall through to the PT key.
-const DICT: Record<string, string> = {
-  // Generic
+// PT (key) -> EN translation
+const EN: Record<string, string> = {
   "Salvar": "Save",
   "Salvando…": "Saving…",
   "Cancelar": "Cancel",
@@ -29,18 +28,14 @@ const DICT: Record<string, string> = {
   "Idioma": "Language",
   "Português": "Portuguese",
   "Inglês": "English",
+  "Espanhol": "Spanish",
   "Trocar idioma": "Change language",
-
-  // Sidebar / Shell
   "Visão Geral": "Overview",
   "Bibliotecas": "Libraries",
   "Configurações": "Settings",
   "Você está sendo observado": "You are being watched",
   "Bibliotecas novas são mineradas na hora.": "New libraries are mined instantly.",
-
-  // Overview
-  "Panorama em tempo quase real das bibliotecas que você monitora.":
-    "Near real-time overview of the libraries you monitor.",
+  "Panorama em tempo quase real das bibliotecas que você monitora.": "Near real-time overview of the libraries you monitor.",
   "Bibliotecas ativas": "Active libraries",
   "Anúncios ativos (soma)": "Active ads (sum)",
   "Biblioteca líder": "Leading library",
@@ -53,14 +48,11 @@ const DICT: Record<string, string> = {
   "Mais escaladas": "Top scaled",
   "Top 10 por anúncios ativos": "Top 10 by active ads",
   "Movimentação na última 1h": "Movement in the last 1h",
-  "Bibliotecas que subiram ou caíram em anúncios ativos.":
-    "Libraries that went up or down in active ads.",
+  "Bibliotecas que subiram ou caíram em anúncios ativos.": "Libraries that went up or down in active ads.",
   "Sem variações na última 1h. Tudo estável.": "No variations in the last 1h. All stable.",
   "Nenhuma biblioteca ainda. Vá para": "No libraries yet. Go to",
   "e adicione a primeira.": "and add the first one.",
   "anúncios": "ads",
-
-  // Libraries page
   "monitorada": "monitored",
   "monitoradas": "monitored",
   "de": "of",
@@ -79,15 +71,12 @@ const DICT: Record<string, string> = {
   "Visualização em lista": "List view",
   "Nenhum resultado para os filtros": "No results for the filters",
   "Comece adicionando sua primeira biblioteca": "Start by adding your first library",
-  "Cole o link de uma busca na Biblioteca de Anúncios da Meta. A mineração roda na hora e os números aparecem aqui automaticamente.":
-    "Paste a search link from Meta Ad Library. Mining runs instantly and numbers appear here automatically.",
+  "Cole o link de uma busca na Biblioteca de Anúncios da Meta. A mineração roda na hora e os números aparecem aqui automaticamente.": "Paste a search link from Meta Ad Library. Mining runs instantly and numbers appear here automatically.",
   "Nenhuma biblioteca ativa para atualizar": "No active library to update",
   "biblioteca(s) atualizadas": "library(ies) updated",
   "falha(s)": "failure(s)",
   "Falha ao atualizar": "Failed to update",
   "Erro desconhecido": "Unknown error",
-
-  // Library card
   "Sem título": "Untitled",
   "Anúncios ativos": "Active ads",
   "Atualizado": "Updated",
@@ -99,15 +88,11 @@ const DICT: Record<string, string> = {
   "Biblioteca ativada": "Library activated",
   "Biblioteca excluída": "Library deleted",
   "Excluir biblioteca?": "Delete library?",
-
-  // Add library modal
   "Editar biblioteca": "Edit library",
-  "Dê um nome curto pra essa biblioteca (oferta, mecanismo, ângulo) e cole o link da Meta Ad Library.":
-    "Give this library a short name (offer, mechanism, angle) and paste the Meta Ad Library link.",
+  "Dê um nome curto pra essa biblioteca (oferta, mecanismo, ângulo) e cole o link da Meta Ad Library.": "Give this library a short name (offer, mechanism, angle) and paste the Meta Ad Library link.",
   "Título": "Title",
   "Ex: Oferta do azeite — mecanismo digestivo": "Ex: Olive oil offer — digestive mechanism",
-  "Aparece em todos os lugares no lugar do link da biblioteca.":
-    "Appears everywhere instead of the library link.",
+  "Aparece em todos os lugares no lugar do link da biblioteca.": "Appears everywhere instead of the library link.",
   "Link da biblioteca": "Library link",
   "Termo detectado:": "Detected term:",
   "Selecione um nicho": "Select a niche",
@@ -116,16 +101,13 @@ const DICT: Record<string, string> = {
   "Selecione": "Select",
   "Observações": "Notes",
   "Oferta, mecanismo, ângulo…": "Offer, mechanism, angle…",
-  "Ao adicionar uma biblioteca ativa, a mineração roda na hora e atualiza os dados ao vivo.":
-    "When you add an active library, mining runs instantly and updates data live.",
+  "Ao adicionar uma biblioteca ativa, a mineração roda na hora e atualiza os dados ao vivo.": "When you add an active library, mining runs instantly and updates data live.",
   "Salvar e minerar": "Save and mine",
   "Adicionar e minerar": "Add and mine",
   "Minerando…": "Mining…",
   "Biblioteca adicionada": "Library added",
   "Biblioteca atualizada": "Library updated",
   "Não foi possível salvar": "Could not save",
-
-  // Profile
   "Gerencie sua conta e preferências.": "Manage your account and preferences.",
   "Nome de exibição": "Display name",
   "Como devemos te chamar?": "How should we call you?",
@@ -135,11 +117,9 @@ const DICT: Record<string, string> = {
   "Foto atualizada": "Photo updated",
   "Nome atualizado": "Name updated",
   "E-mail": "Email",
-  "Você receberá um e-mail de confirmação no novo endereço.":
-    "You will receive a confirmation email at the new address.",
+  "Você receberá um e-mail de confirmação no novo endereço.": "You will receive a confirmation email at the new address.",
   "Verifique seu e-mail": "Check your email",
-  "Enviamos um link de confirmação para o novo endereço.":
-    "We sent a confirmation link to the new address.",
+  "Enviamos um link de confirmação para o novo endereço.": "We sent a confirmation link to the new address.",
   "Alterar senha": "Change password",
   "Nova senha": "New password",
   "Confirmar nova senha": "Confirm new password",
@@ -147,28 +127,22 @@ const DICT: Record<string, string> = {
   "Senhas não coincidem": "Passwords do not match",
   "Senha alterada": "Password changed",
   "Zona perigosa": "Danger zone",
-  "Excluir sua conta remove permanentemente todas as suas bibliotecas, snapshots, criativos e sua foto. Esta ação não pode ser desfeita.":
-    "Deleting your account permanently removes all your libraries, snapshots, creatives and your photo. This action cannot be undone.",
+  "Excluir sua conta remove permanentemente todas as suas bibliotecas, snapshots, criativos e sua foto. Esta ação não pode ser desfeita.": "Deleting your account permanently removes all your libraries, snapshots, creatives and your photo. This action cannot be undone.",
   "Excluir minha conta": "Delete my account",
   "Tem certeza?": "Are you sure?",
-  "Esta ação é irreversível. Todos os seus dados serão apagados imediatamente.":
-    "This action is irreversible. All your data will be deleted immediately.",
+  "Esta ação é irreversível. Todos os seus dados serão apagados imediatamente.": "This action is irreversible. All your data will be deleted immediately.",
   "Sim, excluir": "Yes, delete",
   "Conta excluída": "Account deleted",
-
-  // Settings
   "Coletor, nichos e dados de demonstração.": "Collector, niches and demo data.",
   "Coletor da Meta Ad Library": "Meta Ad Library collector",
-  "Roda automaticamente a cada 4 horas. Dispare uma coleta imediata abaixo.":
-    "Runs automatically every 4 hours. Trigger an immediate collection below.",
+  "Roda automaticamente a cada 4 horas. Dispare uma coleta imediata abaixo.": "Runs automatically every 4 hours. Trigger an immediate collection below.",
   "Coletando...": "Collecting...",
   "Coletar agora": "Collect now",
   "Última coleta": "Last collection",
   "ativos": "active",
   "únicos": "unique",
   "Nichos": "Niches",
-  "Crie, edite e exclua os nichos disponíveis ao adicionar bibliotecas.":
-    "Create, edit and delete the niches available when adding libraries.",
+  "Crie, edite e exclua os nichos disponíveis ao adicionar bibliotecas.": "Create, edit and delete the niches available when adding libraries.",
   "Ex.: Saúde, Coaching, Imobiliário…": "Ex.: Health, Coaching, Real Estate…",
   "Nenhum nicho ainda. Crie o primeiro acima.": "No niches yet. Create the first one above.",
   "Nicho criado": "Niche created",
@@ -178,14 +152,11 @@ const DICT: Record<string, string> = {
   "Não foi possível atualizar": "Could not update",
   "Não foi possível excluir": "Could not delete",
   "Dados de demonstração": "Demo data",
-  "Insere 3 bibliotecas de exemplo com 14 dias de snapshots fictícios.":
-    "Inserts 3 sample libraries with 14 days of fictional snapshots.",
+  "Insere 3 bibliotecas de exemplo com 14 dias de snapshots fictícios.": "Inserts 3 sample libraries with 14 days of fictional snapshots.",
   "Inserir bibliotecas demo": "Insert demo libraries",
   "Remover dados demo": "Remove demo data",
   "Dados de demonstração inseridos": "Demo data inserted",
   "Dados de demonstração removidos": "Demo data removed",
-
-  // Auth
   "Entrar": "Sign in",
   "Criar conta": "Sign up",
   "Continuar com Google": "Continue with Google",
@@ -196,8 +167,7 @@ const DICT: Record<string, string> = {
   "Enviando...": "Sending...",
   "Mínimo 8 caracteres": "Minimum 8 characters",
   "Email inválido": "Invalid email",
-  "O painel é privado. Apenas usuários autenticados acessam os dados.":
-    "The dashboard is private. Only authenticated users access the data.",
+  "O painel é privado. Apenas usuários autenticados acessam os dados.": "The dashboard is private. Only authenticated users access the data.",
   "Bem-vindo de volta!": "Welcome back!",
   "Conta criada": "Account created",
   "Você já pode entrar.": "You can now sign in.",
@@ -206,29 +176,19 @@ const DICT: Record<string, string> = {
   "Erro inesperado": "Unexpected error",
   "Informe seu email acima primeiro": "Enter your email above first",
   "Email enviado": "Email sent",
-  "Verifique sua caixa de entrada para redefinir a senha.":
-    "Check your inbox to reset your password.",
+  "Verifique sua caixa de entrada para redefinir a senha.": "Check your inbox to reset your password.",
   "Não foi possível enviar o email": "Could not send email",
-
-  // 404 / Error
   "Página não encontrada": "Page not found",
-  "A página que você procura não existe ou foi movida.":
-    "The page you are looking for does not exist or has been moved.",
+  "A página que você procura não existe ou foi movida.": "The page you are looking for does not exist or has been moved.",
   "Voltar ao início": "Back to home",
   "Esta página não carregou": "This page did not load",
-  "Algo deu errado. Tente novamente ou volte ao início.":
-    "Something went wrong. Try again or go back home.",
+  "Algo deu errado. Tente novamente ou volte ao início.": "Something went wrong. Try again or go back home.",
   "Tentar novamente": "Try again",
   "Início": "Home",
-
-  // Sidebar extra
   "Painel": "Dashboard",
-
-  // Painel admin
   "A página que você procura não existe.": "The page you are looking for does not exist.",
   "Painel Administrativo": "Admin Dashboard",
-  "APIs, créditos e uso por conta — atualizado em tempo real.":
-    "APIs, credits and usage per account — updated in real time.",
+  "APIs, créditos e uso por conta — atualizado em tempo real.": "APIs, credits and usage per account — updated in real time.",
   "APIs": "APIs",
   "Contas": "Accounts",
   "APIs Conectadas": "Connected APIs",
@@ -265,8 +225,6 @@ const DICT: Record<string, string> = {
   "Sem coletas": "No collections",
   "Sem nome": "No name",
   "ads ativos": "active ads",
-
-  // Library detail
   "Biblioteca não encontrada.": "Library not found.",
   "falha na última coleta": "failure on last collection",
   "Variação vs coleta anterior": "Change vs previous collection",
@@ -278,8 +236,7 @@ const DICT: Record<string, string> = {
   "Hora": "Hour",
   "Dia": "Day",
   "Criativo mais escalado": "Top scaled creative",
-  "Com mais duplicações conforme a própria Meta exibe.":
-    "With most duplications as shown by Meta itself.",
+  "Com mais duplicações conforme a própria Meta exibe.": "With most duplications as shown by Meta itself.",
   "Sem criativos no último snapshot.": "No creatives in the last snapshot.",
   "#1 escalado": "#1 scaled",
   "duplicações": "duplications",
@@ -303,22 +260,16 @@ const DICT: Record<string, string> = {
   "Máximo:": "Maximum:",
   "Biblioteca": "Library",
   "Esta ação remove permanentemente": "This action permanently removes",
-
-  // Reset password
   "Redefinir senha": "Reset password",
   "A senha deve ter pelo menos 8 caracteres": "Password must be at least 8 characters",
   "Senha atualizada": "Password updated",
   "Não foi possível atualizar a senha": "Could not update password",
-  "Link inválido ou expirado. Solicite uma nova redefinição na tela de login.":
-    "Invalid or expired link. Request a new reset on the login screen.",
+  "Link inválido ou expirado. Solicite uma nova redefinição na tela de login.": "Invalid or expired link. Request a new reset on the login screen.",
   "Confirmar senha": "Confirm password",
   "Salvar nova senha": "Save new password",
-
-  // Painel admin — APIs (add/manage keys)
   "personalizada": "custom",
   "Adicionar nova chave de API": "Add new API key",
-  "Novas chaves entram automaticamente no pool com failover, em até 30 segundos.":
-    "New keys are automatically added to the failover pool within 30 seconds.",
+  "Novas chaves entram automaticamente no pool com failover, em até 30 segundos.": "New keys are automatically added to the failover pool within 30 seconds.",
   "Provedor": "Provider",
   "Rótulo": "Label",
   "ex: Conta 5": "ex: Account 5",
@@ -330,8 +281,6 @@ const DICT: Record<string, string> = {
   "Chave removida": "Key removed",
   "não configurada": "not configured",
   "desativada": "disabled",
-
-  // Painel admin — Contas (date range)
   "Período": "Period",
   "Este ano": "This year",
   "Todo período": "All time",
@@ -346,15 +295,12 @@ const DICT: Record<string, string> = {
   "Coletas por dia": "Collections per day",
   "Top consumidores": "Top consumers",
   "coletas": "collections",
-
-  // Painel admin — Membros
   "Membros": "Members",
   "Administradores": "Administrators",
   "Com limite": "With limit",
   "Banidos": "Banned",
   "Gerenciar membros": "Manage members",
-  "Promova a admin, defina limites de bibliotecas ou bana usuários. Mudanças são aplicadas em tempo real.":
-    "Promote to admin, set library limits, or ban users. Changes apply in real time.",
+  "Promova a admin, defina limites de bibliotecas ou bana usuários. Mudanças são aplicadas em tempo real.": "Promote to admin, set library limits, or ban users. Changes apply in real time.",
   "Nenhum membro encontrado.": "No members found.",
   "Dono": "Owner",
   "Admin": "Admin",
@@ -366,8 +312,7 @@ const DICT: Record<string, string> = {
   "Banir": "Ban",
   "Desbanir": "Unban",
   "Banir usuário?": "Ban user?",
-  "Esta ação bloqueia o login do usuário por 100 anos. Você pode desbanir depois. Para confirmar, digite o email do usuário abaixo:":
-    "This action blocks the user's login for 100 years. You can unban them later. To confirm, type the user's email below:",
+  "Esta ação bloqueia o login do usuário por 100 anos. Você pode desbanir depois. Para confirmar, digite o email do usuário abaixo:": "This action blocks the user's login for 100 years. You can unban them later. To confirm, type the user's email below:",
   "Digite para confirmar": "Type to confirm",
   "Banir definitivamente": "Ban permanently",
   "Limite de bibliotecas": "Library limit",
@@ -382,11 +327,335 @@ const DICT: Record<string, string> = {
   "Banimento removido": "Ban removed",
 };
 
+// PT (key) -> ES translation
+const ES: Record<string, string> = {
+  "Salvar": "Guardar",
+  "Salvando…": "Guardando…",
+  "Cancelar": "Cancelar",
+  "Adicionar": "Añadir",
+  "Editar": "Editar",
+  "Excluir": "Eliminar",
+  "Atualizar": "Actualizar",
+  "Atualizando...": "Actualizando...",
+  "Atualizar agora": "Actualizar ahora",
+  "Carregando…": "Cargando…",
+  "Sem dados ainda.": "Sin datos aún.",
+  "Sair": "Cerrar sesión",
+  "Você saiu": "Has cerrado sesión",
+  "Abrir menu": "Abrir menú",
+  "Recolher sidebar": "Contraer barra lateral",
+  "Alternar tema": "Cambiar tema",
+  "Perfil": "Perfil",
+  "Nova": "Nueva",
+  "Adicionar biblioteca": "Añadir biblioteca",
+  "Idioma": "Idioma",
+  "Português": "Portugués",
+  "Inglês": "Inglés",
+  "Espanhol": "Español",
+  "Trocar idioma": "Cambiar idioma",
+  "Visão Geral": "Resumen",
+  "Bibliotecas": "Bibliotecas",
+  "Configurações": "Configuración",
+  "Você está sendo observado": "Estás siendo observado",
+  "Bibliotecas novas são mineradas na hora.": "Las nuevas bibliotecas se minan al instante.",
+  "Panorama em tempo quase real das bibliotecas que você monitora.": "Vista casi en tiempo real de las bibliotecas que monitorizas.",
+  "Bibliotecas ativas": "Bibliotecas activas",
+  "Anúncios ativos (soma)": "Anuncios activos (suma)",
+  "Biblioteca líder": "Biblioteca líder",
+  "Coletas na última 1h": "Recolecciones en la última 1h",
+  "Evolução de anúncios ativos": "Evolución de anuncios activos",
+  "Soma diária da média de anúncios ativos.": "Suma diaria del promedio de anuncios activos.",
+  "7 dias": "7 días",
+  "14 dias": "14 días",
+  "30 dias": "30 días",
+  "Mais escaladas": "Más escaladas",
+  "Top 10 por anúncios ativos": "Top 10 por anuncios activos",
+  "Movimentação na última 1h": "Movimiento en la última 1h",
+  "Bibliotecas que subiram ou caíram em anúncios ativos.": "Bibliotecas que subieron o bajaron en anuncios activos.",
+  "Sem variações na última 1h. Tudo estável.": "Sin variaciones en la última 1h. Todo estable.",
+  "Nenhuma biblioteca ainda. Vá para": "Aún no hay bibliotecas. Ve a",
+  "e adicione a primeira.": "y añade la primera.",
+  "anúncios": "anuncios",
+  "monitorada": "monitorizada",
+  "monitoradas": "monitorizadas",
+  "de": "de",
+  "biblioteca": "biblioteca",
+  "bibliotecas": "bibliotecas",
+  "Buscar por termo, nicho ou observações…": "Buscar por término, nicho u observaciones…",
+  "Nicho": "Nicho",
+  "Todos os nichos": "Todos los nichos",
+  "Todos idiomas": "Todos los idiomas",
+  "Status": "Estado",
+  "Todos status": "Todos los estados",
+  "Ativa": "Activa",
+  "Pausada": "Pausada",
+  "Arquivada": "Archivada",
+  "Visualização em grade": "Vista en cuadrícula",
+  "Visualização em lista": "Vista en lista",
+  "Nenhum resultado para os filtros": "Sin resultados para los filtros",
+  "Comece adicionando sua primeira biblioteca": "Comienza añadiendo tu primera biblioteca",
+  "Cole o link de uma busca na Biblioteca de Anúncios da Meta. A mineração roda na hora e os números aparecem aqui automaticamente.": "Pega el enlace de una búsqueda en la Biblioteca de Anuncios de Meta. La minería se ejecuta al instante y los números aparecen aquí automáticamente.",
+  "Nenhuma biblioteca ativa para atualizar": "No hay biblioteca activa para actualizar",
+  "biblioteca(s) atualizadas": "biblioteca(s) actualizadas",
+  "falha(s)": "fallo(s)",
+  "Falha ao atualizar": "Error al actualizar",
+  "Erro desconhecido": "Error desconocido",
+  "Sem título": "Sin título",
+  "Anúncios ativos": "Anuncios activos",
+  "Atualizado": "Actualizado",
+  "falha": "fallo",
+  "Pausar": "Pausar",
+  "Ativar": "Activar",
+  "Abrir na Meta": "Abrir en Meta",
+  "Biblioteca pausada": "Biblioteca pausada",
+  "Biblioteca ativada": "Biblioteca activada",
+  "Biblioteca excluída": "Biblioteca eliminada",
+  "Excluir biblioteca?": "¿Eliminar biblioteca?",
+  "Editar biblioteca": "Editar biblioteca",
+  "Dê um nome curto pra essa biblioteca (oferta, mecanismo, ângulo) e cole o link da Meta Ad Library.": "Dale un nombre corto a esta biblioteca (oferta, mecanismo, ángulo) y pega el enlace de Meta Ad Library.",
+  "Título": "Título",
+  "Ex: Oferta do azeite — mecanismo digestivo": "Ej: Oferta del aceite de oliva — mecanismo digestivo",
+  "Aparece em todos os lugares no lugar do link da biblioteca.": "Aparece en todos los lugares en lugar del enlace de la biblioteca.",
+  "Link da biblioteca": "Enlace de la biblioteca",
+  "Termo detectado:": "Término detectado:",
+  "Selecione um nicho": "Selecciona un nicho",
+  "Sem nicho": "Sin nicho",
+  "Gerencie nichos em Configurações.": "Gestiona los nichos en Configuración.",
+  "Selecione": "Selecciona",
+  "Observações": "Observaciones",
+  "Oferta, mecanismo, ângulo…": "Oferta, mecanismo, ángulo…",
+  "Ao adicionar uma biblioteca ativa, a mineração roda na hora e atualiza os dados ao vivo.": "Al añadir una biblioteca activa, la minería se ejecuta al instante y actualiza los datos en vivo.",
+  "Salvar e minerar": "Guardar y minar",
+  "Adicionar e minerar": "Añadir y minar",
+  "Minerando…": "Minando…",
+  "Biblioteca adicionada": "Biblioteca añadida",
+  "Biblioteca atualizada": "Biblioteca actualizada",
+  "Não foi possível salvar": "No se pudo guardar",
+  "Gerencie sua conta e preferências.": "Gestiona tu cuenta y preferencias.",
+  "Nome de exibição": "Nombre para mostrar",
+  "Como devemos te chamar?": "¿Cómo debemos llamarte?",
+  "Trocar foto": "Cambiar foto",
+  "Selecione uma imagem": "Selecciona una imagen",
+  "Imagem muito grande (máx 5MB)": "Imagen demasiado grande (máx 5MB)",
+  "Foto atualizada": "Foto actualizada",
+  "Nome atualizado": "Nombre actualizado",
+  "E-mail": "Correo electrónico",
+  "Você receberá um e-mail de confirmação no novo endereço.": "Recibirás un correo de confirmación en la nueva dirección.",
+  "Verifique seu e-mail": "Revisa tu correo",
+  "Enviamos um link de confirmação para o novo endereço.": "Enviamos un enlace de confirmación a la nueva dirección.",
+  "Alterar senha": "Cambiar contraseña",
+  "Nova senha": "Nueva contraseña",
+  "Confirmar nova senha": "Confirmar nueva contraseña",
+  "Senha precisa ter ao menos 6 caracteres": "La contraseña debe tener al menos 6 caracteres",
+  "Senhas não coincidem": "Las contraseñas no coinciden",
+  "Senha alterada": "Contraseña cambiada",
+  "Zona perigosa": "Zona peligrosa",
+  "Excluir sua conta remove permanentemente todas as suas bibliotecas, snapshots, criativos e sua foto. Esta ação não pode ser desfeita.": "Eliminar tu cuenta borra permanentemente todas tus bibliotecas, snapshots, creatividades y tu foto. Esta acción no se puede deshacer.",
+  "Excluir minha conta": "Eliminar mi cuenta",
+  "Tem certeza?": "¿Estás seguro?",
+  "Esta ação é irreversível. Todos os seus dados serão apagados imediatamente.": "Esta acción es irreversible. Todos tus datos se eliminarán de inmediato.",
+  "Sim, excluir": "Sí, eliminar",
+  "Conta excluída": "Cuenta eliminada",
+  "Coletor, nichos e dados de demonstração.": "Recolector, nichos y datos de demostración.",
+  "Coletor da Meta Ad Library": "Recolector de Meta Ad Library",
+  "Roda automaticamente a cada 4 horas. Dispare uma coleta imediata abaixo.": "Se ejecuta automáticamente cada 4 horas. Dispara una recolección inmediata abajo.",
+  "Coletando...": "Recolectando...",
+  "Coletar agora": "Recolectar ahora",
+  "Última coleta": "Última recolección",
+  "ativos": "activos",
+  "únicos": "únicos",
+  "Nichos": "Nichos",
+  "Crie, edite e exclua os nichos disponíveis ao adicionar bibliotecas.": "Crea, edita y elimina los nichos disponibles al añadir bibliotecas.",
+  "Ex.: Saúde, Coaching, Imobiliário…": "Ej.: Salud, Coaching, Inmobiliario…",
+  "Nenhum nicho ainda. Crie o primeiro acima.": "Aún no hay nichos. Crea el primero arriba.",
+  "Nicho criado": "Nicho creado",
+  "Nicho atualizado": "Nicho actualizado",
+  "Nicho excluído": "Nicho eliminado",
+  "Não foi possível criar": "No se pudo crear",
+  "Não foi possível atualizar": "No se pudo actualizar",
+  "Não foi possível excluir": "No se pudo eliminar",
+  "Dados de demonstração": "Datos de demostración",
+  "Insere 3 bibliotecas de exemplo com 14 dias de snapshots fictícios.": "Inserta 3 bibliotecas de ejemplo con 14 días de snapshots ficticios.",
+  "Inserir bibliotecas demo": "Insertar bibliotecas demo",
+  "Remover dados demo": "Eliminar datos demo",
+  "Dados de demonstração inseridos": "Datos de demostración insertados",
+  "Dados de demonstração removidos": "Datos de demostración eliminados",
+  "Entrar": "Iniciar sesión",
+  "Criar conta": "Crear cuenta",
+  "Continuar com Google": "Continuar con Google",
+  "ou com email": "o con correo",
+  "Email": "Correo",
+  "Senha": "Contraseña",
+  "Esqueci a senha": "Olvidé la contraseña",
+  "Enviando...": "Enviando...",
+  "Mínimo 8 caracteres": "Mínimo 8 caracteres",
+  "Email inválido": "Correo inválido",
+  "O painel é privado. Apenas usuários autenticados acessam os dados.": "El panel es privado. Solo los usuarios autenticados acceden a los datos.",
+  "Bem-vindo de volta!": "¡Bienvenido de nuevo!",
+  "Conta criada": "Cuenta creada",
+  "Você já pode entrar.": "Ya puedes iniciar sesión.",
+  "Não foi possível autenticar": "No se pudo autenticar",
+  "Não foi possível entrar com Google": "No se pudo iniciar sesión con Google",
+  "Erro inesperado": "Error inesperado",
+  "Informe seu email acima primeiro": "Introduce tu correo arriba primero",
+  "Email enviado": "Correo enviado",
+  "Verifique sua caixa de entrada para redefinir a senha.": "Revisa tu bandeja de entrada para restablecer la contraseña.",
+  "Não foi possível enviar o email": "No se pudo enviar el correo",
+  "Página não encontrada": "Página no encontrada",
+  "A página que você procura não existe ou foi movida.": "La página que buscas no existe o fue movida.",
+  "Voltar ao início": "Volver al inicio",
+  "Esta página não carregou": "Esta página no cargó",
+  "Algo deu errado. Tente novamente ou volte ao início.": "Algo salió mal. Inténtalo de nuevo o vuelve al inicio.",
+  "Tentar novamente": "Intentar de nuevo",
+  "Início": "Inicio",
+  "Painel": "Panel",
+  "A página que você procura não existe.": "La página que buscas no existe.",
+  "Painel Administrativo": "Panel Administrativo",
+  "APIs, créditos e uso por conta — atualizado em tempo real.": "APIs, créditos y uso por cuenta — actualizado en tiempo real.",
+  "APIs": "APIs",
+  "Contas": "Cuentas",
+  "APIs Conectadas": "APIs Conectadas",
+  "com erro": "con error",
+  "Funcionando": "Funcionando",
+  "configuradas": "configuradas",
+  "Em Uso": "En Uso",
+  "pool ativo c/ failover": "pool activo c/ failover",
+  "Créditos Totais": "Créditos Totales",
+  "Créditos por chave": "Créditos por clave",
+  "Distribuição por provider": "Distribución por proveedor",
+  "Status detalhado das chaves": "Estado detallado de las claves",
+  "Vazia": "Vacía",
+  "Online": "En línea",
+  "Falha": "Fallo",
+  "créditos": "créditos",
+  "usados": "usados",
+  "total": "total",
+  "Coletas (30d)": "Recolecciones (30d)",
+  "Créditos consumidos (30d)": "Créditos consumidos (30d)",
+  "Coletas por dia (últimos 30 dias)": "Recolecciones por día (últimos 30 días)",
+  "Top consumidores (30d)": "Top consumidores (30d)",
+  "(sem email)": "(sin correo)",
+  "Todas as contas": "Todas las cuentas",
+  "Filtrar por email...": "Filtrar por correo...",
+  "coletas/30d": "recolecciones/30d",
+  "último login": "último acceso",
+  "créditos 30d": "créditos 30d",
+  "Ver →": "Ver →",
+  "Nenhuma conta encontrada.": "No se encontraron cuentas.",
+  "Voltar": "Volver",
+  "anúncios ativos": "anuncios activos",
+  "Última coleta:": "Última recolección:",
+  "Sem coletas": "Sin recolecciones",
+  "Sem nome": "Sin nombre",
+  "ads ativos": "anuncios activos",
+  "Biblioteca não encontrada.": "Biblioteca no encontrada.",
+  "falha na última coleta": "fallo en la última recolección",
+  "Variação vs coleta anterior": "Cambio vs recolección anterior",
+  "Última coleta falhou": "La última recolección falló",
+  "Mineração saudável": "Minería saludable",
+  "Evolução": "Evolución",
+  "Média diária de anúncios ativos.": "Promedio diario de anuncios activos.",
+  "Snapshots crus das últimas {h} horas.": "Snapshots crudos de las últimas {h} horas.",
+  "Hora": "Hora",
+  "Dia": "Día",
+  "Criativo mais escalado": "Creatividad más escalada",
+  "Com mais duplicações conforme a própria Meta exibe.": "Con más duplicaciones según lo que muestra la propia Meta.",
+  "Sem criativos no último snapshot.": "Sin creatividades en el último snapshot.",
+  "#1 escalado": "#1 escalado",
+  "duplicações": "duplicaciones",
+  "Abrir criativo na Meta": "Abrir creatividad en Meta",
+  "Páginas ativas": "Páginas activas",
+  "Ranking por anúncios ativos nesta biblioteca.": "Ranking por anuncios activos en esta biblioteca.",
+  "Sem detecção de páginas no último snapshot.": "Sin detección de páginas en el último snapshot.",
+  "Histórico de snapshots": "Historial de snapshots",
+  "{n} coletas registradas.": "{n} recolecciones registradas.",
+  "Sem snapshots ainda.": "Aún no hay snapshots.",
+  "Coletado em": "Capturado el",
+  "Ativos": "Activos",
+  "Top": "Top",
+  "Únicos": "Únicos",
+  "OK": "OK",
+  "Falhou": "Falló",
+  "Página {a} de {b}": "Página {a} de {b}",
+  "Anterior": "Anterior",
+  "Próxima": "Siguiente",
+  "Média:": "Promedio:",
+  "Máximo:": "Máximo:",
+  "Biblioteca": "Biblioteca",
+  "Esta ação remove permanentemente": "Esta acción elimina permanentemente",
+  "Redefinir senha": "Restablecer contraseña",
+  "A senha deve ter pelo menos 8 caracteres": "La contraseña debe tener al menos 8 caracteres",
+  "Senha atualizada": "Contraseña actualizada",
+  "Não foi possível atualizar a senha": "No se pudo actualizar la contraseña",
+  "Link inválido ou expirado. Solicite uma nova redefinição na tela de login.": "Enlace inválido o expirado. Solicita un nuevo restablecimiento en la pantalla de inicio de sesión.",
+  "Confirmar senha": "Confirmar contraseña",
+  "Salvar nova senha": "Guardar nueva contraseña",
+  "personalizada": "personalizada",
+  "Adicionar nova chave de API": "Añadir nueva clave de API",
+  "Novas chaves entram automaticamente no pool com failover, em até 30 segundos.": "Las nuevas claves entran automáticamente al pool con failover, en hasta 30 segundos.",
+  "Provedor": "Proveedor",
+  "Rótulo": "Etiqueta",
+  "ex: Conta 5": "ej: Cuenta 5",
+  "Chave de API": "Clave de API",
+  "Desativar": "Desactivar",
+  "Remover": "Eliminar",
+  "Remover esta chave do pool?": "¿Eliminar esta clave del pool?",
+  "Chave adicionada ao pool": "Clave añadida al pool",
+  "Chave removida": "Clave eliminada",
+  "não configurada": "no configurada",
+  "desativada": "desactivada",
+  "Período": "Período",
+  "Este ano": "Este año",
+  "Todo período": "Todo el período",
+  "Personalizado": "Personalizado",
+  "Últimos 7 dias": "Últimos 7 días",
+  "Últimos 30 dias": "Últimos 30 días",
+  "Últimos 90 dias": "Últimos 90 días",
+  "De": "Desde",
+  "Até": "Hasta",
+  "Coletas": "Recolecciones",
+  "Créditos consumidos": "Créditos consumidos",
+  "Coletas por dia": "Recolecciones por día",
+  "Top consumidores": "Top consumidores",
+  "coletas": "recolecciones",
+  "Membros": "Miembros",
+  "Administradores": "Administradores",
+  "Com limite": "Con límite",
+  "Banidos": "Baneados",
+  "Gerenciar membros": "Gestionar miembros",
+  "Promova a admin, defina limites de bibliotecas ou bana usuários. Mudanças são aplicadas em tempo real.": "Promueve a admin, define límites de bibliotecas o banea usuarios. Los cambios se aplican en tiempo real.",
+  "Nenhum membro encontrado.": "No se encontraron miembros.",
+  "Dono": "Dueño",
+  "Admin": "Admin",
+  "Banido": "Baneado",
+  "ilimitado": "ilimitado",
+  "limite": "límite",
+  "Tornar admin": "Hacer admin",
+  "Remover admin": "Quitar admin",
+  "Banir": "Banear",
+  "Desbanir": "Desbanear",
+  "Banir usuário?": "¿Banear usuario?",
+  "Esta ação bloqueia o login do usuário por 100 anos. Você pode desbanir depois. Para confirmar, digite o email do usuário abaixo:": "Esta acción bloquea el acceso del usuario por 100 años. Puedes desbanearlo después. Para confirmar, escribe el correo del usuario abajo:",
+  "Digite para confirmar": "Escribe para confirmar",
+  "Banir definitivamente": "Banear definitivamente",
+  "Limite de bibliotecas": "Límite de bibliotecas",
+  "Quantidade exata": "Cantidad exacta",
+  "Ilimitado / infinito": "Ilimitado / infinito",
+  "Número": "Número",
+  "Número inválido": "Número inválido",
+  "Salvar limite": "Guardar límite",
+  "Permissão atualizada": "Permiso actualizado",
+  "Limite atualizado": "Límite actualizado",
+  "Usuário banido": "Usuario baneado",
+  "Banimento removido": "Baneo eliminado",
+};
+
+const DICTS: Record<Lang, Record<string, string>> = { pt: {}, en: EN, es: ES };
+
 // Simple template helper: tf("foo {x}", { x: 1 })
 export function tf(str: string, vars: Record<string, string | number>) {
   return str.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
 }
-
 
 type Ctx = { lang: Lang; setLang: (l: Lang) => void; t: (key: string) => string };
 
@@ -398,13 +667,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY) as Lang | null;
-      if (stored === "pt" || stored === "en") setLangState(stored);
+      if (stored === "pt" || stored === "en" || stored === "es") setLangState(stored);
     } catch {}
   }, []);
 
   useEffect(() => {
     if (typeof document !== "undefined") {
-      document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
+      document.documentElement.lang = lang === "pt" ? "pt-BR" : lang === "es" ? "es" : "en";
     }
   }, [lang]);
 
@@ -416,7 +685,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: string) => (lang === "en" ? DICT[key] ?? key : key),
+    (key: string) => {
+      if (lang === "pt") return key;
+      return DICTS[lang][key] ?? key;
+    },
     [lang],
   );
 
@@ -426,7 +698,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 export function useLang() {
   const ctx = useContext(LangContext);
   if (!ctx) {
-    // Fallback identity during SSR shell or outside provider
     return { lang: "pt" as Lang, setLang: () => {}, t: (k: string) => k };
   }
   return ctx;

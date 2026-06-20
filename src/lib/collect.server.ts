@@ -50,6 +50,7 @@ export interface CollectReport {
   libraries_ok: number;
   libraries_failed: number;
   duration_ms: number;
+  skipped?: boolean;
   details: Array<{
     library_id: string;
     label: string;
@@ -714,9 +715,30 @@ async function collectOneRobust(
   return { ok: false, error: lastError };
 }
 
-export async function runCollection(opts?: { libraryId?: string; userId?: string }): Promise<CollectReport> {
+export async function runCollection(opts?: { libraryId?: string; userId?: string; force?: boolean }): Promise<CollectReport> {
   const started = Date.now();
   const sb = getAdmin();
+
+  // Idempotency guard for hourly cron retries: if a successful snapshot was
+  // captured in the last 45 minutes, skip. Manual / scoped runs bypass.
+  if (!opts?.libraryId && !opts?.userId && !opts?.force) {
+    const since = new Date(Date.now() - 45 * 60 * 1000).toISOString();
+    const { count } = await sb
+      .from("snapshots")
+      .select("id", { count: "exact", head: true })
+      .eq("scrape_ok", true)
+      .gte("captured_at", since);
+    if ((count ?? 0) > 0) {
+      return {
+        libraries_total: 0,
+        libraries_ok: 0,
+        libraries_failed: 0,
+        duration_ms: Date.now() - started,
+        skipped: true,
+        details: [],
+      };
+    }
+  }
 
   let query = sb.from("libraries").select("*").eq("status", "active");
   if (opts?.libraryId) query = query.eq("id", opts.libraryId);
