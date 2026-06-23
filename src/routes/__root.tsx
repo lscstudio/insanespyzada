@@ -133,10 +133,39 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <ThemeProvider>
-          <Outlet />
-          <Toaster richColors position="top-right" theme="dark" />
+          <DomainMovedNotice />
         </ThemeProvider>
       </LanguageProvider>
     </QueryClientProvider>
+  );
+}
+
+function DomainMovedNotice() {
+  return (
+    <div className="relative grid min-h-screen place-items-center overflow-hidden bg-background px-4">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(139,92,246,0.18),transparent_60%),radial-gradient(circle_at_50%_80%,rgba(34,211,238,0.12),transparent_60%)]" />
+      <div className="relative z-10 mx-auto max-w-lg rounded-2xl border border-border/60 bg-card/70 p-8 text-center shadow-2xl backdrop-blur">
+        <img
+          src="/insanespy-logo.png"
+          alt="InsaneSpy"
+          className="mx-auto mb-6 h-16 w-16"
+        />
+        <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Mudamos de domínio
+        </h1>
+        <p className="mt-4 text-sm text-muted-foreground sm:text-base">
+          O InsaneSpy agora está disponível em um novo endereço:
+        </p>
+        <p className="mt-2 break-all text-lg font-semibold gradient-violet-cyan bg-clip-text text-transparent">
+          https://insanespy.com
+        </p>
+        <a
+          href="https://insanespy.com"
+          className="mt-8 inline-flex items-center justify-center rounded-md gradient-violet-cyan px-6 py-3 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
+        >
+          Ir para o novo site →
+        </a>
+      </div>
+    </div>
   );
 }
