@@ -147,7 +147,9 @@ function DomainMovedNotice() {
     }
   }, []);
 
+  return (
     <div className="relative grid min-h-screen place-items-center overflow-hidden bg-background px-4">
+
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(139,92,246,0.18),transparent_60%),radial-gradient(circle_at_50%_80%,rgba(34,211,238,0.12),transparent_60%)]" />
       <div className="relative z-10 mx-auto max-w-lg rounded-2xl border border-border/60 bg-card/70 p-8 text-center shadow-2xl backdrop-blur">
         <img
