@@ -73,6 +73,34 @@ function LibraryDetailPage() {
   const [page, setPage] = useState(0);
   const pageSize = 10;
 
+  const qc = useQueryClient();
+  const collect = useServerFn(triggerCollection);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      const report = await collect({ data: { libraryId: id } });
+      if (report.libraries_failed === 0 && report.libraries_ok > 0) {
+        toast.success(t("Biblioteca atualizada"), {
+          description: `${(report.duration_ms / 1000).toFixed(1)}s.`,
+        });
+      } else if (report.libraries_ok === 0) {
+        toast.warning(t("Nenhuma atualização feita"));
+      } else {
+        toast.warning(`${report.libraries_ok} ok · ${report.libraries_failed} ${t("falha(s)")}`);
+      }
+      await qc.invalidateQueries();
+    } catch (e) {
+      toast.error(t("Falha ao atualizar"), {
+        description: e instanceof Error ? e.message : t("Erro desconhecido"),
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+
   const data = lib.data;
   const trend = trends.data?.[id];
 
