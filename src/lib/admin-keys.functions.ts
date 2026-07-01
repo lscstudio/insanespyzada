@@ -123,15 +123,6 @@ export const getApiPoolStatus = createServerFn({ method: "GET" })
 
     const dbKeys = await loadDbKeys();
 
-    const fcChecks = FC_NAMES
-      .map((n) => ({ n, v: process.env[n] }))
-      .filter((x) => !!x.v)
-      .map((x) => checkFirecrawl(x.n, x.v as string));
-    const saChecks = SA_NAMES
-      .map((n) => ({ n, v: process.env[n] }))
-      .filter((x) => !!x.v)
-      .map((x) => checkScraperApi(x.n, x.v as string));
-
     const dbChecks = dbKeys
       .filter((r) => r.active)
       .map((r) => {
@@ -142,7 +133,7 @@ export const getApiPoolStatus = createServerFn({ method: "GET" })
           : checkScraperApi(name, r.key, opts);
       });
 
-    const results = await Promise.all([...fcChecks, ...saChecks, ...dbChecks]);
+    const results = await Promise.all(dbChecks);
 
     // inactive DB keys também aparecem como "desligadas"
     for (const r of dbKeys.filter((r) => !r.active)) {
@@ -151,26 +142,6 @@ export const getApiPoolStatus = createServerFn({ method: "GET" })
         configured: true, working: false, credits: null, limit: null, used: null,
         error: "desativada", latency_ms: null, source: "db", id: r.id,
       });
-    }
-
-    // also include unconfigured env slots so admin sees missing keys
-    for (const n of FC_NAMES) {
-      if (!process.env[n]) {
-        results.push({
-          provider: "firecrawl", name: n, label: n.replace("FIRECRAWL_API_KEY", "Firecrawl"),
-          configured: false, working: false, credits: null, limit: null, used: null,
-          error: "não configurada", latency_ms: null, source: "env", id: null,
-        });
-      }
-    }
-    for (const n of SA_NAMES) {
-      if (!process.env[n]) {
-        results.push({
-          provider: "scraperapi", name: n, label: n.replace("SCRAPERAPI_KEY", "ScraperAPI"),
-          configured: false, working: false, credits: null, limit: null, used: null,
-          error: "não configurada", latency_ms: null, source: "env", id: null,
-        });
-      }
     }
 
     const configured = results.filter((r) => r.configured).length;

@@ -11,6 +11,7 @@ import {
   Layers,
   Pencil,
   Radio,
+  RefreshCw,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
@@ -43,6 +44,10 @@ import {
 } from "@/hooks/use-libraries";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { triggerCollection } from "@/lib/collect.functions";
 
 export const Route = createFileRoute("/_authenticated/biblioteca/$id")({
   head: () => ({ meta: [{ title: "Detalhe · InsaneSpy" }] }),
@@ -67,6 +72,34 @@ function LibraryDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [page, setPage] = useState(0);
   const pageSize = 10;
+
+  const qc = useQueryClient();
+  const collect = useServerFn(triggerCollection);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      const report = await collect({ data: { libraryId: id } });
+      if (report.libraries_failed === 0 && report.libraries_ok > 0) {
+        toast.success(t("Biblioteca atualizada"), {
+          description: `${(report.duration_ms / 1000).toFixed(1)}s.`,
+        });
+      } else if (report.libraries_ok === 0) {
+        toast.warning(t("Nenhuma atualização feita"));
+      } else {
+        toast.warning(`${report.libraries_ok} ok · ${report.libraries_failed} ${t("falha(s)")}`);
+      }
+      await qc.invalidateQueries();
+    } catch (e) {
+      toast.error(t("Falha ao atualizar"), {
+        description: e instanceof Error ? e.message : t("Erro desconhecido"),
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
 
   const data = lib.data;
   const trend = trends.data?.[id];
@@ -177,6 +210,10 @@ function LibraryDetailPage() {
             <a href={data.url} target="_blank" rel="noreferrer">
               <ExternalLink className="h-4 w-4" /> {t("Abrir na Meta")}
             </a>
+          </Button>
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            {refreshing ? t("Atualizando…") : t("Atualizar agora")}
           </Button>
           <Button onClick={() => setEditOpen(true)}>
             <Pencil className="h-4 w-4" /> {t("Editar")}
