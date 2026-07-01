@@ -792,29 +792,39 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
       const idx = cursor++;
       const lib = list[idx];
       const label = lib.title || lib.search_term || lib.page_name || lib.id;
-      const lockExpiry = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      const { data: locked, error: lockErr } = await sb
-        .from("libraries")
-        .update({ collection_started_at: nowIso, last_collection_error: null })
-        .eq("id", lib.id)
-        .or(`collection_started_at.is.null,collection_started_at.lt.${lockExpiry}`)
-        .select("id")
-        .maybeSingle();
-      if (lockErr || !locked) {
-        skippedLocked += 1;
-        details.push({
-          library_id: lib.id,
-          label,
-          ok: false,
-          skipped: true,
-          error: lockErr?.message ?? "Coleta já em andamento",
-        });
-        continue;
+      // Refresh manual de UMA biblioteca: sempre limpa o lock e força a coleta.
+      // Coleta em lote (cron ou "atualizar tudo"): respeita lock de 10min.
+      const isSingleManual = Boolean(opts?.libraryId);
+      if (isSingleManual) {
+        await sb
+          .from("libraries")
+          .update({ collection_started_at: nowIso, last_collection_error: null })
+          .eq("id", lib.id);
+      } else {
+        const lockExpiry = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data: locked, error: lockErr } = await sb
+          .from("libraries")
+          .update({ collection_started_at: nowIso, last_collection_error: null })
+          .eq("id", lib.id)
+          .or(`collection_started_at.is.null,collection_started_at.lt.${lockExpiry}`)
+          .select("id")
+          .maybeSingle();
+        if (lockErr || !locked) {
+          skippedLocked += 1;
+          details.push({
+            library_id: lib.id,
+            label,
+            ok: false,
+            skipped: true,
+            error: lockErr?.message ?? "Coleta já em andamento",
+          });
+          continue;
+        }
       }
 
       const r = await collectOneRobust(sb, lib, {
         structured: manualRun,
-        maxAttempts: manualRun ? 1 : 2,
+        maxAttempts: isSingleManual ? 3 : 2,
       });
       if (r.ok) {
         ok += 1;
