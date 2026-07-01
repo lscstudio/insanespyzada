@@ -211,6 +211,10 @@ function LibraryDetailPage() {
               <ExternalLink className="h-4 w-4" /> {t("Abrir na Meta")}
             </a>
           </Button>
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            {refreshing ? t("Atualizando…") : t("Atualizar agora")}
+          </Button>
           <Button onClick={() => setEditOpen(true)}>
             <Pencil className="h-4 w-4" /> {t("Editar")}
           </Button>
