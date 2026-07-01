@@ -223,16 +223,7 @@ async function loadDynamicKeys(): Promise<PoolKey[]> {
 
 async function buildPool(): Promise<PoolKey[]> {
   const pool: PoolKey[] = [];
-  const fcNames = ["FIRECRAWL_API_KEY", "FIRECRAWL_API_KEY_2", "FIRECRAWL_API_KEY_3", "FIRECRAWL_API_KEY_4"];
-  const saNames = ["SCRAPERAPI_KEY", "SCRAPERAPI_KEY_2", "SCRAPERAPI_KEY_3"];
-  for (const n of fcNames) {
-    const v = process.env[n];
-    if (v && !isExhausted(n)) pool.push({ provider: "firecrawl", name: n, value: v });
-  }
-  for (const n of saNames) {
-    const v = process.env[n];
-    if (v && !isExhausted(n)) pool.push({ provider: "scraperapi", name: n, value: v });
-  }
+  // Somente chaves adicionadas pelo admin (tabela api_keys). Não usamos mais chaves de ambiente.
   for (const k of await loadDynamicKeys()) {
     if (!isExhausted(k.name)) pool.push(k);
   }
