@@ -81,14 +81,15 @@ function LibraryDetailPage() {
     setRefreshing(true);
     try {
       const report = await collect({ data: { libraryId: id } });
-      if (report.libraries_failed === 0 && report.libraries_ok > 0) {
+      const detail = report.details?.[0];
+      if (report.libraries_ok > 0) {
         toast.success(t("Biblioteca atualizada"), {
           description: `${(report.duration_ms / 1000).toFixed(1)}s.`,
         });
-      } else if (report.libraries_ok === 0) {
-        toast.warning(t("Nenhuma atualização feita"));
       } else {
-        toast.warning(`${report.libraries_ok} ok · ${report.libraries_failed} ${t("falha(s)")}`);
+        toast.error(t("Falha ao atualizar"), {
+          description: detail?.error ?? t("Erro desconhecido"),
+        });
       }
       await qc.invalidateQueries();
     } catch (e) {
