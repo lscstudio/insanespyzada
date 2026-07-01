@@ -44,6 +44,10 @@ import {
 } from "@/hooks/use-libraries";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { triggerCollection } from "@/lib/collect.functions";
 
 export const Route = createFileRoute("/_authenticated/biblioteca/$id")({
   head: () => ({ meta: [{ title: "Detalhe · InsaneSpy" }] }),
