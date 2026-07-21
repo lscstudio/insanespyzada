@@ -5,9 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
  * Auth: the request must include `apikey: <SUPABASE_PUBLISHABLE_KEY>` header.
  * The previous /api/public/hooks/collect path is intentionally removed.
  */
-export const Route = createFileRoute(
-  "/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b",
-)({
+export const Route = createFileRoute("/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b")({
   server: {
     handlers: {
       POST: async ({ request }) => {
@@ -19,7 +17,10 @@ export const Route = createFileRoute(
         try {
           const { runCollection } = await import("@/lib/collect.server");
           const job = runCollection().catch((err) => {
-            console.error("[collect] scheduled background run failed:", err instanceof Error ? err.message : String(err));
+            console.error(
+              "[collect] scheduled background run failed:",
+              err instanceof Error ? err.message : String(err),
+            );
           });
           const waitUntil = (
             globalThis as typeof globalThis & {

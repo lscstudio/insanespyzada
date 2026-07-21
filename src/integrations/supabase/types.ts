@@ -1,539 +1,531 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
+    PostgrestVersion: "14.5";
+  };
   public: {
     Tables: {
       api_keys: {
         Row: {
-          active: boolean
-          created_at: string
-          created_by: string | null
-          id: string
-          key: string
-          label: string
-          provider: Database["public"]["Enums"]["api_provider"]
-          updated_at: string
-        }
+          active: boolean;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          key: string;
+          label: string;
+          provider: Database["public"]["Enums"]["api_provider"];
+          updated_at: string;
+        };
         Insert: {
-          active?: boolean
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          key: string
-          label: string
-          provider: Database["public"]["Enums"]["api_provider"]
-          updated_at?: string
-        }
+          active?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          key: string;
+          label: string;
+          provider: Database["public"]["Enums"]["api_provider"];
+          updated_at?: string;
+        };
         Update: {
-          active?: boolean
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          key?: string
-          label?: string
-          provider?: Database["public"]["Enums"]["api_provider"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
+          active?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          key?: string;
+          label?: string;
+          provider?: Database["public"]["Enums"]["api_provider"];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       creatives: {
         Row: {
-          ad_archive_id: string | null
-          ad_url: string | null
-          body_text: string | null
-          captured_at: string
-          creative_hash: string | null
-          duplicate_count: number
-          id: string
-          library_id: string | null
-          media_type: string | null
-          page_name: string | null
-          preview_url: string | null
-          snapshot_id: string | null
-        }
+          ad_archive_id: string | null;
+          ad_url: string | null;
+          body_text: string | null;
+          captured_at: string;
+          creative_hash: string | null;
+          duplicate_count: number;
+          id: string;
+          library_id: string | null;
+          media_type: string | null;
+          page_name: string | null;
+          preview_url: string | null;
+          snapshot_id: string | null;
+        };
         Insert: {
-          ad_archive_id?: string | null
-          ad_url?: string | null
-          body_text?: string | null
-          captured_at?: string
-          creative_hash?: string | null
-          duplicate_count?: number
-          id?: string
-          library_id?: string | null
-          media_type?: string | null
-          page_name?: string | null
-          preview_url?: string | null
-          snapshot_id?: string | null
-        }
+          ad_archive_id?: string | null;
+          ad_url?: string | null;
+          body_text?: string | null;
+          captured_at?: string;
+          creative_hash?: string | null;
+          duplicate_count?: number;
+          id?: string;
+          library_id?: string | null;
+          media_type?: string | null;
+          page_name?: string | null;
+          preview_url?: string | null;
+          snapshot_id?: string | null;
+        };
         Update: {
-          ad_archive_id?: string | null
-          ad_url?: string | null
-          body_text?: string | null
-          captured_at?: string
-          creative_hash?: string | null
-          duplicate_count?: number
-          id?: string
-          library_id?: string | null
-          media_type?: string | null
-          page_name?: string | null
-          preview_url?: string | null
-          snapshot_id?: string | null
-        }
+          ad_archive_id?: string | null;
+          ad_url?: string | null;
+          body_text?: string | null;
+          captured_at?: string;
+          creative_hash?: string | null;
+          duplicate_count?: number;
+          id?: string;
+          library_id?: string | null;
+          media_type?: string | null;
+          page_name?: string | null;
+          preview_url?: string | null;
+          snapshot_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "creatives_library_id_fkey"
-            columns: ["library_id"]
-            isOneToOne: false
-            referencedRelation: "libraries"
-            referencedColumns: ["id"]
+            foreignKeyName: "creatives_library_id_fkey";
+            columns: ["library_id"];
+            isOneToOne: false;
+            referencedRelation: "libraries";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "creatives_library_id_fkey"
-            columns: ["library_id"]
-            isOneToOne: false
-            referencedRelation: "library_latest"
-            referencedColumns: ["id"]
+            foreignKeyName: "creatives_library_id_fkey";
+            columns: ["library_id"];
+            isOneToOne: false;
+            referencedRelation: "library_latest";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "creatives_library_id_fkey"
-            columns: ["library_id"]
-            isOneToOne: false
-            referencedRelation: "library_trend"
-            referencedColumns: ["library_id"]
+            foreignKeyName: "creatives_library_id_fkey";
+            columns: ["library_id"];
+            isOneToOne: false;
+            referencedRelation: "library_trend";
+            referencedColumns: ["library_id"];
           },
           {
-            foreignKeyName: "creatives_snapshot_id_fkey"
-            columns: ["snapshot_id"]
-            isOneToOne: false
-            referencedRelation: "library_latest"
-            referencedColumns: ["latest_snapshot_id"]
+            foreignKeyName: "creatives_snapshot_id_fkey";
+            columns: ["snapshot_id"];
+            isOneToOne: false;
+            referencedRelation: "library_latest";
+            referencedColumns: ["latest_snapshot_id"];
           },
           {
-            foreignKeyName: "creatives_snapshot_id_fkey"
-            columns: ["snapshot_id"]
-            isOneToOne: false
-            referencedRelation: "snapshots"
-            referencedColumns: ["id"]
+            foreignKeyName: "creatives_snapshot_id_fkey";
+            columns: ["snapshot_id"];
+            isOneToOne: false;
+            referencedRelation: "snapshots";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       libraries: {
         Row: {
-          collection_started_at: string | null
-          created_at: string
-          created_by: string | null
-          id: string
-          language: string | null
-          last_collection_error: string | null
-          last_collection_ok_at: string | null
-          niche: string | null
-          notes: string | null
-          page_name: string | null
-          search_term: string | null
-          status: string
-          title: string | null
-          updated_at: string
-          url: string
-        }
+          collection_started_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          language: string | null;
+          last_collection_error: string | null;
+          last_collection_ok_at: string | null;
+          niche: string | null;
+          notes: string | null;
+          page_name: string | null;
+          search_term: string | null;
+          status: string;
+          title: string | null;
+          updated_at: string;
+          url: string;
+        };
         Insert: {
-          collection_started_at?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          language?: string | null
-          last_collection_error?: string | null
-          last_collection_ok_at?: string | null
-          niche?: string | null
-          notes?: string | null
-          page_name?: string | null
-          search_term?: string | null
-          status?: string
-          title?: string | null
-          updated_at?: string
-          url: string
-        }
+          collection_started_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          language?: string | null;
+          last_collection_error?: string | null;
+          last_collection_ok_at?: string | null;
+          niche?: string | null;
+          notes?: string | null;
+          page_name?: string | null;
+          search_term?: string | null;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+          url: string;
+        };
         Update: {
-          collection_started_at?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          language?: string | null
-          last_collection_error?: string | null
-          last_collection_ok_at?: string | null
-          niche?: string | null
-          notes?: string | null
-          page_name?: string | null
-          search_term?: string | null
-          status?: string
-          title?: string | null
-          updated_at?: string
-          url?: string
-        }
-        Relationships: []
-      }
+          collection_started_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          language?: string | null;
+          last_collection_error?: string | null;
+          last_collection_ok_at?: string | null;
+          niche?: string | null;
+          notes?: string | null;
+          page_name?: string | null;
+          search_term?: string | null;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+          url?: string;
+        };
+        Relationships: [];
+      };
       niches: {
         Row: {
-          created_at: string
-          id: string
-          name: string
-          owner_id: string | null
-          updated_at: string
-        }
+          created_at: string;
+          id: string;
+          name: string;
+          owner_id: string | null;
+          updated_at: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          name: string
-          owner_id?: string | null
-          updated_at?: string
-        }
+          created_at?: string;
+          id?: string;
+          name: string;
+          owner_id?: string | null;
+          updated_at?: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          name?: string
-          owner_id?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
+          created_at?: string;
+          id?: string;
+          name?: string;
+          owner_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
-          avatar_path: string | null
-          created_at: string
-          display_name: string | null
-          id: string
-          library_limit: number | null
-          updated_at: string
-        }
+          avatar_path: string | null;
+          created_at: string;
+          display_name: string | null;
+          id: string;
+          library_limit: number | null;
+          updated_at: string;
+        };
         Insert: {
-          avatar_path?: string | null
-          created_at?: string
-          display_name?: string | null
-          id: string
-          library_limit?: number | null
-          updated_at?: string
-        }
+          avatar_path?: string | null;
+          created_at?: string;
+          display_name?: string | null;
+          id: string;
+          library_limit?: number | null;
+          updated_at?: string;
+        };
         Update: {
-          avatar_path?: string | null
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          library_limit?: number | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
+          avatar_path?: string | null;
+          created_at?: string;
+          display_name?: string | null;
+          id?: string;
+          library_limit?: number | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       snapshots: {
         Row: {
-          active_ads_count: number
-          captured_at: string
-          error_message: string | null
-          id: string
-          library_id: string | null
-          pages: Json
-          scrape_ok: boolean
-          top_creative_count: number | null
-          top_creative_id: string | null
-          top_creative_url: string | null
-          total_results_text: string | null
-          unique_creatives: number | null
-        }
+          active_ads_count: number;
+          captured_at: string;
+          error_message: string | null;
+          id: string;
+          library_id: string | null;
+          pages: Json;
+          scrape_ok: boolean;
+          top_creative_count: number | null;
+          top_creative_id: string | null;
+          top_creative_url: string | null;
+          total_results_text: string | null;
+          unique_creatives: number | null;
+        };
         Insert: {
-          active_ads_count?: number
-          captured_at?: string
-          error_message?: string | null
-          id?: string
-          library_id?: string | null
-          pages?: Json
-          scrape_ok?: boolean
-          top_creative_count?: number | null
-          top_creative_id?: string | null
-          top_creative_url?: string | null
-          total_results_text?: string | null
-          unique_creatives?: number | null
-        }
+          active_ads_count?: number;
+          captured_at?: string;
+          error_message?: string | null;
+          id?: string;
+          library_id?: string | null;
+          pages?: Json;
+          scrape_ok?: boolean;
+          top_creative_count?: number | null;
+          top_creative_id?: string | null;
+          top_creative_url?: string | null;
+          total_results_text?: string | null;
+          unique_creatives?: number | null;
+        };
         Update: {
-          active_ads_count?: number
-          captured_at?: string
-          error_message?: string | null
-          id?: string
-          library_id?: string | null
-          pages?: Json
-          scrape_ok?: boolean
-          top_creative_count?: number | null
-          top_creative_id?: string | null
-          top_creative_url?: string | null
-          total_results_text?: string | null
-          unique_creatives?: number | null
-        }
+          active_ads_count?: number;
+          captured_at?: string;
+          error_message?: string | null;
+          id?: string;
+          library_id?: string | null;
+          pages?: Json;
+          scrape_ok?: boolean;
+          top_creative_count?: number | null;
+          top_creative_id?: string | null;
+          top_creative_url?: string | null;
+          total_results_text?: string | null;
+          unique_creatives?: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "snapshots_library_id_fkey"
-            columns: ["library_id"]
-            isOneToOne: false
-            referencedRelation: "libraries"
-            referencedColumns: ["id"]
+            foreignKeyName: "snapshots_library_id_fkey";
+            columns: ["library_id"];
+            isOneToOne: false;
+            referencedRelation: "libraries";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "snapshots_library_id_fkey"
-            columns: ["library_id"]
-            isOneToOne: false
-            referencedRelation: "library_latest"
-            referencedColumns: ["id"]
+            foreignKeyName: "snapshots_library_id_fkey";
+            columns: ["library_id"];
+            isOneToOne: false;
+            referencedRelation: "library_latest";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "snapshots_library_id_fkey"
-            columns: ["library_id"]
-            isOneToOne: false
-            referencedRelation: "library_trend"
-            referencedColumns: ["library_id"]
+            foreignKeyName: "snapshots_library_id_fkey";
+            columns: ["library_id"];
+            isOneToOne: false;
+            referencedRelation: "library_trend";
+            referencedColumns: ["library_id"];
           },
-        ]
-      }
+        ];
+      };
       user_roles: {
         Row: {
-          created_at: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
+          created_at: string;
+          id: string;
+          role: Database["public"]["Enums"]["app_role"];
+          user_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
+          created_at?: string;
+          id?: string;
+          role: Database["public"]["Enums"]["app_role"];
+          user_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
-    }
+          created_at?: string;
+          id?: string;
+          role?: Database["public"]["Enums"]["app_role"];
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+    };
     Views: {
       daily_library_stats: {
         Row: {
-          avg_active_ads: number | null
-          day: string | null
-          library_id: string | null
-          max_active_ads: number | null
-          max_top_creative_count: number | null
-          min_active_ads: number | null
-          snapshots_count: number | null
-        }
+          avg_active_ads: number | null;
+          day: string | null;
+          library_id: string | null;
+          max_active_ads: number | null;
+          max_top_creative_count: number | null;
+          min_active_ads: number | null;
+          snapshots_count: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "snapshots_library_id_fkey"
-            columns: ["library_id"]
-            isOneToOne: false
-            referencedRelation: "libraries"
-            referencedColumns: ["id"]
+            foreignKeyName: "snapshots_library_id_fkey";
+            columns: ["library_id"];
+            isOneToOne: false;
+            referencedRelation: "libraries";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "snapshots_library_id_fkey"
-            columns: ["library_id"]
-            isOneToOne: false
-            referencedRelation: "library_latest"
-            referencedColumns: ["id"]
+            foreignKeyName: "snapshots_library_id_fkey";
+            columns: ["library_id"];
+            isOneToOne: false;
+            referencedRelation: "library_latest";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "snapshots_library_id_fkey"
-            columns: ["library_id"]
-            isOneToOne: false
-            referencedRelation: "library_trend"
-            referencedColumns: ["library_id"]
+            foreignKeyName: "snapshots_library_id_fkey";
+            columns: ["library_id"];
+            isOneToOne: false;
+            referencedRelation: "library_trend";
+            referencedColumns: ["library_id"];
           },
-        ]
-      }
+        ];
+      };
       library_latest: {
         Row: {
-          active_ads_count: number | null
-          captured_at: string | null
-          created_at: string | null
-          error_message: string | null
-          id: string | null
-          language: string | null
-          last_captured_at: string | null
-          latest_snapshot_id: string | null
-          niche: string | null
-          notes: string | null
-          page_name: string | null
-          pages: Json | null
-          scrape_ok: boolean | null
-          search_term: string | null
-          status: string | null
-          title: string | null
-          top_creative_count: number | null
-          top_creative_id: string | null
-          top_creative_url: string | null
-          total_results_text: string | null
-          unique_creatives: number | null
-          updated_at: string | null
-          url: string | null
-        }
-        Relationships: []
-      }
+          active_ads_count: number | null;
+          captured_at: string | null;
+          created_at: string | null;
+          error_message: string | null;
+          id: string | null;
+          language: string | null;
+          last_captured_at: string | null;
+          latest_snapshot_id: string | null;
+          niche: string | null;
+          notes: string | null;
+          page_name: string | null;
+          pages: Json | null;
+          scrape_ok: boolean | null;
+          search_term: string | null;
+          status: string | null;
+          title: string | null;
+          top_creative_count: number | null;
+          top_creative_id: string | null;
+          top_creative_url: string | null;
+          total_results_text: string | null;
+          unique_creatives: number | null;
+          updated_at: string | null;
+          url: string | null;
+        };
+        Relationships: [];
+      };
       library_trend: {
         Row: {
-          current_at: string | null
-          current_count: number | null
-          delta: number | null
-          direction: string | null
-          library_id: string | null
-          previous_at: string | null
-          previous_count: number | null
-        }
-        Relationships: []
-      }
-    }
+          current_at: string | null;
+          current_count: number | null;
+          delta: number | null;
+          direction: string | null;
+          library_id: string | null;
+          previous_at: string | null;
+          previous_count: number | null;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      purge_old_snapshots: { Args: { days?: number }; Returns: number }
-    }
+          _role: Database["public"]["Enums"]["app_role"];
+          _user_id: string;
+        };
+        Returns: boolean;
+      };
+      purge_old_snapshots: { Args: { days?: number }; Returns: number };
+    };
     Enums: {
-      api_provider: "firecrawl" | "scraperapi"
-      app_role: "admin" | "user"
-    }
+      api_provider: "firecrawl" | "scraperapi";
+      app_role: "admin" | "user";
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+      Row: infer R;
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
       }
       ? R
       : never
-    : never
+    : never;
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
+      Insert: infer I;
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
+        Insert: infer I;
       }
       ? I
       : never
-    : never
+    : never;
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
+      Update: infer U;
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
+        Update: infer U;
       }
       ? U
       : never
-    : never
+    : never;
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+    : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+    : never;
 
 export const Constants = {
   public: {
@@ -542,4 +534,4 @@ export const Constants = {
       app_role: ["admin", "user"],
     },
   },
-} as const
+} as const;

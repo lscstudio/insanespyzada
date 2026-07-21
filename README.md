@@ -59,20 +59,20 @@ collector/
 
 ## Routes (`src/routes`, file-based via TanStack Router)
 
-| File | URL | Description |
-| --- | --- | --- |
-| `__root.tsx` | (root shell) | App shell: HTML doc, meta/OG tags, `QueryClientProvider`, `ThemeProvider`, `LanguageProvider`, global `Toaster`, 404 and error boundary components. |
-| `auth.tsx` | `/auth` | Sign-in/sign-up page. Email+password (Zod-validated) via Supabase Auth, Google OAuth via Lovable Cloud Auth, "forgot password" flow (`resetPasswordForEmail`). Redirects authenticated users to `/`. |
-| `reset-password.tsx` | `/reset-password` | Password-recovery landing page; detects Supabase recovery token in URL hash and lets the user set a new password (`supabase.auth.updateUser`), then signs out and redirects to `/auth`. |
-| `admin.tsx` | `/admin` | Legacy/simple admin panel: lists all accounts (via `listAccounts`) and their libraries (via `listLibrariesForAccount`), gated by `checkIsAdmin`. Shows 404 to non-admins. |
-| `_authenticated/route.tsx` | layout for all authenticated pages | `beforeLoad` guard redirects to `/auth` if no Supabase session; wraps children in `AppShell`, subscribes to auth-state changes (forces redirect on sign-out), and calls `useRealtimeRefresh()`. |
-| `_authenticated/index.tsx` | `/` | **Overview/dashboard**: KPI cards (active libraries, total active ads, leader library, collections in last hour), an evolution area chart (7/14/30-day toggle) of daily active-ad sums, "Top 10 most scaled" ranking, and "movers in last hour" list with up/down trend badges. |
-| `_authenticated/bibliotecas.tsx` | `/bibliotecas` | **Libraries list**: search/filter (by niche, language, status) and grid/list view of all monitored ad libraries; "Add library" modal; manual "Update now" button that calls `triggerCollection`. |
-| `_authenticated/biblioteca.$id.tsx` | `/biblioteca/:id` | **Library detail** (604 lines): per-library charts (active ads over time, hourly trend), snapshot history table, top creatives gallery, edit/refresh actions. |
-| `_authenticated/painel.tsx` | `/painel` | **Admin panel** (892 lines, admin-only via `checkIsAdmin`): tabs for *APIs* (Firecrawl/ScraperAPI key pool status, credits, add/remove/toggle keys), *Contas* (per-account usage ranking/date-range stats), *Membros* (list members, grant/revoke admin role, set per-user library limits, ban/unban). |
-| `_authenticated/perfil.tsx` | `/perfil` | **Profile page** (320 lines): view/update display name & avatar (Supabase Storage upload), change email/password, delete-account flow (`deleteMyAccount`). |
-| `_authenticated/configuracoes.tsx` | `/configuracoes` | **Settings page** (397 lines): niche management (CRUD via `useNiches`/`useCreateNiche`/etc.), demo-data seeding/clearing (`seedDemoData`/`clearDemoData`), manual collection trigger, admin check for privileged actions. |
-| `api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b.ts` | `POST /api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b` | **Obscured cron webhook**: authenticated via a static `apikey` header matching `SUPABASE_PUBLISHABLE_KEY`; triggers `runCollection()` in the background (uses `EdgeRuntime.waitUntil` when available) for scheduled/cron-driven scraping (e.g. pg_cron). Returns 404 to any unauthorized/GET request. |
+| File                                             | URL                                                 | Description                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------ | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `__root.tsx`                                     | (root shell)                                        | App shell: HTML doc, meta/OG tags, `QueryClientProvider`, `ThemeProvider`, `LanguageProvider`, global `Toaster`, 404 and error boundary components.                                                                                                                                                    |
+| `auth.tsx`                                       | `/auth`                                             | Sign-in/sign-up page. Email+password (Zod-validated) via Supabase Auth, Google OAuth via Lovable Cloud Auth, "forgot password" flow (`resetPasswordForEmail`). Redirects authenticated users to `/`.                                                                                                   |
+| `reset-password.tsx`                             | `/reset-password`                                   | Password-recovery landing page; detects Supabase recovery token in URL hash and lets the user set a new password (`supabase.auth.updateUser`), then signs out and redirects to `/auth`.                                                                                                                |
+| `admin.tsx`                                      | `/admin`                                            | Legacy/simple admin panel: lists all accounts (via `listAccounts`) and their libraries (via `listLibrariesForAccount`), gated by `checkIsAdmin`. Shows 404 to non-admins.                                                                                                                              |
+| `_authenticated/route.tsx`                       | layout for all authenticated pages                  | `beforeLoad` guard redirects to `/auth` if no Supabase session; wraps children in `AppShell`, subscribes to auth-state changes (forces redirect on sign-out), and calls `useRealtimeRefresh()`.                                                                                                        |
+| `_authenticated/index.tsx`                       | `/`                                                 | **Overview/dashboard**: KPI cards (active libraries, total active ads, leader library, collections in last hour), an evolution area chart (7/14/30-day toggle) of daily active-ad sums, "Top 10 most scaled" ranking, and "movers in last hour" list with up/down trend badges.                        |
+| `_authenticated/bibliotecas.tsx`                 | `/bibliotecas`                                      | **Libraries list**: search/filter (by niche, language, status) and grid/list view of all monitored ad libraries; "Add library" modal; manual "Update now" button that calls `triggerCollection`.                                                                                                       |
+| `_authenticated/biblioteca.$id.tsx`              | `/biblioteca/:id`                                   | **Library detail** (604 lines): per-library charts (active ads over time, hourly trend), snapshot history table, top creatives gallery, edit/refresh actions.                                                                                                                                          |
+| `_authenticated/painel.tsx`                      | `/painel`                                           | **Admin panel** (892 lines, admin-only via `checkIsAdmin`): tabs for _APIs_ (Firecrawl/ScraperAPI key pool status, credits, add/remove/toggle keys), _Contas_ (per-account usage ranking/date-range stats), _Membros_ (list members, grant/revoke admin role, set per-user library limits, ban/unban). |
+| `_authenticated/perfil.tsx`                      | `/perfil`                                           | **Profile page** (320 lines): view/update display name & avatar (Supabase Storage upload), change email/password, delete-account flow (`deleteMyAccount`).                                                                                                                                             |
+| `_authenticated/configuracoes.tsx`               | `/configuracoes`                                    | **Settings page** (397 lines): niche management (CRUD via `useNiches`/`useCreateNiche`/etc.), demo-data seeding/clearing (`seedDemoData`/`clearDemoData`), manual collection trigger, admin check for privileged actions.                                                                              |
+| `api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b.ts` | `POST /api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b` | **Obscured cron webhook**: authenticated via a static `apikey` header matching `SUPABASE_PUBLISHABLE_KEY`; triggers `runCollection()` in the background (uses `EdgeRuntime.waitUntil` when available) for scheduled/cron-driven scraping (e.g. pg_cron). Returns 404 to any unauthorized/GET request.  |
 
 Routing conventions documented in `src/routes/README.md`: file-based routing only, `$param` dynamic segments, `_layout` prefix for pathless layouts, `__root.tsx` app shell, auto-generated `routeTree.gen.ts`.
 
@@ -81,9 +81,11 @@ Routing conventions documented in `src/routes/README.md`: file-based routing onl
 ## Components
 
 ### Layout
+
 - `src/components/layout/app-shell.tsx` — main authenticated shell: responsive sidebar/mobile sheet navigation (`Visão Geral`, `Bibliotecas`, `Perfil`, `Painel` [admin-only], `Configurações`), theme toggle, language switcher, sign-out, "Add library" quick action, admin-badge check via `checkIsAdmin`.
 
 ### Feature components
+
 - `add-library-modal.tsx` — dialog/form to register a new Meta Ad Library URL to monitor (niche, language, notes, baseline).
 - `count-up.tsx` — animated numeric counter used for KPI cards.
 - `library-card.tsx` — card summarizing a library's stats (active ads, niche, status, last capture) + `HourlyTrendBadge` sub-component showing up/down/flat trend arrows.
@@ -91,19 +93,20 @@ Routing conventions documented in `src/routes/README.md`: file-based routing onl
 - `theme-provider.tsx` — light/dark theme context (app defaults to dark).
 
 ### UI primitives (`src/components/ui/`)
+
 shadcn/ui-style wrappers around Radix primitives: `accordion`, `alert`, `alert-dialog`, `aspect-ratio`, `avatar`, `badge`, `breadcrumb`, `button`, `calendar`, `card`, `carousel`, `chart`, `checkbox`, `collapsible`, `command`, `context-menu`, `dialog`, `drawer`, `dropdown-menu`, `form`, `hover-card`, `input`, `input-otp`, `label`, `menubar`, `navigation-menu`, `pagination`, `popover`, `progress`, `radio-group`, `resizable`, `scroll-area`, `select`, `separator`, `sheet`, `sidebar`, `skeleton`, `slider`, `sonner` (toaster), `switch`, `table`, `tabs`, `textarea`, `toggle`, `toggle-group`, `tooltip`.
 
 ---
 
 ## Hooks (`src/hooks/`)
 
-| Hook file | Exports | Description |
-| --- | --- | --- |
-| `use-auth.ts` | `useAuth()`, `signOut()` | Tracks Supabase session/user via `onAuthStateChange` + `getSession`; `signOut` wraps `supabase.auth.signOut()`. |
-| `use-libraries.ts` (343 lines) | `useLibrariesLatest`, `useLibraryTrend`, `useHourlyTrend`, `useDailyStats`, `useDailyStatsForLibrary`, `useLibrary`, `useLibrarySnapshots`, `useLibrarySnapshotsHistory`, `useTopCreatives`, `useNiches`, `useCreateNiche`, `useUpdateNiche`, `useDeleteNiche`, etc. | TanStack Query hooks wrapping reads/writes against Supabase tables/views: `library_latest`, `library_trend`, `snapshots`, `creatives`, `niches`, `daily_library_stats`. Poll on short intervals (1–5 min) and compute hourly deltas client-side. |
-| `use-mobile.tsx` | `useIsMobile()` | Media-query hook for responsive breakpoints (drives mobile nav sheet). |
-| `use-profile.ts` | `useProfile`, `useUpdateProfile`, `useUploadAvatar` | Query/mutations for the `profiles` table and Supabase Storage `avatars` bucket. |
-| `use-realtime-refresh.ts` | `useRealtimeRefresh()` | Subscribes to Supabase Realtime `postgres_changes` on `snapshots` (INSERT), `libraries` (ALL), `creatives` (INSERT), `niches` (ALL) and selectively invalidates the relevant React Query cache keys — enables live-updating dashboards without polling. |
+| Hook file                      | Exports                                                                                                                                                                                                                                                              | Description                                                                                                                                                                                                                                             |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `use-auth.ts`                  | `useAuth()`, `signOut()`                                                                                                                                                                                                                                             | Tracks Supabase session/user via `onAuthStateChange` + `getSession`; `signOut` wraps `supabase.auth.signOut()`.                                                                                                                                         |
+| `use-libraries.ts` (343 lines) | `useLibrariesLatest`, `useLibraryTrend`, `useHourlyTrend`, `useDailyStats`, `useDailyStatsForLibrary`, `useLibrary`, `useLibrarySnapshots`, `useLibrarySnapshotsHistory`, `useTopCreatives`, `useNiches`, `useCreateNiche`, `useUpdateNiche`, `useDeleteNiche`, etc. | TanStack Query hooks wrapping reads/writes against Supabase tables/views: `library_latest`, `library_trend`, `snapshots`, `creatives`, `niches`, `daily_library_stats`. Poll on short intervals (1–5 min) and compute hourly deltas client-side.        |
+| `use-mobile.tsx`               | `useIsMobile()`                                                                                                                                                                                                                                                      | Media-query hook for responsive breakpoints (drives mobile nav sheet).                                                                                                                                                                                  |
+| `use-profile.ts`               | `useProfile`, `useUpdateProfile`, `useUploadAvatar`                                                                                                                                                                                                                  | Query/mutations for the `profiles` table and Supabase Storage `avatars` bucket.                                                                                                                                                                         |
+| `use-realtime-refresh.ts`      | `useRealtimeRefresh()`                                                                                                                                                                                                                                               | Subscribes to Supabase Realtime `postgres_changes` on `snapshots` (INSERT), `libraries` (ALL), `creatives` (INSERT), `niches` (ALL) and selectively invalidates the relevant React Query cache keys — enables live-updating dashboards without polling. |
 
 ---
 
@@ -137,15 +140,18 @@ All privileged functions are wrapped with the `requireSupabaseAuth` middleware (
 | `api_keys` | Custom/pooled Firecrawl & ScraperAPI keys added via the admin panel (label, provider, key, active flag). |
 
 **Views**
+
 - `library_latest` — latest snapshot joined per library (drives the dashboard/list).
 - `library_trend` — trend comparison between the two most recent successful snapshots per library.
 - `daily_library_stats` — daily-aggregated stats (e.g. `avg_active_ads`) per library/day, used for the evolution chart.
 
 **Database functions (RPC)**
+
 - `has_role(_user_id, _role)` — role-check used for admin gating across all admin server functions.
 - `purge_old_snapshots(days)` — retention/cleanup RPC (service-role only) to delete snapshot history older than N days; documented for periodic cron use in `collector/README.md`.
 
 **Row-Level Security & auth**
+
 - Supabase Auth (`auth.users`) is the identity source; `requireSupabaseAuth` middleware validates JWTs server-side for every privileged server function.
 - Tables are RLS-protected; `snapshots`/`creatives` are designed to accept writes only from the **service role** (collector and server-side `collect.server.ts`), while user-facing reads go through the anon/publishable key and RLS scoping by `created_by`/`owner_id`.
 - Admin capabilities gated by `user_roles` + `has_role` RPC (not a hardcoded flag), with an additional hardcoded owner-email safety net in `admin-members.functions.ts`.
@@ -154,6 +160,7 @@ All privileged functions are wrapped with the `requireSupabaseAuth` middleware (
 **Migrations** live in `supabase/migrations/` (25 timestamped SQL files, `20260617...` through `20260620...`), configured via `supabase/config.toml`. They incrementally build the tables/views/RPCs/RLS policies/roles above.
 
 ### Supabase client integration (`src/integrations/supabase/`)
+
 - `client.ts` — browser Supabase client (anon/publishable key).
 - `client.server.ts` — server-only `supabaseAdmin` client using the service-role key, for privileged operations (user management, cross-account admin reads, storage cleanup).
 - `auth-middleware.ts` — `requireSupabaseAuth`, a TanStack Start server middleware validating Bearer JWTs via `getClaims()`.

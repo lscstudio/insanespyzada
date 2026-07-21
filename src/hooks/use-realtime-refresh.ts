@@ -35,17 +35,13 @@ export function useRealtimeRefresh() {
           }
         },
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "libraries" },
-        (payload) => {
-          const libId =
-            (payload.new as { id?: string } | null)?.id ??
-            (payload.old as { id?: string } | null)?.id;
-          qc.invalidateQueries({ queryKey: ["library_latest"] });
-          if (libId) qc.invalidateQueries({ queryKey: ["library_latest", libId] });
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "libraries" }, (payload) => {
+        const libId =
+          (payload.new as { id?: string } | null)?.id ??
+          (payload.old as { id?: string } | null)?.id;
+        qc.invalidateQueries({ queryKey: ["library_latest"] });
+        if (libId) qc.invalidateQueries({ queryKey: ["library_latest", libId] });
+      })
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "creatives" },
@@ -61,15 +57,10 @@ export function useRealtimeRefresh() {
           }
         },
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "niches" },
-        () => {
-          qc.invalidateQueries({ queryKey: ["niches"] });
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "niches" }, () => {
+        qc.invalidateQueries({ queryKey: ["niches"] });
+      })
       .subscribe();
-
 
     return () => {
       supabase.removeChannel(channel);

@@ -70,25 +70,25 @@
 .dark {
   --radius: 0.875rem;
 
-  --background: oklch(0.19 0.05 264);
+  --background: oklch(0.19 0.05 260);
   --foreground: oklch(0.97 0.005 260);
 
-  --card: oklch(0.21 0.035 264);
+  --card: oklch(0.21 0.035 260);
   --card-foreground: oklch(0.97 0.005 260);
 
-  --popover: oklch(0.22 0.04 264);
+  --popover: oklch(0.22 0.04 260);
   --popover-foreground: oklch(0.97 0.005 260);
 
-  --primary: oklch(0.52 0.24 264);
+  --primary: oklch(0.467 0.176 260);
   --primary-foreground: oklch(0.99 0.005 260);
 
-  --secondary: oklch(0.26 0.04 264);
+  --secondary: oklch(0.26 0.04 260);
   --secondary-foreground: oklch(0.97 0.005 260);
 
-  --muted: oklch(0.24 0.03 264);
+  --muted: oklch(0.24 0.03 260);
   --muted-foreground: oklch(0.7 0.02 260);
 
-  --accent: oklch(0.3 0.06 264);
+  --accent: oklch(0.3 0.06 260);
   --accent-foreground: oklch(0.97 0.005 260);
 
   --destructive: oklch(0.7 0.18 22);
@@ -100,41 +100,41 @@
   --warning: oklch(0.82 0.16 75);
   --warning-foreground: oklch(0.15 0.01 260);
 
-  --border: oklch(0.3 0.04 264);
-  --input: oklch(0.27 0.035 264);
-  --ring: oklch(0.52 0.24 264);
+  --border: oklch(0.3 0.04 260);
+  --input: oklch(0.27 0.035 260);
+  --ring: oklch(0.467 0.176 260);
 
-  --chart-1: oklch(0.52 0.24 264);
-  --chart-2: oklch(0.65 0.2 258);
-  --chart-3: oklch(0.78 0.14 230);
-  --chart-4: oklch(0.42 0.22 268);
-  --chart-5: oklch(0.86 0.08 250);
+  --chart-1: oklch(0.467 0.176 260);
+  --chart-2: oklch(0.55 0.18 260);
+  --chart-3: oklch(0.62 0.16 260);
+  --chart-4: oklch(0.36 0.18 260);
+  --chart-5: oklch(0.7 0.12 260);
 
-  --sidebar: oklch(0.18 0.025 264);
+  --sidebar: oklch(0.18 0.025 260);
   --sidebar-foreground: oklch(0.88 0.01 260);
-  --sidebar-primary: oklch(0.52 0.24 264);
+  --sidebar-primary: oklch(0.467 0.176 260);
   --sidebar-primary-foreground: oklch(0.99 0.005 260);
-  --sidebar-accent: oklch(0.26 0.04 264);
+  --sidebar-accent: oklch(0.26 0.04 260);
   --sidebar-accent-foreground: oklch(0.97 0.005 260);
-  --sidebar-border: oklch(0.27 0.035 264);
-  --sidebar-ring: oklch(0.52 0.24 264);
+  --sidebar-border: oklch(0.27 0.035 260);
+  --sidebar-ring: oklch(0.467 0.176 260);
 }
 
 .light {
   --background: oklch(0.985 0.005 260);
-  --foreground: oklch(0.18 0.02 264);
+  --foreground: oklch(0.18 0.02 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 264);
+  --card-foreground: oklch(0.18 0.02 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 264);
-  --primary: oklch(0.45 0.24 264);
+  --popover-foreground: oklch(0.18 0.02 260);
+  --primary: oklch(0.467 0.176 260);
   --primary-foreground: oklch(0.99 0.002 260);
   --secondary: oklch(0.95 0.01 260);
-  --secondary-foreground: oklch(0.2 0.02 264);
+  --secondary-foreground: oklch(0.2 0.02 260);
   --muted: oklch(0.96 0.008 260);
   --muted-foreground: oklch(0.48 0.02 260);
   --accent: oklch(0.93 0.015 260);
-  --accent-foreground: oklch(0.18 0.02 264);
+  --accent-foreground: oklch(0.18 0.02 260);
   --destructive: oklch(0.6 0.22 22);
   --destructive-foreground: oklch(0.99 0.005 260);
   --success: oklch(0.62 0.18 160);
@@ -143,15 +143,15 @@
   --warning-foreground: oklch(0.15 0.01 260);
   --border: oklch(0.9 0.01 260);
   --input: oklch(0.9 0.01 260);
-  --ring: oklch(0.45 0.24 264);
+  --ring: oklch(0.467 0.176 260);
   --sidebar: oklch(0.98 0.005 260);
-  --sidebar-foreground: oklch(0.2 0.02 264);
-  --sidebar-primary: oklch(0.45 0.24 264);
+  --sidebar-foreground: oklch(0.2 0.02 260);
+  --sidebar-primary: oklch(0.467 0.176 260);
   --sidebar-primary-foreground: oklch(0.99 0.005 260);
   --sidebar-accent: oklch(0.94 0.012 260);
-  --sidebar-accent-foreground: oklch(0.2 0.02 264);
+  --sidebar-accent-foreground: oklch(0.2 0.02 260);
   --sidebar-border: oklch(0.9 0.01 260);
-  --sidebar-ring: oklch(0.45 0.24 264);
+  --sidebar-ring: oklch(0.467 0.176 260);
 }
 
 @layer base {
@@ -172,10 +172,10 @@
       "ss01" 1;
     /* Royal-blue aurora — vivo mas sofisticado, lembra o fundo do iOS */
     background-image:
-      radial-gradient(70% 55% at 8% -5%, oklch(0.5 0.28 264 / 0.55), transparent 65%),
-      radial-gradient(55% 50% at 105% 8%, oklch(0.55 0.26 272 / 0.45), transparent 70%),
-      radial-gradient(65% 60% at 50% 115%, oklch(0.48 0.26 258 / 0.45), transparent 70%),
-      radial-gradient(40% 35% at 80% 60%, oklch(0.42 0.22 250 / 0.28), transparent 75%);
+      radial-gradient(70% 55% at 8% -5%, oklch(0.467 0.176 260 / 0.55), transparent 65%),
+      radial-gradient(55% 50% at 105% 8%, oklch(0.467 0.176 260 / 0.45), transparent 70%),
+      radial-gradient(65% 60% at 50% 115%, oklch(0.467 0.176 260 / 0.45), transparent 70%),
+      radial-gradient(40% 35% at 80% 60%, oklch(0.467 0.176 260 / 0.28), transparent 75%);
     background-attachment: fixed;
     background-repeat: no-repeat;
   }
@@ -183,11 +183,11 @@
 
 /* Brand accent utilities — royal blue */
 @utility gradient-violet-cyan {
-  background-image: linear-gradient(135deg, oklch(0.5 0.24 264), oklch(0.62 0.2 258));
+  background-image: linear-gradient(135deg, oklch(0.467 0.176 260), oklch(0.55 0.18 260));
   color: oklch(0.99 0.005 260);
 }
 @utility text-gradient-violet-cyan {
-  background-image: linear-gradient(135deg, oklch(0.65 0.22 264), oklch(0.78 0.14 250));
+  background-image: linear-gradient(135deg, oklch(0.467 0.176 260), oklch(0.62 0.16 260));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -198,7 +198,8 @@
   border: 1px solid color-mix(in oklab, var(--color-border) 80%, transparent);
 }
 @utility glow-border {
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-primary) 35%, transparent),
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--color-primary) 35%, transparent),
     0 8px 32px -12px color-mix(in oklab, var(--color-primary) 30%, transparent);
 }
 @utility shimmer {
@@ -213,7 +214,247 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
+/* ===================================================================
+ * Nova UI — InsaneSpy SPA (Manrope, brand azul sobre papel)
+ * Tokens usados pelas classes utilitárias bg-* / text-* / border-*.
+ * =================================================================== */
+
+@theme {
+  --font-mono: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-brand: #0F52BA;
+  --color-brand-bright: oklch(0.55 0.18 260);
+  --color-brand-deep: oklch(0.36 0.18 260);
+  --color-brand-ghost: #0F52BA0d;
+
+  --color-paper: #f5f5f2;
+  --color-card: #ffffff;
+  --color-line: #e3e3dc;
+  --color-ink: #101014;
+  --color-ink-2: #55555e;
+  --color-ink-3: #8a8a92;
+
+  --color-dpaper: #07070b;
+  --color-dcard: #0d0d15;
+  --color-dline: #1e1e2c;
+  --color-dink: #ededf2;
+  --color-dink-2: #a0a0ad;
+  --color-dink-3: #63636f;
+}
+
+/* cantos levemente arredondados em todos os elementos com borda */
+.border,
+.border-2 {
+  border-radius: 0.5rem;
+}
+
+/* scrollbar discreta */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  @apply bg-line dark:bg-dline;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  @apply bg-ink-3 dark:bg-dink-3;
+}
+
+::selection {
+  background: #0F52BA;
+  color: #fff;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+/* textura de grade sutil no fundo */
+.bg-grid {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, currentColor 4%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, currentColor 4%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 28px 28px;
+}
+
+/* hover dos módulos da sidebar */
+.hover-scale {
+  @apply duration-200 hover:scale-105;
+  transition-property:
+    transform, color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* gráfico de área da visão geral: traçado + fade */
+@keyframes chart-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.chart-line-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: chart-draw 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes chart-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.chart-area-fade {
+  opacity: 0;
+  animation: chart-fade-in 0.9s ease-out 0.55s forwards;
+}
+
+/* ===================================================================
+ * Transições clean — fade-in de páginas, tabs, modais e toasts
+ * =================================================================== */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+[data-page-fade] {
+  animation: page-fade-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes tab-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+[data-tab-fade] {
+  animation: tab-fade-in 0.24s ease-out;
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.toast-anim {
+  animation: toast-slide-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.modal-anim {
+  animation: modal-pop-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.backdrop-anim {
+  animation: backdrop-fade-in 0.2s ease-out;
+}
+
+/* transição suave no overflow de rotas — vê animation em [data-page-fade] */
+/* NavLink ativa mais clean — transições de cor suaves */
+.nav-link-mod {
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+/* ===================================================================
+ * MecanismosTree — tree view estilo VS Code / Notion / Linear
+ * =================================================================== */
+.mec-folder {
+  border-radius: 0;
+}
+.mec-folder:active {
+  transform: scale(0.99);
+}
+
+/* children container — animação via grid-template-rows 0fr→1fr */
+.mec-tree-children {
+  min-height: 0;
+}
+.mec-tree-children > .overflow-hidden {
+  min-height: 0;
+}
+
+/* connection lines (indent guides) — estilo VS Code */
+.mec-tree-indent {
+  transition: border-color 0.15s ease;
+}
+
+/* library items — hover com indent sutil */
+.mec-lib {
+  position: relative;
+}
+.mec-lib:hover {
+  padding-left: 12px;
+}
+
+/* scroll suave na nav quando a tree é longa */
+nav.overflow-y-auto {
+  scroll-behavior: smooth;
+}

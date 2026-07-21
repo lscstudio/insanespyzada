@@ -10,7 +10,12 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Forbidden");
 }
 
-const FC_NAMES = ["FIRECRAWL_API_KEY", "FIRECRAWL_API_KEY_2", "FIRECRAWL_API_KEY_3", "FIRECRAWL_API_KEY_4"];
+const FC_NAMES = [
+  "FIRECRAWL_API_KEY",
+  "FIRECRAWL_API_KEY_2",
+  "FIRECRAWL_API_KEY_3",
+  "FIRECRAWL_API_KEY_4",
+];
 const SA_NAMES = ["SCRAPERAPI_KEY", "SCRAPERAPI_KEY_2", "SCRAPERAPI_KEY_3"];
 
 interface DbKeyRow {
@@ -38,13 +43,25 @@ export interface ApiKeyStatus {
   id?: string | null;
 }
 
-async function checkFirecrawl(name: string, key: string, opts: { label?: string; source?: "env" | "db"; id?: string | null } = {}): Promise<ApiKeyStatus> {
+async function checkFirecrawl(
+  name: string,
+  key: string,
+  opts: { label?: string; source?: "env" | "db"; id?: string | null } = {},
+): Promise<ApiKeyStatus> {
   const t0 = Date.now();
   const base: ApiKeyStatus = {
-    provider: "firecrawl", name,
+    provider: "firecrawl",
+    name,
     label: opts.label ?? name.replace("FIRECRAWL_API_KEY", "Firecrawl"),
-    configured: true, working: false, credits: null, limit: null, used: null, error: null, latency_ms: null,
-    source: opts.source ?? "env", id: opts.id ?? null,
+    configured: true,
+    working: false,
+    credits: null,
+    limit: null,
+    used: null,
+    error: null,
+    latency_ms: null,
+    source: opts.source ?? "env",
+    id: opts.id ?? null,
   };
   try {
     const ctrl = new AbortController();
@@ -71,20 +88,35 @@ async function checkFirecrawl(name: string, key: string, opts: { label?: string;
   }
 }
 
-async function checkScraperApi(name: string, key: string, opts: { label?: string; source?: "env" | "db"; id?: string | null } = {}): Promise<ApiKeyStatus> {
+async function checkScraperApi(
+  name: string,
+  key: string,
+  opts: { label?: string; source?: "env" | "db"; id?: string | null } = {},
+): Promise<ApiKeyStatus> {
   const t0 = Date.now();
   const base: ApiKeyStatus = {
-    provider: "scraperapi", name,
+    provider: "scraperapi",
+    name,
     label: opts.label ?? name.replace("SCRAPERAPI_KEY", "ScraperAPI"),
-    configured: true, working: false, credits: null, limit: null, used: null, error: null, latency_ms: null,
-    source: opts.source ?? "env", id: opts.id ?? null,
+    configured: true,
+    working: false,
+    credits: null,
+    limit: null,
+    used: null,
+    error: null,
+    latency_ms: null,
+    source: opts.source ?? "env",
+    id: opts.id ?? null,
   };
   try {
     const ctrl = new AbortController();
     const to = setTimeout(() => ctrl.abort(), 10_000);
-    const res = await fetch(`https://api.scraperapi.com/account?api_key=${encodeURIComponent(key)}`, {
-      signal: ctrl.signal,
-    });
+    const res = await fetch(
+      `https://api.scraperapi.com/account?api_key=${encodeURIComponent(key)}`,
+      {
+        signal: ctrl.signal,
+      },
+    );
     clearTimeout(to);
     base.latency_ms = Date.now() - t0;
     if (!res.ok) {
@@ -126,7 +158,11 @@ export const getApiPoolStatus = createServerFn({ method: "GET" })
     const dbChecks = dbKeys
       .filter((r) => r.active)
       .map((r) => {
-        const opts = { label: r.label || `${r.provider}-${r.id.slice(0, 6)}`, source: "db" as const, id: r.id };
+        const opts = {
+          label: r.label || `${r.provider}-${r.id.slice(0, 6)}`,
+          source: "db" as const,
+          id: r.id,
+        };
         const name = `db:${r.id.slice(0, 8)}`;
         return r.provider === "firecrawl"
           ? checkFirecrawl(name, r.key, opts)
@@ -138,9 +174,18 @@ export const getApiPoolStatus = createServerFn({ method: "GET" })
     // inactive DB keys também aparecem como "desligadas"
     for (const r of dbKeys.filter((r) => !r.active)) {
       results.push({
-        provider: r.provider, name: `db:${r.id.slice(0, 8)}`, label: r.label || `${r.provider}-${r.id.slice(0, 6)}`,
-        configured: true, working: false, credits: null, limit: null, used: null,
-        error: "desativada", latency_ms: null, source: "db", id: r.id,
+        provider: r.provider,
+        name: `db:${r.id.slice(0, 8)}`,
+        label: r.label || `${r.provider}-${r.id.slice(0, 6)}`,
+        configured: true,
+        working: false,
+        credits: null,
+        limit: null,
+        used: null,
+        error: "desativada",
+        latency_ms: null,
+        source: "db",
+        id: r.id,
       });
     }
 
@@ -156,8 +201,12 @@ export const getApiPoolStatus = createServerFn({ method: "GET" })
         working,
         broken: configured - working,
         total_credits: totalCredits,
-        firecrawl_credits: results.filter((r) => r.provider === "firecrawl").reduce((s, r) => s + (r.credits ?? 0), 0),
-        scraperapi_credits: results.filter((r) => r.provider === "scraperapi").reduce((s, r) => s + (r.credits ?? 0), 0),
+        firecrawl_credits: results
+          .filter((r) => r.provider === "firecrawl")
+          .reduce((s, r) => s + (r.credits ?? 0), 0),
+        scraperapi_credits: results
+          .filter((r) => r.provider === "scraperapi")
+          .reduce((s, r) => s + (r.credits ?? 0), 0),
       },
     };
   });
@@ -178,7 +227,12 @@ export const addApiKey = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin
       .from("api_keys")
-      .insert({ provider: data.provider, label: data.label, key: data.key, created_by: context.userId })
+      .insert({
+        provider: data.provider,
+        label: data.label,
+        key: data.key,
+        created_by: context.userId,
+      })
       .select("id, provider, label, active, created_at")
       .single();
     if (error) throw new Error(error.message);
@@ -212,7 +266,10 @@ export const toggleApiKey = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("api_keys").update({ active: data.active }).eq("id", data.id);
+    const { error } = await supabaseAdmin
+      .from("api_keys")
+      .update({ active: data.active })
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     const { invalidateDynamicKeysCache } = await import("@/lib/collect.server");
     invalidateDynamicKeysCache();
@@ -247,7 +304,7 @@ export const getUsageRanking = createServerFn({ method: "GET" })
     const snapsOkByOwner = new Map<string, number>();
     const daily = new Map<string, number>(); // YYYY-MM-DD -> count
     for (const s of snaps ?? []) {
-      const owner = s.library_id ? libToOwner.get(s.library_id) ?? "_orphan" : "_orphan";
+      const owner = s.library_id ? (libToOwner.get(s.library_id) ?? "_orphan") : "_orphan";
       snapsByOwner.set(owner, (snapsByOwner.get(owner) ?? 0) + 1);
       if (s.scrape_ok) snapsOkByOwner.set(owner, (snapsOkByOwner.get(owner) ?? 0) + 1);
       const day = s.captured_at.slice(0, 10);

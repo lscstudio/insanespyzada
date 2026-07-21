@@ -20,6 +20,15 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Environment variables / secrets
+.env
+.env.local
+.env.*
+!.env.example
+
+# Graphify output (generated)
+graphify-out/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

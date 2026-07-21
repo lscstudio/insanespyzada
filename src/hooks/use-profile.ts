@@ -11,7 +11,11 @@ export function useProfile() {
   return useQuery({
     queryKey: ["profile"],
     staleTime: 60_000,
-    queryFn: async (): Promise<{ profile: ProfileRow | null; email: string | null; avatarUrl: string | null }> => {
+    queryFn: async (): Promise<{
+      profile: ProfileRow | null;
+      email: string | null;
+      avatarUrl: string | null;
+    }> => {
       // getSession() reads the cached session synchronously; getUser() makes a network round-trip.
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData.session?.user ?? null;

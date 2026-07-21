@@ -31,13 +31,17 @@ export const listMembers = createServerFn({ method: "GET" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const [{ data: usersData, error: usersError }, { data: roles }, { data: profiles }, { data: libs }] =
-      await Promise.all([
-        supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 }),
-        supabaseAdmin.from("user_roles").select("user_id, role").eq("role", "admin"),
-        supabaseAdmin.from("profiles").select("id, library_limit"),
-        supabaseAdmin.from("libraries").select("created_by"),
-      ]);
+    const [
+      { data: usersData, error: usersError },
+      { data: roles },
+      { data: profiles },
+      { data: libs },
+    ] = await Promise.all([
+      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 }),
+      supabaseAdmin.from("user_roles").select("user_id, role").eq("role", "admin"),
+      supabaseAdmin.from("profiles").select("id, library_limit"),
+      supabaseAdmin.from("libraries").select("created_by"),
+    ]);
     if (usersError) throw new Error(usersError.message);
 
     const adminSet = new Set((roles ?? []).map((r: any) => r.user_id));
@@ -57,7 +61,8 @@ export const listMembers = createServerFn({ method: "GET" })
       last_sign_in_at: u.last_sign_in_at ?? null,
       is_admin: adminSet.has(u.id),
       is_owner: (u.email ?? "").toLowerCase() === OWNER_EMAIL,
-      is_banned: !!(u as any).banned_until && new Date((u as any).banned_until).getTime() > Date.now(),
+      is_banned:
+        !!(u as any).banned_until && new Date((u as any).banned_until).getTime() > Date.now(),
       library_limit: limitMap.get(u.id) ?? null,
       libraries_count: countMap.get(u.id) ?? 0,
     }));
@@ -194,7 +199,7 @@ export const getUsageRangeStats = createServerFn({ method: "POST" })
     const byOwner = new Map<string, { scrapes: number; ok: number }>();
     const daily = new Map<string, number>();
     for (const s of snaps ?? []) {
-      const owner = s.library_id ? libToOwner.get(s.library_id) ?? "_orphan" : "_orphan";
+      const owner = s.library_id ? (libToOwner.get(s.library_id) ?? "_orphan") : "_orphan";
       const cur = byOwner.get(owner) ?? { scrapes: 0, ok: 0 };
       cur.scrapes += 1;
       if (s.scrape_ok) cur.ok += 1;

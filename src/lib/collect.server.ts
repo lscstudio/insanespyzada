@@ -231,7 +231,7 @@ async function buildPool(): Promise<PoolKey[]> {
   // mas mantém Firecrawl antes de ScraperAPI (preferência por qualidade/JSON LLM).
   const fc = pool.filter((p) => p.provider === "firecrawl");
   const sa = pool.filter((p) => p.provider === "scraperapi");
-  const rotate = <T,>(arr: T[], off: number) =>
+  const rotate = <T>(arr: T[], off: number) =>
     arr.length === 0 ? arr : [...arr.slice(off % arr.length), ...arr.slice(0, off % arr.length)];
   const ordered = [...rotate(fc, RR_OFFSET), ...rotate(sa, RR_OFFSET)];
   RR_OFFSET = (RR_OFFSET + 1) % Math.max(1, Math.max(fc.length, sa.length));
@@ -248,10 +248,9 @@ async function firecrawlScrapeOnce(
   options?: { structured?: boolean },
 ): Promise<FirecrawlPayload> {
   const structured = options?.structured === true;
-  const formats: Array<string | { type: "json"; prompt: string; schema: typeof EXTRACTION_SCHEMA }> = [
-    "html",
-    "markdown",
-  ];
+  const formats: Array<
+    string | { type: "json"; prompt: string; schema: typeof EXTRACTION_SCHEMA }
+  > = ["html", "markdown"];
   if (structured) {
     formats.push({
       type: "json",
@@ -359,7 +358,9 @@ async function scraperApiScrapeOnce(url: string, apiKey: string): Promise<Firecr
   }
   const html = await res.text();
   if (!html || html.length < 500) {
-    const err = new Error("ScraperAPI retornou HTML vazio/curto demais") as Error & { transient?: boolean };
+    const err = new Error("ScraperAPI retornou HTML vazio/curto demais") as Error & {
+      transient?: boolean;
+    };
     err.transient = true;
     throw err;
   }
@@ -395,7 +396,10 @@ async function tryKeyWithRetry(
  * - Erro transitório (5xx/429/timeout): retenta na mesma chave 2x antes de pular.
  * - Erro definitivo (404/URL inválida): falha imediato.
  */
-async function scrapePage(url: string, options?: { structured?: boolean }): Promise<FirecrawlPayload> {
+async function scrapePage(
+  url: string,
+  options?: { structured?: boolean },
+): Promise<FirecrawlPayload> {
   const pool = await buildPool();
   if (pool.length === 0) {
     throw new Error(
@@ -436,7 +440,8 @@ function hash(...parts: Array<string | null | undefined>): string {
     .slice(0, 16);
 }
 
-const CDN_RE = /^https?:\/\/(?:scontent[\w.-]*\.fbcdn\.net|video[\w.-]*\.fbcdn\.net|(?!static\.)[\w.-]+\.cdninstagram\.com)\//i;
+const CDN_RE =
+  /^https?:\/\/(?:scontent[\w.-]*\.fbcdn\.net|video[\w.-]*\.fbcdn\.net|(?!static\.)[\w.-]+\.cdninstagram\.com)\//i;
 const SKIP_RE = /\/(emoji|rsrc\.php|safe_image|profile|p[0-9]+x[0-9]+)\//i;
 
 function normalizeFromLLM(extracted: ExtractedShape): ParsedResult {
@@ -454,7 +459,8 @@ function normalizeFromLLM(extracted: ExtractedShape): ParsedResult {
       c.media_type === "video" || /\.mp4(\?|$)/i.test(url) ? "video" : "image";
     const dup = Math.max(1, c.duplicate_count ?? 1);
     const adUrl =
-      c.ad_url ?? (c.library_id ? `https://www.facebook.com/ads/library/?id=${c.library_id}` : null);
+      c.ad_url ??
+      (c.library_id ? `https://www.facebook.com/ads/library/?id=${c.library_id}` : null);
     creatives.push({
       creative_hash: h,
       preview_url: url,
@@ -567,10 +573,7 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
 
   const creativesArr: ParsedCreative[] = Array.from(found.values())
     .map((c) => {
-      const metaMax = c.ad_ids.reduce(
-        (acc, id) => Math.max(acc, variationByAdId.get(id) ?? 0),
-        0,
-      );
+      const metaMax = c.ad_ids.reduce((acc, id) => Math.max(acc, variationByAdId.get(id) ?? 0), 0);
       const effective = Math.max(metaMax, c.count, 1);
       const adId = c.ad_ids[0] ?? null;
       return {
@@ -615,7 +618,7 @@ async function collectOne(
     // Caminho rápido: renderiza a página e usa parser local. Só acionamos a
     // extração estruturada mais lenta quando uma coleta individual não trouxe nada.
     let parsed: ParsedResult | null = parseAdLibraryPage(html, markdown);
-    if ((parsed.active_ads_count === 0 && parsed.creatives.length === 0) && options?.structured) {
+    if (parsed.active_ads_count === 0 && parsed.creatives.length === 0 && options?.structured) {
       ({ html, markdown, extracted } = await scrapePage(lib.url, { structured: true }));
       if (extracted && (extracted.creatives?.length || (extracted.active_ads_count ?? 0) > 0)) {
         parsed = normalizeFromLLM(extracted);
@@ -623,8 +626,14 @@ async function collectOne(
         parsed = parseAdLibraryPage(html, markdown);
       }
     }
-    if (parsed.active_ads_count === 0 && parsed.creatives.length === 0 && !parsed.total_results_text) {
-      const err = new Error("Nenhum dado confiável foi extraído da biblioteca") as Error & { transient?: boolean };
+    if (
+      parsed.active_ads_count === 0 &&
+      parsed.creatives.length === 0 &&
+      !parsed.total_results_text
+    ) {
+      const err = new Error("Nenhum dado confiável foi extraído da biblioteca") as Error & {
+        transient?: boolean;
+      };
       err.transient = true;
       throw err;
     }
@@ -729,11 +738,16 @@ async function collectOneRobust(
     top_creative_count: 0,
     error_message: (lastError ?? "unknown").slice(0, 500),
   });
-  if (failSnapErr) console.warn(`[collect] falha ao gravar snapshot de erro ${lib.id}: ${failSnapErr.message}`);
+  if (failSnapErr)
+    console.warn(`[collect] falha ao gravar snapshot de erro ${lib.id}: ${failSnapErr.message}`);
   return { ok: false, error: lastError };
 }
 
-export async function runCollection(opts?: { libraryId?: string; userId?: string; force?: boolean }): Promise<CollectReport> {
+export async function runCollection(opts?: {
+  libraryId?: string;
+  userId?: string;
+  force?: boolean;
+}): Promise<CollectReport> {
   const started = Date.now();
   const sb = getAdmin();
   const nowIso = new Date().toISOString();
@@ -759,7 +773,10 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
       .select("library_id")
       .eq("scrape_ok", true)
       .gte("captured_at", since)
-      .in("library_id", list.map((l) => l.id));
+      .in(
+        "library_id",
+        list.map((l) => l.id),
+      );
     const done = new Set((recent ?? []).map((r) => r.library_id));
     const before = list.length;
     list = list.filter((l) => !done.has(l.id));
@@ -857,9 +874,7 @@ export async function runCollection(opts?: { libraryId?: string; userId?: string
       }
     }
   }
-  await Promise.all(
-    Array.from({ length: Math.min(CONCURRENCY, list.length) }, () => worker()),
-  );
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, list.length) }, () => worker()));
 
   return {
     libraries_total: requestedTotal,

@@ -9,70 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
-import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
-import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
-import { Route as AuthenticatedBibliotecasRouteImport } from './routes/_authenticated/bibliotecas'
-import { Route as AuthenticatedBibliotecaIdRouteImport } from './routes/_authenticated/biblioteca.$id'
+import { Route as SplatRouteImport } from './routes/$'
+import { Route as ApiDeleteAccountRouteImport } from './routes/api/delete-account'
+import { Route as ApiCollectRouteImport } from './routes/api/collect'
+import { Route as ApiAdminRouteImport } from './routes/api/admin'
 import { Route as ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRouteImport } from './routes/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
 
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const ApiDeleteAccountRoute = ApiDeleteAccountRouteImport.update({
+  id: '/api/delete-account',
+  path: '/api/delete-account',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const ApiCollectRoute = ApiCollectRouteImport.update({
+  id: '/api/collect',
+  path: '/api/collect',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const ApiAdminRoute = ApiAdminRouteImport.update({
+  id: '/api/admin',
+  path: '/api/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
-  id: '/perfil',
-  path: '/perfil',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
-  id: '/painel',
-  path: '/painel',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedConfiguracoesRoute =
-  AuthenticatedConfiguracoesRouteImport.update({
-    id: '/configuracoes',
-    path: '/configuracoes',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedBibliotecasRoute =
-  AuthenticatedBibliotecasRouteImport.update({
-    id: '/bibliotecas',
-    path: '/bibliotecas',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedBibliotecaIdRoute =
-  AuthenticatedBibliotecaIdRouteImport.update({
-    id: '/biblioteca/$id',
-    path: '/biblioteca/$id',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute =
   ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRouteImport.update({
     id: '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b',
@@ -81,162 +43,88 @@ const ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthenticatedIndexRoute
-  '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/bibliotecas': typeof AuthenticatedBibliotecasRoute
-  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/painel': typeof AuthenticatedPainelRoute
-  '/perfil': typeof AuthenticatedPerfilRoute
-  '/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
+  '/$': typeof SplatRoute
+  '/api/admin': typeof ApiAdminRoute
+  '/api/collect': typeof ApiCollectRoute
+  '/api/delete-account': typeof ApiDeleteAccountRoute
   '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
 export interface FileRoutesByTo {
-  '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/bibliotecas': typeof AuthenticatedBibliotecasRoute
-  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/painel': typeof AuthenticatedPainelRoute
-  '/perfil': typeof AuthenticatedPerfilRoute
-  '/': typeof AuthenticatedIndexRoute
-  '/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
+  '/$': typeof SplatRoute
+  '/api/admin': typeof ApiAdminRoute
+  '/api/collect': typeof ApiCollectRoute
+  '/api/delete-account': typeof ApiDeleteAccountRoute
   '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
-  '/reset-password': typeof ResetPasswordRoute
-  '/_authenticated/bibliotecas': typeof AuthenticatedBibliotecasRoute
-  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/_authenticated/painel': typeof AuthenticatedPainelRoute
-  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
-  '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/biblioteca/$id': typeof AuthenticatedBibliotecaIdRoute
+  '/$': typeof SplatRoute
+  '/api/admin': typeof ApiAdminRoute
+  '/api/collect': typeof ApiCollectRoute
+  '/api/delete-account': typeof ApiDeleteAccountRoute
   '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/admin'
-    | '/auth'
-    | '/reset-password'
-    | '/bibliotecas'
-    | '/configuracoes'
-    | '/painel'
-    | '/perfil'
-    | '/biblioteca/$id'
+    | '/$'
+    | '/api/admin'
+    | '/api/collect'
+    | '/api/delete-account'
     | '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/admin'
-    | '/auth'
-    | '/reset-password'
-    | '/bibliotecas'
-    | '/configuracoes'
-    | '/painel'
-    | '/perfil'
-    | '/'
-    | '/biblioteca/$id'
+    | '/$'
+    | '/api/admin'
+    | '/api/collect'
+    | '/api/delete-account'
     | '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
   id:
     | '__root__'
-    | '/_authenticated'
-    | '/admin'
-    | '/auth'
-    | '/reset-password'
-    | '/_authenticated/bibliotecas'
-    | '/_authenticated/configuracoes'
-    | '/_authenticated/painel'
-    | '/_authenticated/perfil'
-    | '/_authenticated/'
-    | '/_authenticated/biblioteca/$id'
+    | '/$'
+    | '/api/admin'
+    | '/api/collect'
+    | '/api/delete-account'
     | '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AdminRoute: typeof AdminRoute
-  AuthRoute: typeof AuthRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
+  SplatRoute: typeof SplatRoute
+  ApiAdminRoute: typeof ApiAdminRoute
+  ApiCollectRoute: typeof ApiCollectRoute
+  ApiDeleteAccountRoute: typeof ApiDeleteAccountRoute
   ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute: typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/api/delete-account': {
+      id: '/api/delete-account'
+      path: '/api/delete-account'
+      fullPath: '/api/delete-account'
+      preLoaderRoute: typeof ApiDeleteAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/api/collect': {
+      id: '/api/collect'
+      path: '/api/collect'
+      fullPath: '/api/collect'
+      preLoaderRoute: typeof ApiCollectRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+    '/api/admin': {
+      id: '/api/admin'
+      path: '/api/admin'
+      fullPath: '/api/admin'
+      preLoaderRoute: typeof ApiAdminRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/': {
-      id: '/_authenticated/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/perfil': {
-      id: '/_authenticated/perfil'
-      path: '/perfil'
-      fullPath: '/perfil'
-      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/painel': {
-      id: '/_authenticated/painel'
-      path: '/painel'
-      fullPath: '/painel'
-      preLoaderRoute: typeof AuthenticatedPainelRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/configuracoes': {
-      id: '/_authenticated/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/bibliotecas': {
-      id: '/_authenticated/bibliotecas'
-      path: '/bibliotecas'
-      fullPath: '/bibliotecas'
-      preLoaderRoute: typeof AuthenticatedBibliotecasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/biblioteca/$id': {
-      id: '/_authenticated/biblioteca/$id'
-      path: '/biblioteca/$id'
-      fullPath: '/biblioteca/$id'
-      preLoaderRoute: typeof AuthenticatedBibliotecaIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': {
       id: '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
@@ -248,35 +136,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedRouteRouteChildren {
-  AuthenticatedBibliotecasRoute: typeof AuthenticatedBibliotecasRoute
-  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
-  AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
-  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedBibliotecaIdRoute: typeof AuthenticatedBibliotecaIdRoute
-}
-
-const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedBibliotecasRoute: AuthenticatedBibliotecasRoute,
-  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
-  AuthenticatedPainelRoute: AuthenticatedPainelRoute,
-  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
-  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-  AuthenticatedBibliotecaIdRoute: AuthenticatedBibliotecaIdRoute,
-}
-
-const AuthenticatedRouteRouteWithChildren =
-  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AdminRoute: AdminRoute,
-  AuthRoute: AuthRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
+  SplatRoute: SplatRoute,
+  ApiAdminRoute: ApiAdminRoute,
+  ApiCollectRoute: ApiCollectRoute,
+  ApiDeleteAccountRoute: ApiDeleteAccountRoute,
   ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute:
     ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

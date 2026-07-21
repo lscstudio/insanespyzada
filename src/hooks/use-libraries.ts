@@ -78,7 +78,13 @@ export function useHourlyTrend() {
         const latest = list[0]; // já vem desc
         const previous = list[1];
         if (!previous) {
-          out[libId] = { library_id: libId, direction: "flat", delta: 0, from: latest.v, to: latest.v };
+          out[libId] = {
+            library_id: libId,
+            direction: "flat",
+            delta: 0,
+            from: latest.v,
+            to: latest.v,
+          };
           continue;
         }
         const delta = latest.v - previous.v;
@@ -303,7 +309,15 @@ export function useCreateNiche() {
 export function useUpdateNiche() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, name, previousName }: { id: string; name: string; previousName: string }) => {
+    mutationFn: async ({
+      id,
+      name,
+      previousName,
+    }: {
+      id: string;
+      name: string;
+      previousName: string;
+    }) => {
       const trimmed = name.trim();
       if (!trimmed) throw new Error("Nome do nicho é obrigatório");
       const { error } = await supabase
@@ -313,10 +327,7 @@ export function useUpdateNiche() {
       if (error) throw error;
       // Cascade rename on libraries that referenced the old name (text field).
       if (previousName && previousName !== trimmed) {
-        await supabase
-          .from("libraries")
-          .update({ niche: trimmed })
-          .eq("niche", previousName);
+        await supabase.from("libraries").update({ niche: trimmed }).eq("niche", previousName);
       }
     },
     onSuccess: () => {
@@ -330,7 +341,10 @@ export function useDeleteNiche() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from("niches" as never).delete().eq("id", id);
+      const { error } = await supabase
+        .from("niches" as never)
+        .delete()
+        .eq("id", id);
       if (error) throw error;
       // Clear the niche label from libraries that used it.
       await supabase.from("libraries").update({ niche: null }).eq("niche", name);

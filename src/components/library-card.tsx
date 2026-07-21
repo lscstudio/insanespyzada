@@ -50,7 +50,13 @@ interface Props {
   index?: number;
 }
 
-export function HourlyTrendBadge({ trend, className }: { trend?: HourlyTrend; className?: string }) {
+export function HourlyTrendBadge({
+  trend,
+  className,
+}: {
+  trend?: HourlyTrend;
+  className?: string;
+}) {
   const { t } = useLang();
   const dir = trend?.direction ?? "flat";
   const Icon = dir === "up" ? ArrowUp : dir === "down" ? ArrowDown : Minus;
@@ -106,7 +112,10 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                     </Badge>
                   )}
                   {library.language && (
-                    <Badge variant="outline" className="border-border/60 font-normal text-muted-foreground">
+                    <Badge
+                      variant="outline"
+                      className="border-border/60 font-normal text-muted-foreground"
+                    >
                       {library.language}
                     </Badge>
                   )}
@@ -116,7 +125,10 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                     </Badge>
                   )}
                   {library.scrape_ok === false && (
-                    <Badge variant="outline" className="border-warning/40 bg-warning/10 text-warning">
+                    <Badge
+                      variant="outline"
+                      className="border-warning/40 bg-warning/10 text-warning"
+                    >
                       <AlertTriangle className="h-3 w-3" /> {t("falha")}
                     </Badge>
                   )}
@@ -150,7 +162,9 @@ export function LibraryCard({ library, trend, index = 0 }: Props) {
                           {
                             onSuccess: () =>
                               toast.success(
-                                library.status === "active" ? t("Biblioteca pausada") : t("Biblioteca ativada"),
+                                library.status === "active"
+                                  ? t("Biblioteca pausada")
+                                  : t("Biblioteca ativada"),
                               ),
                           },
                         )

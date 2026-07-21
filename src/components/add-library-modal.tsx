@@ -157,7 +157,9 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
               {library ? t("Editar biblioteca") : t("Adicionar biblioteca")}
             </DialogTitle>
             <DialogDescription>
-              {t("Dê um nome curto pra essa biblioteca (oferta, mecanismo, ângulo) e cole o link da Meta Ad Library.")}
+              {t(
+                "Dê um nome curto pra essa biblioteca (oferta, mecanismo, ângulo) e cole o link da Meta Ad Library.",
+              )}
             </DialogDescription>
           </DialogHeader>
 
@@ -190,7 +192,8 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
                   animate={{ opacity: 1 }}
                   className="text-xs text-muted-foreground"
                 >
-                  {t("Termo detectado:")} <span className="text-foreground font-medium">{searchTermPreview}</span>
+                  {t("Termo detectado:")}{" "}
+                  <span className="text-foreground font-medium">{searchTermPreview}</span>
                 </motion.p>
               )}
             </div>
@@ -251,7 +254,9 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
             </div>
 
             <p className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              {t("Ao adicionar uma biblioteca ativa, a mineração roda na hora e atualiza os dados ao vivo.")}
+              {t(
+                "Ao adicionar uma biblioteca ativa, a mineração roda na hora e atualiza os dados ao vivo.",
+              )}
             </p>
 
             <DialogFooter className="gap-2">
@@ -260,7 +265,13 @@ export function AddLibraryModal({ open, onOpenChange, library }: Props) {
               </Button>
               <Button type="submit" disabled={save.isPending || mining}>
                 {(save.isPending || mining) && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mining ? t("Minerando…") : save.isPending ? t("Salvando…") : library ? t("Salvar e minerar") : t("Adicionar e minerar")}
+                {mining
+                  ? t("Minerando…")
+                  : save.isPending
+                    ? t("Salvando…")
+                    : library
+                      ? t("Salvar e minerar")
+                      : t("Adicionar e minerar")}
               </Button>
             </DialogFooter>
           </form>

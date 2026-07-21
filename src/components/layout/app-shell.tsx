@@ -38,7 +38,13 @@ const NAV_ITEMS = [
   { to: "/configuracoes", labelKey: "Configurações", icon: Settings, exact: false, admin: false },
 ] as const;
 
-function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItemClick?: () => void }) {
+function SidebarContent({
+  collapsed,
+  onItemClick,
+}: {
+  collapsed: boolean;
+  onItemClick?: () => void;
+}) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const t = useT();
   const checkFn = useServerFn(checkIsAdmin);
@@ -60,7 +66,9 @@ function SidebarContent({ collapsed, onItemClick }: { collapsed: boolean; onItem
         {!collapsed && (
           <div className="leading-tight">
             <div className="text-sm font-semibold tracking-tight">InsaneSpy</div>
-            <div className="text-[11px] text-muted-foreground">{t("Você está sendo observado")}</div>
+            <div className="text-[11px] text-muted-foreground">
+              {t("Você está sendo observado")}
+            </div>
           </div>
         )}
       </div>
