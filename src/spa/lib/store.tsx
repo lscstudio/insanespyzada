@@ -528,31 +528,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function bootstrap() {
-      const { data: sessData } = await supabase.auth.getSession();
-      if (cancelled) return;
-      const u = sessData.session?.user ?? null;
-      if (u) {
-        const fallback =
-          (u.user_metadata?.full_name as string) || deriveNameFromEmail(u.email ?? "");
-        void syncProfile(u.id, fallback, u.email ?? "");
-        void syncLibraries();
-        void syncDashboards();
-        void syncNotifications();
-        void syncSubscription();
-        void syncSwipeFavorites();
-        void fetchAggregatedDaily();
-      } else {
-        setSession(null);
-        setAvatarUrl(null);
-      }
-      setAuthLoading(false);
-
-      sub = supabase.auth.onAuthStateChange(async (_event, s) => {
-        const user = s?.user ?? null;
-        if (user) {
+      try {
+        const { data: sessData } = await supabase.auth.getSession();
+        if (cancelled) return;
+        const u = sessData.session?.user ?? null;
+        if (u) {
           const fallback =
-            (user.user_metadata?.full_name as string) || deriveNameFromEmail(user.email ?? "");
-          void syncProfile(user.id, fallback, user.email ?? "");
+            (u.user_metadata?.full_name as string) || deriveNameFromEmail(u.email ?? "");
+          void syncProfile(u.id, fallback, u.email ?? "");
           void syncLibraries();
           void syncDashboards();
           void syncNotifications();
@@ -562,14 +545,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         } else {
           setSession(null);
           setAvatarUrl(null);
-          setLibraries([]);
-          setDashboards([]);
-          setNotifications([]);
-          setPayments([]);
-          setSwipeFavorites([]);
-          setAggregatedDaily([]);
         }
-      }).data;
+
+        sub = supabase.auth.onAuthStateChange(async (_event, s) => {
+          const user = s?.user ?? null;
+          if (user) {
+            const fallback =
+              (user.user_metadata?.full_name as string) || deriveNameFromEmail(user.email ?? "");
+            void syncProfile(user.id, fallback, user.email ?? "");
+            void syncLibraries();
+            void syncDashboards();
+            void syncNotifications();
+            void syncSubscription();
+            void syncSwipeFavorites();
+            void fetchAggregatedDaily();
+          } else {
+            setSession(null);
+            setAvatarUrl(null);
+            setLibraries([]);
+            setDashboards([]);
+            setNotifications([]);
+            setPayments([]);
+            setSwipeFavorites([]);
+            setAggregatedDaily([]);
+          }
+        }).data;
+      } catch (err) {
+        console.error("[auth bootstrap] falha ao iniciar sessão Supabase", err);
+        setSession(null);
+        setAvatarUrl(null);
+        setLibraries([]);
+        setDashboards([]);
+        setNotifications([]);
+        setPayments([]);
+        setSwipeFavorites([]);
+        setAggregatedDaily([]);
+      } finally {
+        if (!cancelled) setAuthLoading(false);
+      }
     }
 
     void bootstrap();
