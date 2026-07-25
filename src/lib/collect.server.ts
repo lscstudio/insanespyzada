@@ -199,6 +199,10 @@ function markExhausted(name: string) {
 let DYN_CACHE: { at: number; keys: PoolKey[] } | null = null;
 const DYN_TTL_MS = 30_000;
 
+// última falha ao carregar chaves do banco. Quando o pool fica vazio é
+// importante distinguir "sem chaves cadastradas" de "falha ao ler o banco".
+let lastKeyLoadError: string | null = null;
+
 async function loadDynamicKeys(): Promise<PoolKey[]> {
   if (DYN_CACHE && Date.now() - DYN_CACHE.at < DYN_TTL_MS) return DYN_CACHE.keys;
   try {
@@ -214,9 +218,11 @@ async function loadDynamicKeys(): Promise<PoolKey[]> {
       value: r.key,
     }));
     DYN_CACHE = { at: Date.now(), keys };
+    lastKeyLoadError = null;
     return keys;
   } catch (e) {
-    console.warn("[collect] falha ao carregar api_keys do banco:", (e as Error).message);
+    lastKeyLoadError = (e as Error).message;
+    console.warn("[collect] falha ao carregar api_keys do banco:", lastKeyLoadError);
     return DYN_CACHE?.keys ?? [];
   }
 }
@@ -240,6 +246,27 @@ async function buildPool(): Promise<PoolKey[]> {
 
 export function invalidateDynamicKeysCache() {
   DYN_CACHE = null;
+}
+
+/** Diagnóstico do pool de chaves — usado pelo endpoint /api/collect/diagnostic. */
+export async function _diagnosticPool(): Promise<{
+  pool_count: number;
+  pool_names: string[];
+  last_key_load_error: string | null;
+  cache_present: boolean;
+  cache_age_ms: number;
+  exhausted_names: string[];
+}> {
+  const before = DYN_CACHE ? Date.now() - DYN_CACHE.at : 0;
+  const pool = await buildPool();
+  return {
+    pool_count: pool.length,
+    pool_names: pool.map((p) => p.name),
+    last_key_load_error: lastKeyLoadError,
+    cache_present: DYN_CACHE !== null,
+    cache_age_ms: DYN_CACHE ? before : 0,
+    exhausted_names: Array.from(EXHAUSTED.keys()),
+  };
 }
 
 async function firecrawlScrapeOnce(
@@ -402,8 +429,13 @@ async function scrapePage(
 ): Promise<FirecrawlPayload> {
   const pool = await buildPool();
   if (pool.length === 0) {
+    if (lastKeyLoadError) {
+      throw new Error(
+        `Sem chaves de scraping disponíveis no momento. Não foi possível ler a tabela api_keys do banco: ${lastKeyLoadError}`,
+      );
+    }
     throw new Error(
-      "Nenhuma chave de scraping disponível (todas esgotadas ou não configuradas). Aguarde 1h ou adicione novas chaves.",
+      "Nenhuma chave de scraping cadastrada ativa. Adicione uma chave (Firecrawl ou ScraperAPI) em Admin → Chaves de API.",
     );
   }
   const errors: string[] = [];

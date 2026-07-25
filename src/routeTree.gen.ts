@@ -13,6 +13,7 @@ import { Route as SplatRouteImport } from './routes/$'
 import { Route as ApiDeleteAccountRouteImport } from './routes/api/delete-account'
 import { Route as ApiCollectRouteImport } from './routes/api/collect'
 import { Route as ApiAdminRouteImport } from './routes/api/admin'
+import { Route as ApiCollectDiagnosticRouteImport } from './routes/api/collect/diagnostic'
 import { Route as ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRouteImport } from './routes/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
 
 const SplatRoute = SplatRouteImport.update({
@@ -35,6 +36,11 @@ const ApiAdminRoute = ApiAdminRouteImport.update({
   path: '/api/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCollectDiagnosticRoute = ApiCollectDiagnosticRouteImport.update({
+  id: '/diagnostic',
+  path: '/diagnostic',
+  getParentRoute: () => ApiCollectRoute,
+} as any)
 const ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute =
   ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRouteImport.update({
     id: '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b',
@@ -45,23 +51,26 @@ const ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute =
 export interface FileRoutesByFullPath {
   '/$': typeof SplatRoute
   '/api/admin': typeof ApiAdminRoute
-  '/api/collect': typeof ApiCollectRoute
+  '/api/collect': typeof ApiCollectRouteWithChildren
   '/api/delete-account': typeof ApiDeleteAccountRoute
+  '/api/collect/diagnostic': typeof ApiCollectDiagnosticRoute
   '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
 export interface FileRoutesByTo {
   '/$': typeof SplatRoute
   '/api/admin': typeof ApiAdminRoute
-  '/api/collect': typeof ApiCollectRoute
+  '/api/collect': typeof ApiCollectRouteWithChildren
   '/api/delete-account': typeof ApiDeleteAccountRoute
+  '/api/collect/diagnostic': typeof ApiCollectDiagnosticRoute
   '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/$': typeof SplatRoute
   '/api/admin': typeof ApiAdminRoute
-  '/api/collect': typeof ApiCollectRoute
+  '/api/collect': typeof ApiCollectRouteWithChildren
   '/api/delete-account': typeof ApiDeleteAccountRoute
+  '/api/collect/diagnostic': typeof ApiCollectDiagnosticRoute
   '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
 export interface FileRouteTypes {
@@ -71,6 +80,7 @@ export interface FileRouteTypes {
     | '/api/admin'
     | '/api/collect'
     | '/api/delete-account'
+    | '/api/collect/diagnostic'
     | '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -78,6 +88,7 @@ export interface FileRouteTypes {
     | '/api/admin'
     | '/api/collect'
     | '/api/delete-account'
+    | '/api/collect/diagnostic'
     | '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
   id:
     | '__root__'
@@ -85,13 +96,14 @@ export interface FileRouteTypes {
     | '/api/admin'
     | '/api/collect'
     | '/api/delete-account'
+    | '/api/collect/diagnostic'
     | '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   SplatRoute: typeof SplatRoute
   ApiAdminRoute: typeof ApiAdminRoute
-  ApiCollectRoute: typeof ApiCollectRoute
+  ApiCollectRoute: typeof ApiCollectRouteWithChildren
   ApiDeleteAccountRoute: typeof ApiDeleteAccountRoute
   ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute: typeof ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute
 }
@@ -126,6 +138,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/collect/diagnostic': {
+      id: '/api/collect/diagnostic'
+      path: '/diagnostic'
+      fullPath: '/api/collect/diagnostic'
+      preLoaderRoute: typeof ApiCollectDiagnosticRouteImport
+      parentRoute: typeof ApiCollectRoute
+    }
     '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b': {
       id: '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
       path: '/api/public/hooks/heartbeat-7f3a9b2e8c1d4a6b'
@@ -136,10 +155,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ApiCollectRouteChildren {
+  ApiCollectDiagnosticRoute: typeof ApiCollectDiagnosticRoute
+}
+
+const ApiCollectRouteChildren: ApiCollectRouteChildren = {
+  ApiCollectDiagnosticRoute: ApiCollectDiagnosticRoute,
+}
+
+const ApiCollectRouteWithChildren = ApiCollectRoute._addFileChildren(
+  ApiCollectRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   SplatRoute: SplatRoute,
   ApiAdminRoute: ApiAdminRoute,
-  ApiCollectRoute: ApiCollectRoute,
+  ApiCollectRoute: ApiCollectRouteWithChildren,
   ApiDeleteAccountRoute: ApiDeleteAccountRoute,
   ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute:
     ApiPublicHooksHeartbeat7f3a9b2e8c1d4a6bRoute,
