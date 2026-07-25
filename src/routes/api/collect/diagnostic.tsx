@@ -50,6 +50,29 @@ export const Route = createFileRoute("/api/collect/diagnostic")({
 
           // Pool diagnostica não expor valores de chaves.
           const mod = await import("@/lib/collect.server");
+
+          // ?reset=1 limpa chaves marcadas como esgotadas (cold-start virtual)
+          // e invalida o cache dinâmico. Útil quando uma chave nova foi
+          // erroneamente marcada esgotada por 401/403 em provisioning.
+          let resetDone = false;
+          if (new URL(request.url).searchParams.get("reset") === "1") {
+            try {
+              (
+                mod as unknown as {
+                  resetExhaustedKeys: () => void;
+                }
+              ).resetExhaustedKeys();
+              (
+                mod as unknown as {
+                  invalidateDynamicKeysCache: () => void;
+                }
+              ).invalidateDynamicKeysCache();
+              resetDone = true;
+            } catch (e) {
+              /* ignore */
+            }
+          }
+
           let poolInfo: unknown = null;
           try {
             poolInfo = await (
@@ -57,6 +80,7 @@ export const Route = createFileRoute("/api/collect/diagnostic")({
                 _diagnosticPool: () => Promise<unknown>;
               }
             )._diagnosticPool();
+            if (resetDone) (poolInfo as { reset?: boolean }).reset = true;
           } catch (e) {
             poolInfo = { error: (e as Error).message };
           }

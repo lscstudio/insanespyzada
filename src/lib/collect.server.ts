@@ -175,9 +175,13 @@ interface PoolKey {
   value: string;
 }
 
-// Chaves marcadas como sem créditos (TTL 1h). Map<name, expiresAt(ms)>
+// Chaves marcadas como sem créditos (TTL curto: 10min). Map<name, expiresAt(ms)>
+// Antes era 1h — mas ScraperAPI/Firecrawl em contas novas dão 401/403 shortly
+// após cadastro (provisioning delay), o que marcava esgotado por uma hora
+// mesmo com créditos disponíveis. 10min dá tempo suficiente pra retried sem
+// prender a fila.
 const EXHAUSTED = new Map<string, number>();
-const EXHAUSTED_TTL_MS = 60 * 60 * 1000;
+const EXHAUSTED_TTL_MS = 10 * 60 * 1000;
 let RR_OFFSET = 0;
 
 function isExhausted(name: string): boolean {
@@ -192,7 +196,7 @@ function isExhausted(name: string): boolean {
 
 function markExhausted(name: string) {
   EXHAUSTED.set(name, Date.now() + EXHAUSTED_TTL_MS);
-  console.warn(`[collect] chave ${name} marcada como esgotada por 1h.`);
+  console.warn(`[collect] chave ${name} marcada como esgotada por 10min.`);
 }
 
 // cache curto pra chaves dinâmicas do banco (evita hit no DB a cada scrape)
@@ -246,6 +250,11 @@ async function buildPool(): Promise<PoolKey[]> {
 
 export function invalidateDynamicKeysCache() {
   DYN_CACHE = null;
+}
+
+/** Limpa a lista de chaves marcadas como esgotadas (útil para troubleshooting). */
+export function resetExhaustedKeys() {
+  EXHAUSTED.clear();
 }
 
 /** Diagnóstico do pool de chaves — usado pelo endpoint /api/collect/diagnostic. */
@@ -347,10 +356,20 @@ function isCreditsExhausted(err: unknown): boolean {
     msg.includes("out of credits") ||
     msg.includes("no credits") ||
     msg.includes("credit limit") ||
-    msg.includes("quota exceeded") ||
-    msg.includes("scraperapi 401") ||
-    msg.includes("scraperapi 403")
+    msg.includes("quota exceeded")
   );
+}
+
+/**
+ * Erro transiente de auth do ScraperAPI (401/403) em contas novas —
+ * a API leva alguns minutos para "provisionar" a chave. NÃO marcar como
+ * esgotada; apenas retentar após pequeno backoff.
+ */
+function isScraperApiAuthTransient(err: unknown): boolean {
+  const e = err as { status?: number; message?: string } | null;
+  if (!e) return false;
+  const msg = (e.message ?? "").toLowerCase();
+  return msg.includes("scraperapi 401") || msg.includes("scraperapi 403");
 }
 
 function isDefinitive(err: unknown): boolean {
@@ -399,6 +418,8 @@ async function tryKeyWithRetry(
   url: string,
   options?: { structured?: boolean },
 ): Promise<FirecrawlPayload> {
+  // ScraperAPI em contas novas pode dar 401/403 (provisioning delay) —
+  // retenta com backoff maior em vez de falhar imediato.
   const MAX_RETRY = 1; // tenta rápido e faz failover para outra chave sem travar a fila
   let lastErr: unknown;
   for (let attempt = 0; attempt <= MAX_RETRY; attempt++) {
@@ -408,6 +429,14 @@ async function tryKeyWithRetry(
     } catch (err) {
       lastErr = err;
       if (isCreditsExhausted(err) || isDefinitive(err)) throw err;
+      // ScraperAPI 401/403 transiente: backoff maior e retenta.
+      if (isScraperApiAuthTransient(err)) {
+        if (attempt < MAX_RETRY) {
+          await sleep(3000);
+          continue;
+        }
+        throw err;
+      }
       const transient = (err as { transient?: boolean }).transient ?? true;
       if (!transient || attempt === MAX_RETRY) throw err;
       await sleep(1200);
@@ -419,8 +448,9 @@ async function tryKeyWithRetry(
 /**
  * Pool de chaves com failover automático.
  * Ordem: FC1→FC2→FC3→FC4→SA1→SA2→SA3 (com round-robin).
- * - Sem créditos (402/quota): marca chave como esgotada por 1h e pula pra próxima imediatamente.
+ * - Sem créditos (402/quota): marca chave como esgotada por 10min e pula pra próxima imediatamente.
  * - Erro transitório (5xx/429/timeout): retenta na mesma chave 2x antes de pular.
+ * - ScraperAPI 401/403 (conta nova): NÃO marca esgotada; apenas pula pra próxima.
  * - Erro definitivo (404/URL inválida): falha imediato.
  */
 async function scrapePage(
@@ -448,6 +478,12 @@ async function scrapePage(
       return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      if (isScraperApiAuthTransient(err)) {
+        // Não marcar como esgotada — é transiente de conta nova. Loga e pula,
+        // mas permite que a mesma chave volte a ser usada na próxima execução.
+        errors.push(`${key.name}(auth provisório)`);
+        continue;
+      }
       if (isCreditsExhausted(err)) {
         markExhausted(key.name);
         errors.push(`${key.name}(sem créditos)`);
