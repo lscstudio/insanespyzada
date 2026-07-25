@@ -29,6 +29,10 @@ dist-ssr
 # Graphify output (generated)
 graphify-out/
 
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
