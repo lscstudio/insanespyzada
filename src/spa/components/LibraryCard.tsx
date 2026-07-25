@@ -16,14 +16,23 @@ export function LibraryCard({
   onRemove?: (id: string) => void;
   removeLabel?: string;
 }) {
-  const { toggleFavorite, refreshLibrary, removeLibrary } = useStore();
+  const { toggleFavorite, refreshLibrary, removeLibrary, toast } = useStore();
   const navigate = useNavigate();
   const top = lib.creatives[0];
   const running = lib.lastCollection.status === "running";
 
+  function openOrWarn(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (running) {
+      toast(`Coleta de "${lib.pageName}" em andamento. Tente novamente em instantes.`, "info");
+      return;
+    }
+    navigate(`/biblioteca/${lib.id}`);
+  }
+
   return (
     <div
-      onClick={() => navigate(`/biblioteca/${lib.id}`)}
+      onClick={openOrWarn}
       className="group flex flex-col overflow-hidden border border-line bg-card transition-colors hover:border-brand dark:border-dline dark:bg-dcard dark:hover:border-brand-bright"
     >
       {/* thumbnail do top criativo */}
@@ -54,6 +63,16 @@ export function LibraryCard({
           <div className="flex items-start justify-between gap-2">
             <Link
               to={`/biblioteca/${lib.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (running) {
+                  e.preventDefault();
+                  toast(
+                    `Coleta de "${lib.pageName}" em andamento. Tente novamente em instantes.`,
+                    "info",
+                  );
+                }
+              }}
               className="text-sm font-extrabold uppercase tracking-tight hover:text-brand dark:hover:text-brand-bright"
             >
               {lib.pageName}
@@ -135,12 +154,6 @@ export function LibraryCard({
             <ExternalLink size={14} />
           </a>
           <div className="flex-1" />
-          <Link
-            to={`/biblioteca/${lib.id}`}
-            className="text-[10px] font-bold uppercase tracking-wider text-brand hover:underline dark:text-brand-bright"
-          >
-            Detalhes →
-          </Link>
           <IconButton
             onClick={() => {
               void (onRemove ? onRemove(lib.id) : removeLibrary(lib.id));

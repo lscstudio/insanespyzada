@@ -67,7 +67,8 @@ export function BibliotecaDetail() {
   const running = lib.lastCollection.status === "running";
   const last = lib.snapshots[lib.snapshots.length - 1];
   const prev = lib.snapshots[lib.snapshots.length - 2];
-  const diff = last.activeAds - prev.activeAds;
+  const diff = last && prev ? last.activeAds - prev.activeAds : 0;
+  const hasData = lib.snapshots.length > 0 || lib.creatives.length > 0;
 
   function extractVideo() {
     if (!p.videoExtraction) {
@@ -138,46 +139,74 @@ export function BibliotecaDetail() {
       <div className="grid grid-cols-3 gap-4">
         <Stat
           label="Anúncios ativos"
-          value={num(lib.activeAds)}
+          value={hasData ? num(lib.activeAds) : "—"}
           sub={
-            <span className={diff > 0 ? "text-emerald-500" : diff < 0 ? "text-red-500" : ""}>
-              {diff > 0 ? "+" : ""}
-              {diff} vs coleta anterior
-            </span>
+            last && prev ? (
+              <span className={diff > 0 ? "text-emerald-500" : diff < 0 ? "text-red-500" : ""}>
+                {diff > 0 ? "+" : ""}
+                {diff} vs coleta anterior
+              </span>
+            ) : (
+              <span className="text-ink-3 dark:text-dink-3">aguardando primeira coleta</span>
+            )
           }
         />
         <Stat
           label="Criativos únicos"
-          value={num(lib.uniqueCreatives)}
+          value={hasData ? num(lib.uniqueCreatives) : "—"}
           sub="distintos em veiculação"
         />
         <Stat
           label="Top criativo"
-          value={`×${num(top?.duplications ?? 0)}`}
+          value={top ? `×${num(top.duplications)}` : "—"}
           sub="duplicações (criativo vencedor)"
           accent
         />
       </div>
 
+      {running && (
+        <Card className="flex items-center gap-3 border-amber-500/40 bg-amber-500/5 p-4">
+          <RefreshCw size={16} className="animate-spin text-amber-500" />
+          <div className="text-sm">
+            <span className="font-bold uppercase tracking-wider text-amber-500">
+              Coleta em andamento
+            </span>
+            <p className="text-xs text-ink-2 dark:text-dink-2">
+              {lib.lastCollection.message}. Os dados serão preenchidos assim que a primeira coleta
+              for concluída.
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {!hasData && !running && (
+        <Card className="p-6 text-center text-sm text-ink-2 dark:text-dink-2">
+          Nenhum snapshot disponível para esta biblioteca. Dispare uma coleta manual em “Coletar
+          agora”.
+        </Card>
+      )}
+
       {/* gráficos */}
-      <div className="grid gap-4 xl:grid-cols-2">
-        <PremiumLineChart
-          data={history}
-          showFilters
-          defaultWindow={30}
-          labelFormat="day"
-          title="Evolução diária"
-          subtitle={`Histórico do plano ${p.name} · ${p.historyDays} dias`}
-          height={260}
-        />
-        <PremiumLineChart
-          data={lib.snapshots48h}
-          labelFormat="hour"
-          title="Snapshots — últimas 48h"
-          subtitle="Granularidade por hora · resolução alta"
-          height={260}
-        />
-      </div>
+      {hasData && (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <PremiumLineChart
+            data={history}
+            showFilters
+            defaultWindow={30}
+            labelFormat="day"
+            title="Evolução diária"
+            subtitle={`Histórico do plano ${p.name} · ${p.historyDays} dias`}
+            height={260}
+          />
+          <PremiumLineChart
+            data={lib.snapshots48h}
+            labelFormat="hour"
+            title="Snapshots — últimas 48h"
+            subtitle="Granularidade por hora · resolução alta"
+            height={260}
+          />
+        </div>
+      )}
 
       {/* criativo mais escalado */}
       {top && (
@@ -247,100 +276,114 @@ export function BibliotecaDetail() {
       )}
 
       {/* top criativos */}
-      <Card className="p-6">
-        <SectionTitle kicker="ranking" title="Top criativos por duplicação" />
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-xs">
-            <thead>
-              <tr className="border-b border-line text-[9px] uppercase tracking-[0.25em] text-ink-3 dark:border-dline dark:text-dink-3">
-                <th className="pb-2 pr-3 font-bold">#</th>
-                <th className="pb-2 pr-3 font-bold">Criativo</th>
-                <th className="pb-2 pr-3 font-bold">Headline</th>
-                <th className="pb-2 pr-3 font-bold">Tipo</th>
-                <th className="pb-2 pr-3 font-bold text-right">Duplicações</th>
-                <th className="pb-2 pr-3 font-bold text-right">Dias ativo</th>
-                <th className="pb-2 font-bold">Força</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lib.creatives.slice(0, 8).map((c, i) => {
-                const max = lib.creatives[0].duplications;
-                const pct = Math.max(4, Math.round((c.duplications / max) * 100));
-                return (
-                  <tr
-                    key={c.id}
-                    className="border-b border-line/60 last:border-0 hover:bg-brand-ghost dark:border-dline/60"
-                  >
-                    <td className="py-2.5 pr-3 font-bold tabular-nums text-ink-3 dark:text-dink-3">
-                      {String(i + 1).padStart(2, "0")}
-                    </td>
-                    <td className="py-2.5 pr-3">
-                      <CreativeThumb
-                        hue={c.hue}
-                        type={c.type}
-                        className="h-9 w-14"
-                        showType={false}
-                      />
-                    </td>
-                    <td className="max-w-[260px] py-2.5 pr-3">
-                      <div className="truncate font-bold">{c.headline}</div>
-                      <div className="truncate text-[10px] text-ink-3 dark:text-dink-3">
-                        {c.body}
-                      </div>
-                    </td>
-                    <td className="py-2.5 pr-3 uppercase tracking-wider text-ink-2 dark:text-dink-2">
-                      {c.type} {c.format}
-                    </td>
-                    <td className="py-2.5 pr-3 text-right font-extrabold tabular-nums text-brand dark:text-brand-bright">
-                      ×{num(c.duplications)}
-                    </td>
-                    <td className="py-2.5 pr-3 text-right tabular-nums">{c.daysActive}d</td>
-                    <td className="py-2.5">
-                      <div className="h-1.5 w-24 bg-line dark:bg-dline">
-                        <div
-                          className="h-full bg-brand dark:bg-brand-bright"
-                          style={{ width: `${pct}%` }}
+      {lib.creatives.length > 0 && (
+        <Card className="p-6">
+          <SectionTitle kicker="ranking" title="Top criativos por duplicação" />
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-xs">
+              <thead>
+                <tr className="border-b border-line text-[9px] uppercase tracking-[0.25em] text-ink-3 dark:border-dline dark:text-dink-3">
+                  <th className="pb-2 pr-3 font-bold">#</th>
+                  <th className="pb-2 pr-3 font-bold">Criativo</th>
+                  <th className="pb-2 pr-3 font-bold">Headline</th>
+                  <th className="pb-2 pr-3 font-bold">Tipo</th>
+                  <th className="pb-2 pr-3 font-bold text-right">Duplicações</th>
+                  <th className="pb-2 pr-3 font-bold text-right">Dias ativo</th>
+                  <th className="pb-2 font-bold">Força</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lib.creatives.slice(0, 8).map((c, i) => {
+                  const max = lib.creatives[0]?.duplications ?? 1;
+                  const pct = Math.max(4, Math.round((c.duplications / max) * 100));
+                  return (
+                    <tr
+                      key={c.id}
+                      className="border-b border-line/60 last:border-0 hover:bg-brand-ghost dark:border-dline/60"
+                    >
+                      <td className="py-2.5 pr-3 font-bold tabular-nums text-ink-3 dark:text-dink-3">
+                        {String(i + 1).padStart(2, "0")}
+                      </td>
+                      <td className="py-2.5 pr-3">
+                        <CreativeThumb
+                          hue={c.hue}
+                          type={c.type}
+                          className="h-9 w-14"
+                          showType={false}
                         />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                      </td>
+                      <td className="max-w-[260px] py-2.5 pr-3">
+                        <div className="truncate font-bold">{c.headline}</div>
+                        <div className="truncate text-[10px] text-ink-3 dark:text-dink-3">
+                          {c.body}
+                        </div>
+                      </td>
+                      <td className="py-2.5 pr-3 uppercase tracking-wider text-ink-2 dark:text-dink-2">
+                        {c.type} {c.format}
+                      </td>
+                      <td className="py-2.5 pr-3 text-right font-extrabold tabular-nums text-brand dark:text-brand-bright">
+                        ×{num(c.duplications)}
+                      </td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums">{c.daysActive}d</td>
+                      <td className="py-2.5">
+                        <div className="h-1.5 w-24 bg-line dark:bg-dline">
+                          <div
+                            className="h-full bg-brand dark:bg-brand-bright"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* histórico de snapshots */}
-      <Card className="p-6">
-        <SectionTitle kicker="log" title="Histórico de snapshots" />
-        <div className="max-h-72 space-y-1 overflow-y-auto font-mono text-[11px]">
-          {[...lib.snapshots].reverse().map((s, i) => (
-            <div
-              key={s.t}
-              className="flex items-center justify-between border-b border-line/50 py-1.5 last:border-0 dark:border-dline/50"
+      {lib.snapshots.length > 0 && (
+        <Card className="p-6">
+          <SectionTitle kicker="log" title="Histórico de snapshots" />
+          <div className="max-h-72 space-y-1 overflow-y-auto font-mono text-[11px]">
+            {[...lib.snapshots].reverse().map((s, i) => (
+              <div
+                key={s.t}
+                className="flex items-center justify-between border-b border-line/50 py-1.5 last:border-0 dark:border-dline/50"
+              >
+                <span className="text-ink-3 dark:text-dink-3">
+                  Coleta #{String(lib.snapshots.length - i).padStart(3, "0")} · {dateTimeBR(s.t)}
+                </span>
+                <span className="flex items-center gap-4">
+                  <span>
+                    ads: <b className="tabular-nums">{num(s.activeAds)}</b>
+                  </span>
+                  <span className="hidden sm:inline">
+                    criativos: <b className="tabular-nums">{num(s.uniqueCreatives)}</b>
+                  </span>
+                  <span className="font-bold uppercase tracking-wider text-emerald-500">ok</span>
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 border-t border-line pt-3 text-[10px] uppercase tracking-widest text-ink-3 dark:border-dline dark:text-dink-3">
+            última coleta: {hourBR(lib.lastCollection.at)} · {dayLabel(lib.lastCollection.at)} ·{" "}
+            {lib.lastCollection.attempts} tentativa(s) · status:{" "}
+            <span
+              className={
+                lib.lastCollection.status === "success"
+                  ? "text-emerald-500"
+                  : lib.lastCollection.status === "running"
+                    ? "text-amber-500"
+                    : "text-red-500"
+              }
             >
-              <span className="text-ink-3 dark:text-dink-3">
-                Coleta #{String(lib.snapshots.length - i).padStart(3, "0")} · {dateTimeBR(s.t)}
-              </span>
-              <span className="flex items-center gap-4">
-                <span>
-                  ads: <b className="tabular-nums">{num(s.activeAds)}</b>
-                </span>
-                <span className="hidden sm:inline">
-                  criativos: <b className="tabular-nums">{num(s.uniqueCreatives)}</b>
-                </span>
-                <span className="font-bold uppercase tracking-wider text-emerald-500">ok</span>
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 border-t border-line pt-3 text-[10px] uppercase tracking-widest text-ink-3 dark:border-dline dark:text-dink-3">
-          última coleta: {hourBR(lib.lastCollection.at)} · {dayLabel(lib.lastCollection.at)} ·{" "}
-          {lib.lastCollection.attempts} tentativa(s) · status:{" "}
-          <span className="text-emerald-500">{lib.lastCollection.status}</span>
-        </div>
-      </Card>
+              {lib.lastCollection.status}
+            </span>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

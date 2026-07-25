@@ -171,6 +171,7 @@ export function generateLibrary(id: string, pageName: string, niche: string): Li
 
 export function trendOf(lib: Library): "up" | "down" | "flat" {
   const s = lib.snapshots;
+  if (!s || s.length < 2) return "flat";
   const diff = s[s.length - 1].activeAds - s[s.length - 2].activeAds;
   if (diff > 0) return "up";
   if (diff < 0) return "down";

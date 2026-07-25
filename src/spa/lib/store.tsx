@@ -22,14 +22,7 @@ import type {
   ToastKind,
 } from "./types";
 import { PLANS } from "./plans";
-import {
-  generateLibrary,
-  seedDashboards,
-  seedLibraries,
-  seedNotifications,
-  seedPayments,
-  seedSwipeCandidates,
-} from "./mock";
+import { seedDashboards, seedNotifications, seedPayments, seedSwipeCandidates } from "./mock";
 import { addDays, uid } from "./format";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -223,16 +216,51 @@ function mapLibrary(
   const delta = trend?.delta ?? 0;
   const direction = trend?.direction ?? "flat";
   const isEscalating = direction === "up" && delta >= 3;
-  const base = generateLibrary(row.id, pageNameFromRow(row), row.niche ?? "—");
-  const lastIsOk = row.scrape_ok !== false;
-  const top: Creative | undefined = base.creatives[0]
+  const hasSnapshot = row.latest_snapshot_id !== null;
+  const lastIsOk = row.scrape_ok === true;
+  const hasRealTop = hasSnapshot && lastIsOk && row.top_creative_count != null;
+
+  // Top criativo REAL (somente duplications vêm da view library_latest; sem
+  // mockar headline/body/hue — o card usa apenas duplications para o overlay).
+  const top: Creative | undefined = hasRealTop
     ? {
-        ...base.creatives[0],
-        duplications: row.top_creative_count ?? base.creatives[0].duplications,
+        id: row.top_creative_id ?? "top",
+        type: "image",
+        headline: "",
+        body: "",
+        duplications: row.top_creative_count ?? 0,
+        daysActive: 1,
+        hue: 220,
+        format: "1:1",
       }
     : undefined;
+
+  // Estado de coleta:
+  //  - sem snapshot ainda: primeira coleta em andamento (running)
+  //  - snapshot com scrape_ok=false: erro
+  //  - snapshot ok: sucesso
+  const lastCollection = !hasSnapshot
+    ? {
+        at: row.created_at,
+        status: "running" as const,
+        attempts: 0,
+        message: "primeira coleta em andamento…",
+      }
+    : lastIsOk
+      ? {
+          at: row.captured_at ?? row.updated_at ?? row.created_at,
+          status: "success" as const,
+          attempts: 1,
+          message: "coleta concluída",
+        }
+      : {
+          at: row.captured_at ?? row.updated_at ?? row.created_at,
+          status: "error" as const,
+          attempts: 1,
+          message: row.error_message ?? "coleta falhou",
+        };
+
   return {
-    ...base,
     id: row.id,
     pageName: pageNameFromRow(row),
     niche: row.niche ?? "—",
@@ -245,13 +273,12 @@ function mapLibrary(
     favorite: flag.favorite ?? false,
     hiddenFromSwipe: flag.hiddenFromSwipe ?? false,
     addedAt: row.created_at,
-    lastCollection: {
-      at: row.captured_at ?? new Date().toISOString(),
-      status: lastIsOk ? "success" : "error",
-      attempts: 1,
-      message: lastIsOk ? "coleta concluída" : (row.error_message ?? "coleta falhou"),
-    },
-    creatives: top ? [top, ...base.creatives.slice(1)] : base.creatives,
+    lastCollection,
+    // Snapshots/creatives reais só chegam via fetchLibraryDetail (página de
+    // detalhe). Na listagem mantemos vazio — nada de dados falsos.
+    snapshots: [],
+    snapshots48h: [],
+    creatives: top ? [top] : [],
   };
 }
 
@@ -670,7 +697,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       window.clearTimeout(first);
       window.clearInterval(id);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, plan]);
 
   const signIn = useCallback(
@@ -761,9 +787,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
         const newId = (ins.data as { id: string } | null)?.id;
         toast("Biblioteca adicionada. Disparando primeira coleta…", "success");
+        // pré-seta o card como "running" localmente (syncLibraries ainda não
+        // tem snapshot p/ essa lib nova, mapLibrary já retorna running).
         void syncLibraries();
-        // dispara coleta em background (não bloqueia a UI)
         if (newId) {
+          setLibraries((list) =>
+            list.map((l) =>
+              l.id === newId
+                ? {
+                    ...l,
+                    lastCollection: {
+                      at: new Date().toISOString(),
+                      status: "running",
+                      attempts: 0,
+                      message: "primeira coleta em andamento…",
+                    },
+                  }
+                : l,
+            ),
+          );
           void triggerCollect(newId);
         }
         return true;
@@ -801,12 +843,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           toast("Primeira coleta concluída ✔", "success");
         } else if (detailErr) {
           toast(`Coleta falhou: ${detailErr}`, "error");
+          // Marca o card como erro imediatamente para o usuário saber que
+          // algo deu errado (ex.: "Nenhuma chave de scraping disponível")
+          // antes mesmo do snapshot de erro chegar via realtime.
+          setLibraries((list) =>
+            list.map((l) =>
+              l.id === libraryId
+                ? {
+                    ...l,
+                    lastCollection: {
+                      at: new Date().toISOString(),
+                      status: "error",
+                      attempts: 1,
+                      message: detailErr,
+                    },
+                  }
+                : l,
+            ),
+          );
         }
         void syncLibraries();
         void fetchAggregatedDaily();
       } catch (err) {
         const msg = err instanceof Error ? err.message : "falha background";
         console.warn("[triggerCollect]", msg);
+        setLibraries((list) =>
+          list.map((l) =>
+            l.id === libraryId
+              ? {
+                  ...l,
+                  lastCollection: {
+                    at: new Date().toISOString(),
+                    status: "error",
+                    attempts: 1,
+                    message: msg,
+                  },
+                }
+              : l,
+          ),
+        );
       }
     },
     [syncLibraries, fetchAggregatedDaily, toast],
