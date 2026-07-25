@@ -372,6 +372,18 @@ function isScraperApiAuthTransient(err: unknown): boolean {
   return msg.includes("scraperapi 401") || msg.includes("scraperapi 403");
 }
 
+/**
+ * ScraperAPI bloqueia scraping de Facebook/Instagram por TOS — retorna
+ * 403 "Scraping this url is not allowed". É definitivo: tentar outras
+ * chaves ScraperAPI não adianta. A única solução é cadastrar Firecrawl.
+ */
+function isScraperApiUrlBlocked(err: unknown): boolean {
+  const e = err as { message?: string } | null;
+  if (!e) return false;
+  const msg = (e.message ?? "").toLowerCase();
+  return msg.includes("scraping this url is not allowed") || msg.includes("scraperapi recusou");
+}
+
 function isDefinitive(err: unknown): boolean {
   const e = err as { status?: number; message?: string } | null;
   if (!e) return false;
@@ -394,6 +406,17 @@ async function scraperApiScrapeOnce(url: string, apiKey: string): Promise<Firecr
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    // ScraperAPI bloqueia scrap de facebook/instagram por TOS (HTTP 403 com
+    // mensagem "Scraping this url is not allowed"). Não é transiente nem
+    // esgotamento — é política da casa. Avisar o usuário para usar Firecrawl.
+    if (res.status === 403 && /scraping this url is not allowed/i.test(text)) {
+      const err = new Error(
+        "ScraperAPI recusou: 'Scraping this url is not allowed'. ScraperAPI proíbe scraping de Facebook/Instagram por TOS. Cadastre uma chave Firecrawl (em Admin → Chaves de API) para coletar da Meta Ad Library.",
+      ) as Error & { status?: number; transient?: boolean };
+      err.status = 403;
+      err.transient = false;
+      throw err;
+    }
     const err = new Error(`ScraperAPI ${res.status}: ${text.slice(0, 300)}`) as Error & {
       status?: number;
       transient?: boolean;
@@ -478,6 +501,12 @@ async function scrapePage(
       return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      // ScraperAPI bloqueou Facebook por TOS — definitivo. Não adianta tentar
+      // outra chave ScraperAPI (todas darão 403). Lança imediatamente com a
+      // mensagem explicando que o usuário precisa cadastrar Firecrawl.
+      if (isScraperApiUrlBlocked(err)) {
+        throw err;
+      }
       if (isScraperApiAuthTransient(err)) {
         // Não marcar como esgotada — é transiente de conta nova. Loga e pula,
         // mas permite que a mesma chave volte a ser usada na próxima execução.
@@ -497,6 +526,9 @@ async function scrapePage(
       continue;
     }
   }
+  // Se todas falharam por auth provisório do ScraperAPI (ou outros erros),
+  // mas não houve bloqueio definitivo, dá mensagem genérica. Mas se só há
+  // ScraperAPI no pool e o Facebook foi bloqueado, preferimos já ter lançado.
   throw new Error(`Todas as ${pool.length} chave(s) falharam para ${url}: ${errors.join(" | ")}`);
 }
 

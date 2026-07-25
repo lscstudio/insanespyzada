@@ -790,6 +790,32 @@ function KeysTab() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
+        {pool.keys.length === 0 && pool && (
+          <Card className="border-red-500/40 bg-red-500/5 p-4 text-sm">
+            <span className="font-bold uppercase tracking-wider text-red-500">
+              Nenhuma chave de scraping cadastrada
+            </span>
+            <p className="mt-1 text-xs text-ink-2 dark:text-dink-2">
+              Adicione uma chave Firecrawl abaixo para habilitar a coleta da Meta Ads Library.
+              ScraperAPI NÃO suporta scraping de Facebook/Instagram (bloqueio por TOS da
+              ScraperAPI).
+            </p>
+          </Card>
+        )}
+        {pool.keys.length > 0 &&
+          !pool.keys.some((k) => k.provider === "firecrawl" && k.working) && (
+            <Card className="col-span-full border-amber-500/40 bg-amber-500/5 p-4 text-sm">
+              <span className="font-bold uppercase tracking-wider text-amber-500">
+                ⚠ A coleta da Meta Ads Library só funciona com Firecrawl
+              </span>
+              <p className="mt-1 text-xs text-ink-2 dark:text-dink-2">
+                Você só tem chaves ScraperAPI cadastradas, mas o ScraperAPI bloqueia scraping de
+                facebook.com por TOS (HTTP 403 "Scraping this url is not allowed"). Cadastre também
+                uma chave Firecrawl (em <span className="font-bold">firecrawl.dev</span>) — é a
+                única que renderiza a Meta Ads Library corretamente.
+              </p>
+            </Card>
+          )}
         {pool.keys.map((k) => (
           <Card
             key={k.id ?? k.name}
