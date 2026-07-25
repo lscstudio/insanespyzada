@@ -100,3 +100,62 @@ Usuário mencionou "outros bugs" — não especificados. Antes de mexer, rodar:
 - Conferir este HANDOFF.md
 - Para testar local: `bun dev` (já configurado com `.env.local` apontando ao cloud)
 - Para validar produção: `curl -sI https://insanespyzada.vercel.app` deve dar 200.
+
+## 11. Fluxo de trabalho obrigatório (instruções do usuário)
+
+> **SEMPRE que terminar uma alteração, faça commit, confirme que ela entrega o que foi
+> pedido e (se produtivo) `git push origin main` para subir o deploy.** Não espere o
+> usuário pedir para commitar/pushar. Confirme com build + lint/typecheck prévios:
+> - `bunx eslint --fix <arquivos>` e `bunx tsc --noEmit 2>&1 | wc -l` (regressão = contagem igual)
+> - `bun run build` deve terminar com `✓ built`.
+> Verificar também em produção após push: `vercel ls | head -5` deve mostrar `● Ready` em ~30s.
+
+## 12. Tokens/credenciais vivos nesta sessão (25 Jul 2026, ~16:40 UTC)
+
+- `SUPABASE_ACCESS_TOKEN` (Personal Access Token) está salvo em **`.env.local.secrets`** (arquivo gitignored — NÃO versionar). Se preciso em novo chat, ler esse arquivo ou pedir um novo token ao usuário em https://supabase.com/dashboard/account/tokens. Workaround de WAF Cloudflare: header `User-Agent: supabase-migrator/1.0`.
+- `vercel` CLI logado como `davizink`.
+
+## 13. Diagnóstico de coleta "biblioteca fica sem dados / fala que está sem api"
+
+Biblioteca recém-adicionada falhava com "Nenhuma chave de scraping disponível"
+grudado em `libraries.last_collection_error`. Investigações:
+
+1. **`SELECT * FROM api_keys WHERE active=true`** → confirme que existe chave
+   ScraperAPI/Firecrawl cadastrada (vá em Admin → Chaves de API na UI ou SELECT
+   via Management API). Hoje (25 Jul): 1 chave ScraperAPI ativa, 5000 créditos,
+   válida.
+2. **Endpoint de diagnóstico (deploy feito em 25 Jul 16:42 UTC)**:
+   `GET /api/collect/diagnostic` (somente admin,Bearer token JWT do usuário logado).
+   Retorna: env vars presentes/ausentes (url/publishable/service_role), chaves
+   ativas, últimas 20 bibliotecas com last_collection_error, e `_diagnosticPool`
+   (pool_count, last_key_load_error, cache_age, exhausted_names).
+   No console do browser (logado como admin):
+   ```js
+   const t = (await (await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2')).supabase.createClient(VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY).auth.getSession()).data.session?.access_token
+   //ou mais simples: pegue do localStorage: JSON.parse(localStorage.getItem('sb-yigyythppceqyjhxzsav-auth-token')).access_token
+   fetch('/api/collect/diagnostic', {headers:{authorization:'Bearer '+t}}).then(r=>r.json()).then(console.log)
+   ```
+3. **Causas comuns**:
+   - `SUPABASE_SERVICE_ROLE_KEY` ausente no runtime da função serverless
+     (verificar via `vercel env ls production` e `vercel env ls development`).
+   - `loadDynamicKeys()` silenciosamente retorna `[]` quando a query falha;
+     agora (commit 611e544) propaga o erro real em `lastKeyLoadError`.
+   - Chave ScraperAPI retornou 401/403 → `isCreditsExhausted` marcou como
+     esgotada por 1h (TTL `EXHAUSTED_TTL_MS`). O diagnostic mostra em
+     `exhausted_names`. Para reset imediato: reiniciar a função (cold-start)
+     ou adicionar uma chave nova.
+
+## 14. Decisões de design da feature "bibliotecas" (25 Jul 2026)
+
+- **Cards nunca mais mostram dados mock**. `mapLibrary` em `src/spa/lib/store.tsx`
+  não chama mais `generateLibrary()`. Apenas mapeia dados reais da view
+  `library_latest`; `creatives`/`snapshots` ficam vazios até a primeira coleta.
+- Biblioteca sem snapshot = `lastCollection.status="running"` com mensagem
+  "primeira coleta em andamento…".
+- `LibraryCard` durante running: clique/toque no card ou no pageName mostra toast
+  "Coleta em andamento. Tente novamente em instantes." em vez de abrir a página.
+  O link redundante "Detalhes →" foi removido (card inteiro já navega).
+- `BibliotecaDetail` durante running/sem dados: KPIs "—", banner âmbar
+  "Coleta em andamento", card "Nenhum snapshot disponível". `last/prev/diff/top`
+  guardados contra biblioteca sem snapshots/creatives.
+- `triggerCollect` propaga erro real ao card imediatamente (não espera realtime).

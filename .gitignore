@@ -44,3 +44,4 @@ supabase/.branches/
 *.sln
 *.sw?
 .vercel
+.env.local.secrets
