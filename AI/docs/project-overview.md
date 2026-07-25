@@ -1,34 +1,32 @@
-# InsaneSpy — Visão Geral do Projeto
+# InsaneSpy — Visão Geral
 
-**Propósito**: Dashboard SaaS para monitorar bibliotecas de anúncios da Meta Ad Library (Facebook/Instagram). Espiona concorrentes, coleta snapshots periódicos de anúncios ativos, detecta escalação, exibe trends e rankings.
+**Propósito**: Dashboard SaaS para monitorar bibliotecas de anúncios da Meta Ad Library. Espiona concorrentes, coleta snapshots, detecta escalação, exibe trends.
 
-**Tagline do produto**: "Você está sendo observado."
+**Tagline**: "Você está sendo observado."
+
+## Arquitetura
+
+SPA (react-router-dom) com shell TanStack Start. State central via React Context (`StoreProvider`). Backend Supabase (Postgres + Auth + Realtime). Deploy Vercel.
 
 ## Modelo de Negócio
 
-- **Planos**: Free (5 libs, 1h), Pro (10 libs, 45min, R$47/mês), Unlimited/DIAMOND (ilimitado, 45min, R$247/trimestre)
-- **RBAC**: admin (controle total) + user. Owner permanente hardcoded via `OWNER_EMAIL`.
-- **Coleta**: baseada em pool de chaves Firecrawl + ScraperAPI gerenciado no painel admin.
+- **Planos**: Free (RECON, 5 libs), Pro (OPERATIVE, 10 libs, R$47/mês), Unlimited (DIAMOND, ∞ libs, R$247/trimestre)
+- **RBAC**: admin (via `user_roles` + `has_role`) + user comum. Owner hardcoded via `OWNER_EMAIL`
+- **Coleta**: pool Firecrawl + ScraperAPI gerenciado em `/admin` → tab "keys"
 
-## Problema Central
+## Páginas
 
-Meta Ad Library é JS-heavy, bloqueia bots simples (ScraperAPI bloqueia facebook.com por TOS). Solução: **Firecrawl** (renderiza JS + extrai JSON estruturado via LLM).
+| Rota | Página | Descrição |
+|------|--------|-----------|
+| `/` | Home | Dashboard: KPIs, charts, rankings |
+| `/bibliotecas` | Bibliotecas | Lista, filtro, adicionar |
+| `/biblioteca/:id` | BibliotecaDetail | Detalhe, charts, creatives |
+| `/swipe` | Swipe | Descoberta de criativos (Tinder-style) |
+| `/assinatura` | Assinatura | Planos, pagamentos |
+| `/configuracoes` | Configuracoes | Perfil, nichos, demo data |
+| `/admin` | Admin | Painel admin (5 tabs) |
+| `/auth` | Auth | Login/signup |
 
-## Estado Atual (25 Jul 2026)
+## Estado Atual
 
-- ✅ App ao vivo, auth funcionando, migrations aplicadas
-- ✅ Coleta via Firecrawl (ScraperAPI NÃO funciona para facebook.com)
-- ⏳ Google OAuth pendente (botão existe, configs não finalizadas)
-- ⏳ Usuário precisa cadastrar chave Firecrawl válida no painel Admin
-
-## Usuários do Sistema
-
-- **Admin**: acesso ao `/painel` (gerenciar API keys, contas, membros)
-- **User autenticado**: `/bibliotecas`, `/biblioteca/:id`, `/perfil`, `/configuracoes`
-- **Não autenticado**: `/auth`, `/reset-password`
-
-## Para mais detalhes
-
-- Arquitetura técnica: `AI/docs/architecture.md`
-- Domínio e conceitos: `AI/docs/domain.md`
-- Estado atual e pendências: `HANDOFF.md`
+Ver `AI/PROJECT_STATE.md` para estado detalhado e `HANDOFF.md` para sessão atual.

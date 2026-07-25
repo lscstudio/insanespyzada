@@ -1,85 +1,78 @@
 # AI_INDEX — InsaneSpy
 
-> Índice mestre. Carregado automaticamente a cada chat via opencode.json.
-> Leia este arquivo primeiro. Nunca carregue tudo — use lazy loading por tarefa.
+> Índice mestre, auto-carregado via opencode.json. Use como mapa para encontrar docs e skills.
 
-## O Projeto
+## Projeto
 
-**InsaneSpy** — dashboard de monitoramento de bibliotecas de anúncios da Meta Ad Library.
-Espiona concorrentes no Facebook/Instagram, coleta snapshots de anúncios ativos, detecta escalação e exibe trends.
+**InsaneSpy** — SPA de monitoramento da Meta Ad Library. TanStack Start (shell) + react-router-dom (SPA) + Supabase. Deploy: Vercel (push main → ~25s).
 
-- **URL produção**: https://insanespyzada.vercel.app
-- **Repo**: https://github.com/lscstudio/insanespyzada (branch `main`)
-- **Supabase**: projeto `yigyythppceqyjhxzsav`, região SP (`sa-east-1`)
-- **Deploy**: Vercel, push em `main` → deploy automático (~25s)
+- **URL**: https://insanespyzada.vercel.app
+- **Repo**: https://github.com/lscstudio/insanespyzada
+- **Supabase**: `yigyythppceqyjhxzsav` (SP)
 
-## Stack Resumida
+## Arquitetura em 3 Linhas
 
-| Camada | Tecnologia |
-|--------|-----------|
-| Framework | TanStack Start + Nitro + Vite 8 |
-| Frontend | React 19, Tailwind CSS v4, shadcn/Radix UI, Framer Motion, Recharts |
-| Roteamento | TanStack Router (file-based, `src/routes/`) |
-| Data | TanStack Query + Supabase JS |
-| Auth | Supabase Auth (email/senha + Google OAuth via Lovable Cloud Auth) |
-| Backend | Supabase Postgres + RLS + Server Functions (`createServerFn`) |
-| Coletor interno | `collect.server.ts` (Firecrawl/ScraperAPI pool) |
-| Coletor externo | `collector/collector.py` (Playwright, standalone) |
-| i18n | Custom pt/en/es (`src/lib/i18n.tsx`) |
-| Build config | `@lovable.dev/vite-tanstack-config` (não adicionar plugins manualmente) |
+SPA em `src/spa/` (react-router-dom + Context store). Shell TanStack Start (`src/routes/__root.tsx` + `$.tsx` catch-all, `ssr:false`). API routes server-side em `src/routes/api/`. Backend Supabase (14 tabelas, 3 views, 9 RPCs).
 
 ## Documentação por Tarefa
 
-| Tarefa | Arquivo |
-|--------|---------|
-| Entender arquitetura geral | `AI/docs/architecture.md` |
-| Navegar pastas e arquivos | `AI/docs/folder-map.md` |
-| Domínio e conceitos do negócio | `AI/docs/domain.md` |
-| Schemas, tabelas, views, RPC | `AI/docs/architecture.md` (seção DB) |
-| Padrões de código (hooks, server fns) | `AI/docs/patterns.md` |
-| Convenções TypeScript/React | `AI/docs/coding-standards.md` |
+| Precisa... | Leia |
+|-----------|------|
+| Estado atual do projeto | `AI/PROJECT_STATE.md` |
+| Bugs e débito técnico | `AI/KNOWN_ISSUES.md` |
+| Por que algo foi decidido | `AI/DECISIONS.md` |
+| Estado da sessão atual | `HANDOFF.md` ← **ler primeiro** |
+| Entender arquitetura | `AI/docs/architecture.md` |
+| Encontrar um arquivo | `AI/docs/folder-map.md` |
+| Conceitos de negócio | `AI/docs/domain.md` |
+| Padrões de código | `AI/docs/patterns.md` |
+| Convenções TypeScript | `AI/docs/coding-standards.md` |
 | Integrações externas | `AI/docs/integrations.md` |
-| Fluxo de dados e coleta | `AI/docs/data-flow.md` |
-| Estado atual / pendências | `HANDOFF.md` (SEMPRE ler ao iniciar) |
+| Fluxo de dados/coleta | `AI/docs/data-flow.md` |
+| Visão geral rápida | `AI/docs/project-overview.md` |
 
-## Skills Disponíveis (carregar on-demand)
+> ⚠️ NUNCA carregar todos os docs de uma vez. Leia apenas o necessário para a tarefa.
 
-| Skill | Quando usar |
-|-------|------------|
-| `project-architect` | Entender/explicar arquitetura, stack, dependências |
-| `smart-context-loader` | **ANTES DE QUALQUER TAREFA** — identificar arquivos mínimos |
-| `planning-engine` | Antes de implementar qualquer feature ou fix |
-| `domain-knowledge` | Conceitos internos: Library, Snapshot, Creative, Plano, Swipe, Score |
-| `security-reviewer` | Revisar auth, RLS, endpoints, secrets |
-| `performance-auditor` | Revisar queries, N+1, cache, renders |
-| `token-optimizer` | Regras de economia de contexto |
-| `final-reviewer` | Após qualquer implementação — revisar bugs, tipos, segurança |
+## Skills (carregar on-demand via tool `skill`)
 
-## Regras Críticas (sempre ativas)
+| Skill | Quando | Prioridade |
+|-------|--------|-----------|
+| `smart-context-loader` | ANTES de qualquer tarefa — identificar arquivos mínimos | MÁXIMA |
+| `planning-engine` | Antes de implementar feature/fix | Alta |
+| `final-reviewer` | Antes de commitar | Alta |
+| `security-reviewer` | Após mexer em auth/endpoints/RLS | Alta |
+| `token-optimizer` | Regras de economia (internalizar, não consultar) | Média |
+| `domain-knowledge` | Conceitos do negócio | Média |
+| `project-architect` | Visão arquitetural | Baixa |
+| `performance-auditor` | Suspeita de lentidão | Baixa |
 
-1. **Nunca** adicionar plugins Nitro/TanStack manualmente ao `vite.config.ts` — quebra o build.
-2. **Nunca** importar `supabaseAdmin` (`client.server.ts`) no bundle do cliente.
-3. **Nunca** commitar `.env`, `.env.local`, `.env.local.secrets`.
-4. **Sempre** após qualquer alteração: lint → build → commit → `git push origin main` → atualizar `HANDOFF.md`.
-5. TypeScript tem ~211 erros pré-existentes (tipos SPA). Checar regressão: `bunx tsc --noEmit 2>&1 | wc -l` deve ser igual antes/depois.
-6. `schema` do banco = `supabase/migrations/` (27 arquivos SQL). Alterações via Supabase Management API (CLI não funciona neste projeto).
-7. `OWNER_EMAIL` em `admin-members.functions.ts` é o super-admin protegido — nunca remover essa proteção.
+## Regras Críticas
 
-## Comandos Essenciais
+1. **Nunca** force push/rebase/amend commits pushados (Lovable)
+2. **Nunca** adicionar plugins ao `vite.config.ts` (`@lovable.dev/vite-tanstack-config`)
+3. **Nunca** importar `supabaseAdmin` no bundle do cliente
+4. **Sempre** editar em `src/spa/` (NÃO em `src/components/` ou `src/hooks/` — são scaffold não usado)
+5. **Sempre** após mudanças: `bun run lint && bun run build && git push origin main && atualizar HANDOFF.md`
+6. Baseline TS: `bunx tsc --noEmit 2>&1 | wc -l` (~211 pré-existentes — não deve aumentar)
+7. Migrations via Management API (CLI não funciona)
+8. `OWNER_EMAIL` em `admin-members.functions.ts` — nunca remover
+
+## Comandos
 
 ```bash
-bun dev                         # dev local (aponta ao cloud Supabase)
-bun run build                   # build produção
-bun run lint                    # ESLint
-bun run format                  # Prettier
+bun dev                                  # dev local
+bun run build                            # build produção
+bun run lint                             # ESLint
+bunx tsc --noEmit 2>&1 | wc -l          # contar erros TS (baseline ~211)
 git status -sb && git log --oneline -5 && cat HANDOFF.md  # início de sessão
-bunx tsc --noEmit 2>&1 | wc -l  # contar erros TS (baseline ~211)
 curl -sI https://insanespyzada.vercel.app  # checar deploy
 ```
 
 ## Auto-atualização
 
-Quando o projeto mudar significativamente (novos módulos, tabelas, padrões, integrações):
-1. Atualizar o doc relevante em `AI/docs/`
-2. Atualizar `HANDOFF.md` com o estado novo
-3. Atualizar este índice se necessário
+Quando o projeto mudar significativamente:
+1. Atualizar doc relevante em `AI/docs/`
+2. Atualizar `AI/PROJECT_STATE.md` (estado) e `AI/KNOWN_ISSUES.md` (bugs/débito)
+3. Se decisão arquitetural: adicionar entrada em `AI/DECISIONS.md`
+4. Atualizar `HANDOFF.md` com estado da sessão
+5. Atualizar este índice se estrutura mudar

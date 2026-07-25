@@ -1,98 +1,59 @@
 ---
 name: smart-context-loader
-description: PRIORIDADE MÁXIMA. Deve ser ativada ANTES de qualquer tarefa de desenvolvimento. Identifica exatamente quais arquivos são necessários para a tarefa em questão — e apenas esses. Previne abertura desnecessária de arquivos, evita contexto gigante, maximiza eficiência de tokens.
+description: PRIORIDADE MÁXIMA. Ativar ANTES de qualquer tarefa. Identifica exatamente quais arquivos são necessários — e apenas esses. Previne abertura desnecessária, minimiza contexto, maximiza eficiência de tokens.
 ---
 
-## O que faço
-
-Sou o guardião do contexto. Meu trabalho é garantir que você leia APENAS o necessário.
-
-## Protocolo Obrigatório (executar SEMPRE antes de qualquer tarefa)
+## Protocolo (executar SEMPRE antes de qualquer tarefa)
 
 ### 1. Classificar a Tarefa
 
-Identifique o tipo antes de abrir qualquer arquivo:
-
 | Tipo | Arquivos Mínimos |
 |------|-----------------|
-| Bug em UI | Componente específico + hook relevante |
-| Nova página | `src/routes/_authenticated/` (um exemplo) + `AI/docs/folder-map.md` |
-| Nova server function | Um `*.functions.ts` existente + `auth-middleware.ts` |
-| Bug de coleta | `src/lib/collect.server.ts` (seção relevante) + `HANDOFF.md` |
+| Bug em UI | Página específica em `src/spa/pages/` + componente em `src/spa/components/` |
+| Nova página | Uma página existente em `src/spa/pages/` (exemplo) + `src/spa/App.tsx` |
+| Bug de coleta | `src/lib/collect.server.ts` (seção via grep) + `HANDOFF.md` |
+| State/dados | `src/spa/lib/store.tsx` (1545 linhas — use grep + offset/limit) |
 | Schema/migration | `AI/docs/architecture.md` (seção DB) + migration específica |
-| Auth/permissão | `auth-middleware.ts` + `auth-attacher.ts` |
-| Query/hook | `src/hooks/use-libraries.ts` (header) + tabela relevante |
-| Admin feature | `src/routes/_authenticated/painel.tsx` + `admin*.functions.ts` |
+| Auth/permissão | `src/spa/App.tsx` (RequireAuth) + `src/spa/lib/admin.ts` |
+| Admin feature | `src/spa/pages/Admin.tsx` (1103 linhas — grep por tab) + `src/routes/api/admin.tsx` |
+| API route | Uma route existente em `src/routes/api/` (exemplo) |
 
-### 2. Mapa de Arquivos por Domínio
+### 2. Mapa por Domínio
 
-#### Coleta
+#### SPA (aplicação real)
 ```
-src/lib/collect.server.ts     # Motor principal (871 linhas — ler só a seção necessária)
-src/lib/collect.functions.ts  # triggerCollection
-src/routes/api/collect.tsx    # POST /api/collect
-src/routes/api/collect/diagnostic.tsx
-```
-
-#### Bibliotecas
-```
-src/routes/_authenticated/bibliotecas.tsx
-src/routes/_authenticated/biblioteca.$id.tsx
-src/hooks/use-libraries.ts
-src/components/library-card.tsx
+src/spa/App.tsx                    # Rotas + RequireAuth
+src/spa/lib/store.tsx              # Store central (1545 linhas)
+src/spa/lib/types.ts               # Tipos do domínio
+src/spa/lib/plans.ts               # Planos
+src/spa/lib/admin.ts               # Admin check
+src/spa/pages/*.tsx                # 9 páginas (PascalCase)
+src/spa/components/ui.tsx          # Primitivos UI (arquivo único)
+src/spa/components/*.tsx           # Componentes custom
+src/spa/components/layout/AppLayout.tsx  # Shell autenticado
 ```
 
-#### Auth
+#### Server-side
 ```
-src/routes/auth.tsx
-src/integrations/supabase/auth-middleware.ts
-src/integrations/supabase/client.ts
-src/hooks/use-auth.ts
-```
-
-#### Admin
-```
-src/routes/_authenticated/painel.tsx
-src/lib/admin.functions.ts
-src/lib/admin-keys.functions.ts
-src/lib/admin-members.functions.ts
+src/routes/api/*.tsx               # API routes
+src/lib/collect.server.ts          # Motor de coleta (server-only)
+src/integrations/supabase/client.ts         # Client browser
+src/integrations/supabase/client.server.ts  # supabaseAdmin (SERVER ONLY)
 ```
 
-#### Estado/Store
-```
-src/spa/lib/store.tsx          # bootstrap(), mapLibrary()
-src/spa/lib/types.ts           # tipos do domínio
-src/spa/lib/plans.ts           # definição dos planos
-```
-
-#### UI Components
-```
-src/components/ui/             # shadcn primitivos (raramente editar)
-src/components/layout/app-shell.tsx
-```
-
-### 3. Regras de Ouro
+### 3. Regras
 
 **NUNCA abrir:**
-- `src/routeTree.gen.ts` (auto-gerado, nunca editar)
+- `src/routeTree.gen.ts` (auto-gerado)
+- `src/components/` ou `src/hooks/` (scaffold não usado pelo SPA)
 - `node_modules/`
-- `src/components/ui/` inteiro (só o componente específico)
-- `supabase/migrations/` inteiro (só a migration relevante)
-- `collect.server.ts` inteiro (871 linhas — use offset/limit para ler só a seção)
+- `collect.server.ts` inteiro (use grep + offset/limit)
+- `store.tsx` inteiro (1545 linhas — grep pela função necessária)
 
 **SEMPRE checar primeiro:**
-- `HANDOFF.md` — estado atual, bugs conhecidos, pendências
-- `AI/AI_INDEX.md` — já carregado, orientação geral
+- `HANDOFF.md` — estado atual
+- `AI/AI_INDEX.md` — já carregado
 
-**Antes de ler um arquivo grande:**
-- Use `grep` para localizar a função/seção específica
-- Use Read com `offset` e `limit` para ler só o necessário
-- Prefira buscar pelo nome da função antes de ler o arquivo inteiro
-
-### 4. Anti-padrões a Evitar
-
-- Abrir todos os arquivos de um diretório antes de saber o que precisa
-- Reler arquivos já lidos nesta sessão
-- Ler arquivos inteiros quando só precisa de uma função
-- Abrir `types.ts` por precaução (só abrir se precisar de um tipo específico)
-- Abrir migrations para entender o schema (usar `AI/docs/architecture.md` primeiro)
+**Antes de ler arquivo grande (>100 linhas):**
+- Grep pelo nome da função/seção
+- Read com `offset` e `limit`

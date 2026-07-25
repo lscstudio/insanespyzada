@@ -1,98 +1,54 @@
 ---
 name: performance-auditor
-description: Auditor de performance para o InsaneSpy. Use quando suspeitar de queries lentas, N+1, re-renders desnecessários, cache mal configurado, coleta travando, ou quando o app parecer lento. Também use antes de commitar queries ou loops que processam muitos itens.
+description: Auditor de performance. Use ao suspeitar de queries lentas, N+1, re-renders, cache mal configurado, coleta travando, ou app lento. Também antes de commitar queries/loops que processam muitos itens.
 ---
 
-## O que faço
-
-Identifico gargalos de performance antes que afetem usuários.
-
-## Checklist de Performance
+## Checklist
 
 ### Database / Queries
+- [ ] Sem N+1 (queries em loops = red flag)
+- [ ] `select` específico (não `*` em tabelas grandes)
+- [ ] Views `library_latest`, `library_trend`, `daily_library_stats` usadas
+- [ ] Índices para WHERE/ORDER BY frequentes
 
-- [ ] N+1 evitado: queries em loops = red flag
-  ```typescript
-  // ERRADO — N+1:
-  for (const lib of libraries) {
-    await supabase.from("snapshots").select("*").eq("library_id", lib.id);
-  }
-  // CERTO — 1 query:
-  await supabase.from("snapshots").select("*").in("library_id", ids);
-  ```
-- [ ] SELECTs especificam apenas colunas necessárias (não `select("*")` em tabelas grandes)
-- [ ] Paginação implementada para listas grandes (`.range(from, to)`)
-- [ ] Views `library_latest`, `library_trend`, `daily_library_stats` usadas ao invés de joins manuais
-- [ ] Índices existem para `WHERE`/`ORDER BY` frequentes (checar migrations)
-
-### TanStack Query / Cache
-
-- [ ] `staleTime` adequado: dados que mudam raramente devem ter staleTime alto
-  - `library_latest`: 1-5min (coletas são espaçadas)
-  - `daily_stats`: 5-15min (atualiza diariamente)
-  - `user_profile`: 10min+ (muda raramente)
-- [ ] `refetchInterval` não muito agressivo (< 30s em produção para maioria dos dados)
-- [ ] `useRealtimeRefresh` invalida os queryKeys corretos após INSERT
-- [ ] Sem `refetchOnWindowFocus: true` em dados que não precisam ser tão frescos
-- [ ] QueryKeys estáveis (não criar objetos/arrays inline que causam re-fetch constante)
-
-### React Renders
-
-- [ ] Componentes grandes têm `React.memo` se recebem muitas props estáticas
-- [ ] Callbacks em props usam `useCallback` quando passados para listas
-- [ ] Computed values caros usam `useMemo`
-- [ ] Lists longas (>50 items) consideram virtualização
-- [ ] Framer Motion: `animate` só para mudanças visíveis, não em loops
+### Store / Renders
+- [ ] `bootstrap()` não faz queries redundantes
+- [ ] Realtime sync functions não causam re-render excessivo
+- [ ] `useMemo`/`useCallback` em computed caros
+- [ ] Listas >50 items: considerar virtualização
 
 ### Coletor (`collect.server.ts`)
+- [ ] Idempotência: pula libs com snapshot < 45min
+- [ ] Lock 10min por lib (`collection_started_at`)
+- [ ] Pool round-robin, `DYN_CACHE` 30s TTL
+- [ ] `EXHAUSTED` 10min TTL
+- [ ] Creatives em batch (chunks 500)
 
-- [ ] Coleta em lote não processa libs já coletadas nos últimos 45min (idempotência)
-- [ ] Lock por biblioteca (`collection_started_at`, TTL 10min) evita coletas paralelas
-- [ ] Pool de chaves usa round-robin, não sempre a primeira chave
-- [ ] `DYN_CACHE` tem TTL 30s — não recarrega a cada request
-- [ ] Chaves `EXHAUSTED` têm TTL 10min (era 1h, já corrigido)
-- [ ] Creatives inseridos em batch (chunks de 500)
-
-### Scheduler / Cron
-
-- [ ] Webhook cron usa `EdgeRuntime.waitUntil` quando disponível (não bloqueia response)
-- [ ] Coleta em lote não dispara para todos os usuários simultaneamente (considerar fan-out)
-
-### Bundle / Build
-
-- [ ] Imports de `collect.server.ts` são dinâmicos (`await import(...)`) — dead code elimination
-- [ ] shadcn components importados individualmente (não barrel import)
-- [ ] Imagens no `public/` otimizadas
-- [ ] Recharts: datasets grandes devem ser sampliados antes de renderizar
+### Coleta Periódica (client-side)
+- [ ] Interval baseado no plano (`pushIntervalMin`)
+- [ ] Primeira coleta após 30s (não imediata)
+- [ ] `fetch` silencioso (`.catch(() => {})`)
 
 ### Memory Leaks
-
-- [ ] Subscriptions Realtime têm cleanup no `useEffect` return
-- [ ] Timers (`setInterval`/`setTimeout`) têm cleanup
-- [ ] Event listeners removidos no unmount
+- [ ] Realtime channel tem cleanup no `useEffect` return
+- [ ] Timers (`setInterval`) têm cleanup
 
 ## Métricas Alvo
 
 | Operação | Meta | Alerta |
 |----------|------|--------|
-| `library_latest` query | < 200ms | > 500ms |
-| Coleta única (Firecrawl) | < 30s | > 60s |
-| Coleta em lote (10 libs) | < 5min | > 10min |
-| Initial page load | < 3s | > 5s |
-| Query cache hit rate | > 80% | < 50% |
+| `library_latest` | < 200ms | > 500ms |
+| Coleta única | < 30s | > 60s |
+| Coleta lote (10 libs) | < 5min | > 10min |
+| Page load | < 3s | > 5s |
 
-## Diagnóstico de Coleta Lenta
+## Diagnóstico
 
 ```bash
-# Verificar chaves esgotadas (reset cache):
-curl -H "Authorization: Bearer TOKEN" https://insanespyzada.vercel.app/api/collect/diagnostic?reset=1
+# Reset cache de chaves esgotadas:
+curl -H "Authorization: Bearer TOKEN" \
+  https://insanespyzada.vercel.app/api/collect/diagnostic?reset=1
 
-# Verificar logs Vercel:
+# Logs Vercel:
 vercel logs --prod insanespyzada
-
-# Query para ver últimas coletas com erro:
-SELECT id, last_collection_error, collection_started_at 
-FROM libraries 
-WHERE last_collection_error IS NOT NULL 
-ORDER BY updated_at DESC LIMIT 10;
 ```

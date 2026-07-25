@@ -1,64 +1,69 @@
-# InsaneSpy — Padrões e Convenções TypeScript
+# InsaneSpy — Convenções e Padrões TypeScript
 
 ## Configuração
 
-- `tsconfig.json` com strict mode ativado
-- **~211 erros TS pré-existentes** (tipos locais `Database` não incluem tabelas SPA como `notifications`, `dashboards`, `library_flags`)
-- Build Vite contorna via `as never` — não "corrigir" isso quebra o workaround
-- Antes/após qualquer mudança: `bunx tsc --noEmit 2>&1 | wc -l` — número deve ser igual
+- `tsconfig.json` strict mode
+- **~211 erros TS pré-existentes** (tipos locais do Supabase não incluem tabelas SPA)
+- Build Vite contorna via `as never` — não "corrigir" isso
+- Checagem de regressão: `bunx tsc --noEmit 2>&1 | wc -l` antes/depois (deve ser igual)
 
 ## Tipos do Domínio
 
-- `src/spa/lib/types.ts` — tipos frontend (Library, Snapshot, Creative, Plan, etc.)
-- `src/integrations/supabase/types.ts` — tipos gerados do schema Supabase (`Database`, `Tables<T>`)
-- `src/lib/types.ts` — tipos compartilhados server/client
+| Arquivo | Conteúdo |
+|---------|----------|
+| `src/spa/lib/types.ts` | Tipos SPA: `Library`, `Snapshot`, `Creative`, `Plan`, `Toast`, `SwipeCandidate` |
+| `src/integrations/supabase/types.ts` | Tipos gerados do schema: `Database`, `Tables<T>` |
+| `src/lib/types.ts` | Tipos compartilhados server/client |
 
 ## Cast Patterns
 
 ```typescript
-// Quando tipos DB não reconhecem tabela SPA:
-const data = result as unknown as MinhaTabela[];
+// Tipos DB locais (não gerados):
+interface LibraryLatestRow { id: string; url: string; ... }
 
-// Cast seguro para evitar any:
+// Cast seguro para body de request:
 const body = await request.json().catch(() => ({}));
 const id = typeof (body as { id?: unknown })?.id === "string"
-  ? (body as { id: string }).id
-  : undefined;
+  ? (body as { id: string }).id : undefined;
 ```
 
 ## Server-only Modules
 
-Arquivos `*.server.ts` são importados dinamicamente para evitar bundle no client:
 ```typescript
+// Import dinâmico para evitar bundle no client:
 const { runCollection } = await import("@/lib/collect.server");
 ```
 
-## Zod para Validação
+## Zod (validação em forms)
 
 ```typescript
 import { z } from "zod";
-
-const schema = z.object({
-  libraryId: z.string().uuid().optional(),
-  userId: z.string().uuid(),
-});
-
-type Input = z.infer<typeof schema>;
+const schema = z.object({ email: z.string().email(), password: z.string().min(6) });
 ```
 
 ## ESLint / Prettier
 
-- ESLint com `typescript-eslint` + `react-hooks` + `react-refresh`
-- Prettier com config em `.prettierrc`
-- `bun run lint` antes de commitar
-- `bun run format` para formatação automática
+- `bun run lint` — ESLint (typescript-eslint + react-hooks)
+- `bun run format` — Prettier
+- Rodar ambos antes de commitar
 
 ## Dependências Críticas
 
 | Dep | Regra |
 |-----|-------|
-| `@lovable.dev/vite-tanstack-config` | É a config do Vite. Não adicionar plugins que ela já inclui |
-| `framer-motion` | Para animações — não usar CSS transitions paralelas |
-| `sonner` | Para toasts — não usar outras libs de toast |
-| `date-fns` | Para datas — não usar moment.js ou dayjs |
-| `lucide-react` | Para ícones — conjunto já incluso |
+| `@lovable.dev/vite-tanstack-config` | Config do Vite. NÃO adicionar plugins que ela já inclui |
+| `react-router-dom` | Roteamento do SPA. NÃO usar TanStack Router para páginas |
+| `framer-motion` | Animações |
+| `sonner` | Toasts (também tem `src/spa/components/Toasts.tsx` custom) |
+| `date-fns` | Datas — não usar moment/dayjs |
+| `lucide-react` | Ícones |
+| `recharts` | Charts |
+
+## Regras de Ouro
+
+1. Editar SEMPRE em `src/spa/` — nunca em `src/components/` ou `src/hooks/` (scaffold não usado)
+2. Novo primitivo UI → adicionar em `src/spa/components/ui.tsx` (arquivo único)
+3. Nova página → `src/spa/pages/` (PascalCase) + rota em `src/spa/App.tsx`
+4. State novo → adicionar em `src/spa/lib/store.tsx` (Context central)
+5. Server op → `fetch("/api/...")` (não import de `*.functions.ts`)
+6. `supabaseAdmin` só em `*.server.ts` ou `src/routes/api/` — nunca no bundle

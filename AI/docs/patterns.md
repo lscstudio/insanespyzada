@@ -1,52 +1,87 @@
 # InsaneSpy — Padrões de Código
 
-## Server Functions (TanStack Start)
+## Arquitetura do SPA
+
+O app é um SPA. Tudo mora em `src/spa/`. State central via React Context.
+
+### Store (src/spa/lib/store.tsx)
 
 ```typescript
-// Padrão obrigatório para server functions:
-import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+// StoreProvider envolve todo o app (em src/spa/App.tsx)
+// Acesso via useStore():
+const { session, libraries, plan, theme, toasts, ... } = useStore();
 
-export const myFunction = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator(z.object({ ... }))
-  .handler(async ({ context, data }) => {
-    const { supabase, userId } = context; // injetado pelo middleware
-    // lógica aqui
-  });
+// bootstrap() roda no mount — carrega dados iniciais (10 queries)
+// mapLibrary() mapeia row DB → tipo Library (sem mock)
 ```
 
-## Admin Gate
+### Rotas (src/spa/App.tsx)
 
 ```typescript
-// Sempre checar admin antes de operação privilegiada:
-const { data: isAdmin } = await supabase.rpc("has_role", {
-  _user_id: userId,
-  _role: "admin",
-});
-if (!isAdmin) throw new Error("Forbidden");
-```
+// react-router-dom (NÃO TanStack Router para páginas)
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
-## Hooks TanStack Query
-
-```typescript
-// Padrão de hook de leitura:
-export function useLibrariesLatest() {
-  const supabase = useSupabaseClient();
-  return useQuery({
-    queryKey: ["libraries-latest"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("library_latest").select("*");
-      if (error) throw error;
-      return data;
-    },
-    staleTime: 60_000, // 1 min
-    refetchInterval: 5 * 60_000, // 5 min
-  });
+// Auth guard = componente, não middleware:
+function RequireAuth({ children }) {
+  const { session, authLoading } = useStore();
+  if (authLoading) return <Loading />;
+  if (!session) return <Navigate to="/auth?next=..." />;
+  return children;
 }
+
+// Páginas autenticadas envolvidas por RequireAuth + AppLayout:
+<Route element={<RequireAuth><AppLayout /></RequireAuth>}>
+  <Route path="/" element={<Home />} />
+  <Route path="/bibliotecas" element={<Bibliotecas />} />
+  ...
+</Route>
 ```
 
-## API Routes (TanStack Router Server Handlers)
+### Server Operations (fetch API)
+
+```typescript
+// SPA chama API routes via fetch (NÃO importa server functions):
+const { data: sess } = await supabase.auth.getSession();
+const token = sess.session?.access_token;
+const res = await fetch("/api/collect", {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    ...(token ? { authorization: `Bearer ${token}` } : {}),
+  },
+  body: JSON.stringify({ libraryId }),
+});
+```
+
+### Supabase Queries (direto, sem TanStack Query)
+
+```typescript
+// Queries diretas no store ou páginas:
+const { data, error } = await supabase
+  .from("library_latest")
+  .select("*")
+  .eq("created_by", userId);
+if (error) throw error;
+```
+
+### Realtime (no store.tsx)
+
+```typescript
+// StoreProvider seta up realtime subscriptions:
+useEffect(() => {
+  if (!session) return;
+  const channel = supabase.channel("changes")
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "snapshots" },
+      () => void syncLibraries())
+    .on("postgres_changes", { event: "*", schema: "public", table: "libraries" },
+      () => void syncLibraries())
+    // ... 9 tabelas no total
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}, [session]);
+```
+
+## API Routes (TanStack Router server handlers)
 
 ```typescript
 // src/routes/api/minha-rota.tsx
@@ -56,10 +91,11 @@ export const Route = createFileRoute("/api/minha-rota")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const auth = request.headers.get("authorization") ?? "";
-        const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+        const token = request.headers.get("authorization")?.slice(7) ?? "";
         if (!token) return new Response("unauthorized", { status: 401 });
-        // lógica...
+        // Valida token via supabase.auth.getUser(token)
+        // Import dinâmico para server-only:
+        const { runCollection } = await import("@/lib/collect.server");
         return new Response(JSON.stringify({ ok: true }), {
           headers: { "content-type": "application/json" },
         });
@@ -69,74 +105,57 @@ export const Route = createFileRoute("/api/minha-rota")({
 });
 ```
 
-## Componentes
+## Componentes (src/spa/components/)
 
 ```typescript
-// Padrão de componente com shadcn/ui e Tailwind v4:
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+// Primitivos UI em arquivo único: src/spa/components/ui.tsx
+import { Badge, Button, Card, Modal, Input, Toggle, Stat, SectionTitle, EmptyState } from "../components/ui";
 
-interface Props {
-  className?: string;
-  // props...
-}
-
-export function MeuComponente({ className, ...props }: Props) {
-  return (
-    <div className={cn("base-classes", className)}>
-      <Button variant="outline" size="sm">...</Button>
-    </div>
-  );
-}
+// Componentes custom em PascalCase:
+import { LibraryCard } from "../components/LibraryCard";
 ```
 
-## Tratamento de Erros
+## Admin Check
 
 ```typescript
-// Server functions devem lançar erros com mensagens claras:
-throw new Error("Mensagem clara para o usuário");
+// src/spa/lib/admin.ts
+import { useStore } from "./store";
+import { supabase } from "@/integrations/supabase/client";
 
-// No cliente, use sonner para toasts:
-import { toast } from "sonner";
-toast.error("Mensagem de erro");
-toast.success("Operação concluída");
-```
+export function useAdminCheck() {
+  const { session } = useStore();
+  const [isAdmin, setIsAdmin] = useState(false);
+  // Chama /api/admin ou RPC has_role
+}
 
-## Realtime + Query Cache
-
-```typescript
-// Padrão de invalidação p/ realtime (em use-realtime-refresh.ts):
-supabase.channel("changes")
-  .on("postgres_changes", { event: "INSERT", schema: "public", table: "snapshots" },
-    () => queryClient.invalidateQueries({ queryKey: ["libraries-latest"] })
-  )
-  .subscribe();
+export async function callAdmin(action: string, payload: unknown) {
+  const res = await fetch("/api/admin", { /* ... */ });
+}
 ```
 
 ## i18n
 
 ```typescript
-// Usar useT() para traduções:
 import { useT } from "@/lib/i18n";
-
-function MeuComp() {
-  const t = useT();
-  return <span>{t("chave_da_traducao")}</span>;
-}
+const t = useT();
+<span>{t("chave_da_traducao")}</span>
 ```
+
+## Naming Conventions
+
+| Tipo | Convenção | Exemplo |
+|------|-----------|---------|
+| Páginas SPA | PascalCase | `BibliotecaDetail.tsx` |
+| Componentes SPA | PascalCase | `LibraryCard.tsx` |
+| Primitivos UI | Arquivo único | `src/spa/components/ui.tsx` |
+| API routes | kebab-case | `src/routes/api/delete-account.tsx` |
+| Server-only | `*.server.ts` | `collect.server.ts` |
+| Server functions | `*.functions.ts` | `admin.functions.ts` (scaffold) |
+| Tipos | `types.ts` no diretório | `src/spa/lib/types.ts` |
 
 ## Imports
 
-- Usar alias `@/` para `src/`
-- `@/components/ui/` = primitivos shadcn (não editar diretamente)
-- `@/integrations/supabase/client` = client browser
-- `@/integrations/supabase/client.server` = **SERVER ONLY**
-
-## Naming
-
-- Components: PascalCase (`LibraryCard.tsx`)
-- Hooks: camelCase com prefixo `use` (`use-libraries.ts`)
-- Server functions: camelCase (`triggerCollection`)
-- Arquivos de functions: `*.functions.ts`
-- Arquivos server-only: `*.server.ts`
-- Routes: kebab-case, `$param` para dinâmico, `_layout` para pathless layout
+- `@/` alias para `src/`
+- SPA importa de `../` (relativo dentro de `src/spa/`) e `@/integrations/supabase/client`
+- Server-only importado dinamicamente: `await import("@/lib/collect.server")`
+- **NUNCA** importar de `@/hooks/` ou `@/components/` no SPA (são scaffold não usado)
