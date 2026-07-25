@@ -123,27 +123,36 @@ grudado em `libraries.last_collection_error`. Investigações:
 1. **`SELECT * FROM api_keys WHERE active=true`** → confirme que existe chave
    ScraperAPI/Firecrawl cadastrada (vá em Admin → Chaves de API na UI ou SELECT
    via Management API). Hoje (25 Jul): 1 chave ScraperAPI ativa, 5000 créditos,
-   válida.
-2. **Endpoint de diagnóstico (deploy feito em 25 Jul 16:42 UTC)**:
+   válida — **mas ScraperAPI NÃO consegue scrapear a Meta Ads Library** (ver #4).
+2. **⚠️ ScraperAPI bloqueia facebook.com por TOS** (descoberto 25 Jul 16:55 UTC):
+   `curl "https://api.scraperapi.com/?api_key=KEY&url=https://www.facebook.com/ads/library/?..."` →
+   HTTP 403 `Scraping this url is not allowed. Please see our Terms of Use`.
+   **A Meta Ads Library é facebook.com — então ScraperAPI NUNCA vai funcionar
+   para isso.** O usuário PRECISA cadastrar uma chave **Firecrawl** (firecrawl.dev),
+   que renderiza JS e não bloqueia Facebook. A UI do Admin agora mostra warning
+   amber quando só há ScraperAPI sem Firecrawl ativo.
+3. **Endpoint de diagnóstico** (deploy 25 Jul 16:42 UTC):
    `GET /api/collect/diagnostic` (somente admin,Bearer token JWT do usuário logado).
    Retorna: env vars presentes/ausentes (url/publishable/service_role), chaves
    ativas, últimas 20 bibliotecas com last_collection_error, e `_diagnosticPool`
    (pool_count, last_key_load_error, cache_age, exhausted_names).
+   Suporta `?reset=1` que limpa o cache EXHAUSTED e o DYN_CACHE (cold-start virtual).
    No console do browser (logado como admin):
    ```js
-   const t = (await (await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2')).supabase.createClient(VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY).auth.getSession()).data.session?.access_token
-   //ou mais simples: pegue do localStorage: JSON.parse(localStorage.getItem('sb-yigyythppceqyjhxzsav-auth-token')).access_token
-   fetch('/api/collect/diagnostic', {headers:{authorization:'Bearer '+t}}).then(r=>r.json()).then(console.log)
+   const t = JSON.parse(localStorage.getItem('sb-yigyythppceqyjhxzsav-auth-token')).access_token;
+   fetch('/api/collect/diagnostic?reset=1', {headers:{authorization:'Bearer '+t}}).then(r=>r.json()).then(console.log);
    ```
-3. **Causas comuns**:
+4. **Causas comuns** (após #2 estar resolvido com Firecrawl):
    - `SUPABASE_SERVICE_ROLE_KEY` ausente no runtime da função serverless
      (verificar via `vercel env ls production` e `vercel env ls development`).
    - `loadDynamicKeys()` silenciosamente retorna `[]` quando a query falha;
      agora (commit 611e544) propaga o erro real em `lastKeyLoadError`.
-   - Chave ScraperAPI retornou 401/403 → `isCreditsExhausted` marcou como
-     esgotada por 1h (TTL `EXHAUSTED_TTL_MS`). O diagnostic mostra em
-     `exhausted_names`. Para reset imediato: reiniciar a função (cold-start)
-     ou adicionar uma chave nova.
+   - Chave ScraperAPI retornou 401/403 (conta nova em provisioning) → antes
+     marcava esgotada por 1h; agora (commit 4601f32) trata como transiente,
+     NÃO marca esgotada. TTL de EXHAUSTED reduziu de 60min → 10min.
+   - Refresh manual filtrava por `created_by` além de `libraryId`, fazendo
+     libraries_total=0 quando a lib foi criada por outra conta (commit d288068
+     removeu o filtro de dono quando libraryId é passado).
 
 ## 14. Decisões de design da feature "bibliotecas" (25 Jul 2026)
 
