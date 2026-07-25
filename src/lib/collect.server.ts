@@ -823,7 +823,12 @@ export async function runCollection(opts?: {
 
   let query = sb.from("libraries").select("*").eq("status", "active");
   if (opts?.libraryId) query = query.eq("id", opts.libraryId);
-  if (opts?.userId) query = query.eq("created_by", opts.userId);
+  // Filtra por dono apenas em coletas em lote ("atualizar tudo"). Quando
+  // um libraryId específico é passado (refresh manual), não filtrar por
+  // created_by — isso garante que o refresh funcione mesmo se houver
+  // inconsistência na autoria do registro (ex.: libs criadas antes do
+  // trigger set_created_by, ou migradas).
+  if (opts?.userId && !opts?.libraryId) query = query.eq("created_by", opts.userId);
   const { data: libraries, error } = await query;
   if (error) throw error;
 
