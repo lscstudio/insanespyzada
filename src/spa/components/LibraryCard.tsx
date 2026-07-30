@@ -50,11 +50,6 @@ export function LibraryCard({
             </Badge>
           )}
         </div>
-        {top && (
-          <div className="absolute bottom-2 right-2 border border-white/30 bg-black/60 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-white">
-            ×{num(top.duplications)} dup
-          </div>
-        )}
       </div>
 
       {/* corpo */}
@@ -84,18 +79,12 @@ export function LibraryCard({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-px overflow-hidden border border-line bg-line dark:border-dline dark:bg-dline">
+        <div className="grid grid-cols-1 gap-px overflow-hidden border border-line bg-line dark:border-dline dark:bg-dline">
           <div className="bg-card px-3 py-2 dark:bg-dcard">
             <div className="text-[9px] font-bold uppercase tracking-widest text-ink-3 dark:text-dink-3">
               Ads ativos
             </div>
             <div className="text-xl font-extrabold tabular-nums">{num(lib.activeAds)}</div>
-          </div>
-          <div className="bg-card px-3 py-2 dark:bg-dcard">
-            <div className="text-[9px] font-bold uppercase tracking-widest text-ink-3 dark:text-dink-3">
-              Criativos únicos
-            </div>
-            <div className="text-xl font-extrabold tabular-nums">{num(lib.uniqueCreatives)}</div>
           </div>
         </div>
 

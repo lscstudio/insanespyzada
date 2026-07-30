@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Flame, LibraryBig, Layers, ArrowRight, Plus } from "lucide-react";
+import { Flame, LibraryBig, Plus } from "lucide-react";
 import { useStore } from "../lib/store";
 import { PLANS } from "../lib/plans";
 import { num } from "../lib/format";
@@ -14,7 +14,6 @@ export function Home() {
   const p = PLANS[plan];
 
   const totalAds = libraries.reduce((acc, l) => acc + l.activeAds, 0);
-  const totalCreatives = libraries.reduce((acc, l) => acc + l.uniqueCreatives, 0);
   const escalating = libraries.filter((l) => l.isEscalating);
   const favorites = libraries.filter((l) => l.favorite);
 
@@ -68,12 +67,6 @@ export function Home() {
           label="Bibliotecas monitoradas"
           value={num(libraries.length)}
           sub={`limite: ${p.librariesLimit === Infinity ? "∞" : p.librariesLimit}`}
-        />
-        <Stat label="Anúncios ativos" value={num(totalAds)} sub="soma de todas as bibliotecas" />
-        <Stat
-          label="Criativos únicos"
-          value={num(totalCreatives)}
-          sub="criativos distintos rodando"
         />
         <Stat
           label="Escalando agora"
@@ -175,25 +168,6 @@ export function Home() {
                 ))}
               </div>
             )}
-          </Card>
-
-          <Card className="flex items-center justify-between gap-4 p-6">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center border border-line text-ink-2 dark:border-dline dark:text-dink-2">
-                <Layers size={16} />
-              </span>
-              <div>
-                <div className="text-xs font-extrabold uppercase tracking-wide">Swipe curado</div>
-                <div className="text-[11px] text-ink-2 dark:text-dink-2">
-                  Criativos aprovados pela curadoria, ordenados por score.
-                </div>
-              </div>
-            </div>
-            <Link to="/swipe">
-              <Button variant={plan === "free" ? "outline" : "primary"}>
-                {plan === "free" ? "Bloqueado" : "Abrir"} <ArrowRight size={12} />
-              </Button>
-            </Link>
           </Card>
         </div>
       </div>

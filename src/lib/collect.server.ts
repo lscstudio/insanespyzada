@@ -692,7 +692,7 @@ export function parseAdLibraryPage(html: string, markdown: string): ParsedResult
 
   const top = creativesArr[0];
   return {
-    active_ads_count: count || creativesArr.length,
+    active_ads_count: count,
     total_results_text: totalText,
     unique_creatives: creativesArr.length,
     top_creative_url: top?.preview_url ?? null,

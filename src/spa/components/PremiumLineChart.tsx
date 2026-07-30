@@ -2,21 +2,21 @@ import { useId, useMemo, useRef, useState } from "react";
 import type { Snapshot } from "../lib/types";
 
 /**
- * PremiumLineChart — gráfico de linha único estilo Stripe/Vercel/Linear.
+ * PremiumLineChart — gráfico de linha estilo Stripe/Vercel/Linear.
  *
- * - Linha suave (catmull-rom → bézier), 2px stroke #4F7DFF
- * - Área semi-transparente com gradiente vertical fade→transparent
- * - Sem markers fixos; ponto final destacado (estilo Stripe)
- * - Animação de entrada (stroke draw + area fade)
- * - Interativo: hover com cursor vertical, dot no ponto, tooltip HTML
- * - Só grid horizontal hairline, Y-axis discreto
- * - Filtros 7D/14D/30D opcionais (top-right), ativo em azul + underline
- * - Card rounded 20px, padding 32px, dark bg (#0F1115) / light bg (#FFFFFF)
+ * - Linha suave (catmull-rom → bézier) com stroke em gradiente
+ * - Área semi-transparente com fade vertical
+ * - Eixo Y com ticks de valor; grid hairline horizontal
+ * - Crosshair: band vertical + dot + tooltip HTML com delta vs ponto anterior
+ * - Marcadores min/max anotados
+ * - Ponto final pulsante; animação de entrada (stroke draw + area fade)
+ * - Filtros 7D/14D/30D opcionais
  */
 
 const W = 1000;
 const H = 280;
-const PAD_X = 36;
+const PAD_LEFT = 48;
+const PAD_RIGHT = 24;
 const PAD_TOP = 28;
 const PAD_BOTTOM = 36;
 
@@ -29,7 +29,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
     const p2 = pts[i + 1];
     const p3 = pts[Math.min(pts.length - 1, i + 2)];
     const c1x = p1.x + (p2.x - p0.x) / 6;
-    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c1y = p1.y + (p2.y - p1.y) / 6;
     const c2x = p2.x - (p3.x - p1.x) / 6;
     const c2y = p2.y - (p3.y - p1.y) / 6;
     d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
@@ -58,7 +58,7 @@ function hourLabelLong(iso: string): string {
     minute: "2-digit",
   });
 }
-function num(v: number): string {
+function fmtNum(v: number): string {
   return v.toLocaleString("pt-BR");
 }
 
@@ -70,7 +70,6 @@ export interface PremiumLineChartProps {
   title?: string;
   subtitle?: string;
   height?: number;
-  /** lock para não usar filtros (já fatiado externamente). */
   windowLocked?: number;
 }
 
@@ -88,6 +87,7 @@ export function PremiumLineChart({
 }: PremiumLineChartProps) {
   const [win, setWin] = useState<WindowOpt>((defaultWindow as WindowOpt) ?? 30);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [hoverX, setHoverX] = useState<number | null>(null);
   const effective = windowLocked ?? win;
   const fmtShort = labelFormat === "day" ? dayLabel : hourLabel;
   const fmtLong = labelFormat === "day" ? dayLabelLong : hourLabelLong;
@@ -102,15 +102,18 @@ export function PremiumLineChart({
   }, [data, effective]);
 
   const values = slice.map((d) => d.activeAds);
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
-  const span = max - min || 1;
-  const innerW = W - PAD_X * 2;
+  const maxV = Math.max(...values, 1);
+  const minV = Math.min(...values, 0);
+  // adiciona 8% de headroom no topo para o ponto não colar na borda
+  const yMax = maxV === 0 ? 1 : maxV + (maxV - minV) * 0.08;
+  const yMin = Math.min(0, minV - (maxV - minV) * 0.04);
+  const span = yMax - yMin || 1;
+  const innerW = W - PAD_LEFT - PAD_RIGHT;
   const innerH = height - PAD_TOP - PAD_BOTTOM;
 
   const pts = values.map((v, i) => ({
-    x: PAD_X + (slice.length === 1 ? innerW / 2 : (i / (values.length - 1)) * innerW),
-    y: PAD_TOP + (1 - (v - min) / span) * innerH,
+    x: PAD_LEFT + (slice.length === 1 ? innerW / 2 : (i / (values.length - 1)) * innerW),
+    y: PAD_TOP + (1 - (v - yMin) / span) * innerH,
   }));
 
   const line = smoothPath(pts);
@@ -121,7 +124,21 @@ export function PremiumLineChart({
       : "";
 
   const last = pts[pts.length - 1];
-  const gridYs = [0.2, 0.4, 0.6, 0.8].map((f) => PAD_TOP + f * innerH);
+  // 4 ticks Y (inclui extremos)
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => {
+    const v = yMin + f * span;
+    const y = PAD_TOP + (1 - f) * innerH;
+    return { y, v: Math.round(v) };
+  });
+
+  // min/max points
+  let maxIdx = 0;
+  let minIdx = 0;
+  for (let i = 1; i < values.length; i++) {
+    if (values[i] > values[maxIdx]) maxIdx = i;
+    if (values[i] < values[minIdx]) minIdx = i;
+  }
+  const hasMinMax = values.length >= 3 && maxV !== minV;
 
   const labelCount = Math.min(6, slice.length);
   const labelIdxs =
@@ -141,11 +158,7 @@ export function PremiumLineChart({
   const hasData = slice.length >= 2;
   const WINDOWS: WindowOpt[] = [7, 14, 30];
 
-  function handleMove(e: React.MouseEvent<SVGSVGElement>) {
-    if (!hasData || !svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const xPx = e.clientX - rect.left;
-    const xVb = (xPx / rect.width) * W;
+  function nearestIdx(xVb: number): number {
     let nearest = 0;
     let best = Infinity;
     for (let i = 0; i < pts.length; i++) {
@@ -155,7 +168,16 @@ export function PremiumLineChart({
         nearest = i;
       }
     }
-    setHoverIdx(nearest);
+    return nearest;
+  }
+
+  function handleMove(e: React.MouseEvent<SVGSVGElement>) {
+    if (!hasData || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const xPx = e.clientX - rect.left;
+    const xVb = (xPx / rect.width) * W;
+    setHoverIdx(nearestIdx(xVb));
+    setHoverX(xVb);
   }
 
   function handleTouch(e: React.TouchEvent<SVGSVGElement>) {
@@ -165,22 +187,18 @@ export function PremiumLineChart({
     const rect = svgRef.current.getBoundingClientRect();
     const xPx = touch.clientX - rect.left;
     const xVb = (xPx / rect.width) * W;
-    let nearest = 0;
-    let best = Infinity;
-    for (let i = 0; i < pts.length; i++) {
-      const dx = Math.abs(pts[i].x - xVb);
-      if (dx < best) {
-        best = dx;
-        nearest = i;
-      }
-    }
-    setHoverIdx(nearest);
+    setHoverIdx(nearestIdx(xVb));
+    setHoverX(xVb);
   }
 
-  // posição do tooltip em % (relativo ao wrapper do svg)
-  const tipLeftPct = hoverIdx !== null ? (pts[hoverIdx].x / W) * 100 : 0;
-  const tipTopPct = hoverIdx !== null ? (pts[hoverIdx].y / height) * 100 : 0;
-  const tipFlip = tipLeftPct > 75;
+  const hoverPoint = hoverIdx !== null ? pts[hoverIdx] : null;
+  const hoverVal = hoverIdx !== null ? values[hoverIdx] : 0;
+  const prevHoverVal = hoverIdx !== null && hoverIdx > 0 ? values[hoverIdx - 1] : null;
+  const hoverDelta = prevHoverVal !== null ? hoverVal - prevHoverVal : null;
+
+  const tipLeftPct = hoverPoint ? (hoverPoint.x / W) * 100 : 0;
+  const tipTopPct = hoverPoint ? (hoverPoint.y / height) * 100 : 0;
+  const tipFlip = tipLeftPct > 62;
 
   return (
     <div
@@ -232,7 +250,7 @@ export function PremiumLineChart({
           {hasData && !title && (
             <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
               <span style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>
-                {num(current)}
+                {fmtNum(current)}
               </span>
               <span
                 style={{
@@ -296,22 +314,28 @@ export function PremiumLineChart({
             viewBox={`0 0 ${W} ${height}`}
             style={{ width: "100%", height: "auto", display: "block" }}
             onMouseMove={handleMove}
-            onMouseLeave={() => setHoverIdx(null)}
+            onMouseLeave={() => {
+              setHoverIdx(null);
+              setHoverX(null);
+            }}
             onTouchStart={handleTouch}
             onTouchMove={handleTouch}
-            onTouchEnd={() => setHoverIdx(null)}
+            onTouchEnd={() => {
+              setHoverIdx(null);
+              setHoverX(null);
+            }}
           >
             <defs>
               <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4F7DFF" stopOpacity={0.12} />
+                <stop offset="0%" stopColor="#4F7DFF" stopOpacity={0.22} />
                 <stop offset="100%" stopColor="#4F7DFF" stopOpacity={0} />
               </linearGradient>
               <linearGradient id={gradIdSolid} x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#4F7DFF" />
-                <stop offset="100%" stopColor="#6B8EFF" />
+                <stop offset="100%" stopColor="#7B9CFF" />
               </linearGradient>
               <filter id={`${gradId}-glow`} x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feGaussianBlur stdDeviation="2.4" result="blur" />
                 <feMerge>
                   <feMergeNode in="blur" />
                   <feMergeNode in="SourceGraphic" />
@@ -319,29 +343,56 @@ export function PremiumLineChart({
               </filter>
             </defs>
 
-            {/* grade horizontal hairline */}
-            {gridYs.map((y, i) => (
-              <line
-                key={i}
-                x1={PAD_X}
-                x2={W - PAD_X}
-                y1={y}
-                y2={y}
-                stroke="var(--pc-grid, #2A2A35)"
-                strokeWidth={1}
-                strokeOpacity={0.4}
-              />
+            {/* grade horizontal hairline + rótulos Y */}
+            {yTicks.map((t, i) => (
+              <g key={i}>
+                <line
+                  x1={PAD_LEFT}
+                  x2={W - PAD_RIGHT}
+                  y1={t.y}
+                  y2={t.y}
+                  stroke="var(--pc-grid, #2A2A35)"
+                  strokeWidth={1}
+                  strokeOpacity={hoverPoint && Math.abs(hoverPoint.y - t.y) < 2 ? 0.6 : 0.32}
+                  style={{ transition: "stroke-opacity .15s" }}
+                />
+                <text
+                  x={PAD_LEFT - 8}
+                  y={t.y + 3}
+                  textAnchor="end"
+                  fontSize={10}
+                  fontFamily="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+                  fill="var(--pc-sub, #8A8A92)"
+                  fillOpacity={0.75}
+                >
+                  {fmtNum(t.v)}
+                </text>
+              </g>
             ))}
 
+            {/* band vertical no hover (realça a coluna) */}
+            {hoverPoint && (
+              <rect
+                x={hoverPoint.x - 14}
+                y={PAD_TOP - 8}
+                width={28}
+                height={innerH + 12}
+                fill="#4F7DFF"
+                fillOpacity={0.06}
+                rx={4}
+                style={{ transition: "x .08s ease" }}
+              />
+            )}
+
             {/* cursor vertical no hover */}
-            {hoverIdx !== null && (
+            {hoverPoint && (
               <line
-                x1={pts[hoverIdx].x}
-                x2={pts[hoverIdx].x}
+                x1={hoverPoint.x}
+                x2={hoverPoint.x}
                 y1={PAD_TOP - 8}
                 y2={baseline + 4}
                 stroke="#4F7DFF"
-                strokeOpacity={0.35}
+                strokeOpacity={0.45}
                 strokeWidth={1}
                 strokeDasharray="3 3"
                 style={{ transition: "x .08s ease" }}
@@ -357,7 +408,7 @@ export function PremiumLineChart({
                 d={line}
                 fill="none"
                 stroke={`url(#${gradIdSolid})`}
-                strokeWidth={2}
+                strokeWidth={2.25}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 pathLength={1}
@@ -366,7 +417,49 @@ export function PremiumLineChart({
               />
             )}
 
-            {/* ponto final destacado (estilo Stripe) */}
+            {/* marcadores min/max */}
+            {hasMinMax && hoverIdx === null && (
+              <>
+                <circle
+                  cx={pts[maxIdx].x}
+                  cy={pts[maxIdx].y}
+                  r={3}
+                  fill="#10B981"
+                  className="plc-area-fade"
+                />
+                <text
+                  x={pts[maxIdx].x}
+                  y={pts[maxIdx].y - 10}
+                  textAnchor="middle"
+                  fontSize={9.5}
+                  fontFamily="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+                  fill="#10B981"
+                  className="plc-area-fade"
+                >
+                  máx {fmtNum(values[maxIdx])}
+                </text>
+                <circle
+                  cx={pts[minIdx].x}
+                  cy={pts[minIdx].y}
+                  r={3}
+                  fill="#F87171"
+                  className="plc-area-fade"
+                />
+                <text
+                  x={pts[minIdx].x}
+                  y={pts[minIdx].y + 16}
+                  textAnchor="middle"
+                  fontSize={9.5}
+                  fontFamily="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+                  fill="#F87171"
+                  className="plc-area-fade"
+                >
+                  min {fmtNum(values[minIdx])}
+                </text>
+              </>
+            )}
+
+            {/* ponto final pulsante (estilo Stripe) */}
             {last && hoverIdx === null && (
               <>
                 <circle cx={last.x} cy={last.y} r={4} fill="#4F7DFF" className="plc-area-fade" />
@@ -378,18 +471,18 @@ export function PremiumLineChart({
                   stroke="#4F7DFF"
                   strokeOpacity={0.3}
                   strokeWidth={1.5}
-                  className="plc-area-fade"
+                  className="plc-pulse"
                 />
               </>
             )}
 
             {/* dot no ponto hoverado */}
-            {hoverIdx !== null && (
+            {hoverPoint && (
               <>
                 <circle
-                  cx={pts[hoverIdx].x}
-                  cy={pts[hoverIdx].y}
-                  r={6}
+                  cx={hoverPoint.x}
+                  cy={hoverPoint.y}
+                  r={6.5}
                   fill="#4F7DFF"
                   stroke="var(--pc-bg, #0F1115)"
                   strokeWidth={2.5}
@@ -408,7 +501,8 @@ export function PremiumLineChart({
                 fontSize={10.5}
                 fontFamily="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
                 fill="var(--pc-sub, #8A8A92)"
-                fillOpacity={0.7}
+                fillOpacity={hoverIdx === i ? 1 : 0.7}
+                style={{ transition: "fill-opacity .15s" }}
               >
                 {fmtShort(slice[i].t)}
               </text>
@@ -416,7 +510,7 @@ export function PremiumLineChart({
           </svg>
 
           {/* tooltip HTML overlay */}
-          {hoverIdx !== null && (
+          {hoverPoint && (
             <div
               className="plc-tooltip"
               style={{
@@ -430,32 +524,55 @@ export function PremiumLineChart({
                 background: "var(--pc-tip-bg, #1A1A24)",
                 border: "1px solid var(--pc-tip-border, #2A2A35)",
                 borderRadius: 10,
-                padding: "8px 12px",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+                padding: "9px 13px",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
                 zIndex: 5,
                 whiteSpace: "nowrap",
               }}
             >
               <div
                 style={{
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: 700,
                   color: "#4F7DFF",
                   fontVariantNumeric: "tabular-nums",
                   lineHeight: 1.1,
                 }}
               >
-                {num(slice[hoverIdx].activeAds)}
+                {fmtNum(hoverVal)}
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: "var(--pc-sub, #8A8A92)",
+                    marginLeft: 6,
+                  }}
+                >
+                  ads
+                </span>
               </div>
+              {hoverDelta !== null && hoverDelta !== 0 && (
+                <div
+                  style={{
+                    marginTop: 3,
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    color: hoverDelta > 0 ? "#10B981" : "#F87171",
+                  }}
+                >
+                  {hoverDelta > 0 ? "+" : ""}
+                  {fmtNum(hoverDelta)} vs anterior
+                </div>
+              )}
               <div
                 style={{
-                  marginTop: 2,
+                  marginTop: 3,
                   fontSize: 10.5,
                   color: "var(--pc-sub, #8A8A92)",
                   fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
                 }}
               >
-                {fmtLong(slice[hoverIdx].t)}
+                {fmtLong(slice[hoverIdx!].t)}
               </div>
             </div>
           )}
@@ -499,6 +616,18 @@ export function PremiumLineChart({
         .plc-area-fade {
           opacity: 0;
           animation: plc-fade 0.7s ease-out 0.55s forwards;
+        }
+        @keyframes plc-pulse {
+          0% { r: 8; opacity: 0.5; }
+          70% { r: 13; opacity: 0; }
+          100% { r: 13; opacity: 0; }
+        }
+        .plc-pulse {
+          transform-origin: center;
+          animation: plc-pulse 2.2s ease-out infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .plc-line-draw, .plc-area-fade, .plc-pulse { animation: none; opacity: 1; }
         }
       `}</style>
     </div>
