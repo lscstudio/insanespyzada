@@ -11,7 +11,7 @@
 > **REGRA #2:** Para ler este arquivo primeiro thing no novo chat:
 > `git status -sb && git log --oneline -5 && cat HANDOFF.md`.
 
-> Última atualização: 25 Jul 2026, ~17:00 UTC
+> Última atualização: 30 Jul 2026
 
 ## 1. Stack & deploy
 
@@ -171,3 +171,40 @@ cat HANDOFF.md
 bun dev  # testar local (.env.local aponta ao cloud)
 curl -sI https://insanespyzada.vercel.app  # deve dar 200
 ```
+
+## 15. Refinamentos de UI (30 Jul 2026 — commit `f22d3b5`)
+
+Sessão de limpeza visual + correção de coleta. Deploy confirmado (HTTP 200).
+
+### Visão Geral (Home.tsx)
+- Removidos KPIs: **"Anúncios ativos"** (soma de todas as bibliotecas) e **"Criativos únicos"** (criativos distintos rodando). Restam: Bibliotecas monitoradas + Escalando agora.
+- Removido o card **"Swipe curado"** (atalho para /swipe).
+
+### BibliotecaDetail.tsx
+- Removidos: Stat **"Criativos únicos"**, Stat **"Top criativo"**, card **"Criativo mais escalado"** e a tabela **"Top criativos por duplicação"** (ads duplicados). KPI agora é só "Anúncios ativos" (full-width em sm+).
+- **Histórico de snapshots refatorado**: agora mostra somente hora do push (`hourBR` + `dayLabel`) e ads ativos por snapshot, com barra de proporção horizontal (relativo ao pico), marcador "último push" destacado, scroll independente, header com contagem total e footer minimalista (último push + status).
+
+### LibraryCard.tsx
+- Removido KPI **"Criativos únicos"** (agora só "Ads ativos").
+- Removida a badge **"×N dup"** do canto do thumbnail.
+
+### Bug de coleta — "1 ad ativo quando 0" (collect.server.ts:695)
+- `parseAdLibraryPage` usava `count || creativesArr.length` como fallback para `active_ads_count`. Quando a biblioteca não tem mais ads (page mostra "0 resultados"), count=0 mas o regex ainda capturava 1 CDN URL stray → retornava 1.
+- Agora usa `count` direto. Se o push retorna 0 ads (ou biblioteca sem mais ads), grava **0** no snapshot. `normalizeFromLLM` (caminho LLM) já estava correto.
+
+### PremiumLineChart.tsx — gráficos mais interativos/funcionais
+Melhorias aplicadas ao único chart em uso (Home, BibliotecaDetail, Admin):
+- **Eixo Y** com 5 ticks de valor (antes não havia).
+- **Crosshair aprimorado**: band vertical semi-transparente realçando a coluna + linha tracejada + dot com stroke do bg.
+- **Tooltip** mostra valor + **delta vs ponto anterior** (verde/vermelho) + timestamp longo.
+- **Marcadores min/max** anotados quando há ≥3 pontos e sem hover.
+- **Ponto final pulsante** (animação `plc-pulse`) + animação de draw + area fade mantidas.
+- Padding lateral aumentado (`PAD_LEFT=48`, `PAD_RIGHT=24`) p/ acomodar rótulos Y.
+- Suporte a `prefers-reduced-motion`.
+- Headroom de 8% no topo para o ponto não colar na borda.
+
+### Verificação
+- `bun run lint`: 19 erros / 12 warnings — todos pré-existentes (arquivos não tocados: admin.functions.ts, i18n.tsx, admin.tsx route, MecanismosTree, store.tsx). Sem novas violações.
+- `bunx tsc --noEmit`: 211 linhas (baseline mantida — erro pré-existente Home.tsx:25 `reduce` sem initial value).
+- `bun run build`: ✓ built in 288ms.
+- Deploy: `git push origin main` → HTTP 200.
